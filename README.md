@@ -1,6 +1,6 @@
 <!-- markdownlint-disable MD041 -->
 
-English | [简体中文](https://github.com/mazeyqian/mazey/blob/main/README_ZH.md)
+English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README_ZH.md)
 
 # Mazey
 
@@ -10,7 +10,7 @@ English | [简体中文](https://github.com/mazeyqian/mazey/blob/main/README_ZH.
 [npm-image]: https://img.shields.io/npm/v/mazey
 [npm-url]: https://npmjs.org/package/mazey
 [l-image]: https://img.shields.io/npm/l/mazey
-[l-url]: https://github.com/mazeyqian/mazey
+[l-url]: https://github.com/chengchuu/mazey
 
 Mazey is a functional library for daily front-end work. There are already many excellent libraries for front-end development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for front-end needs.
 
@@ -868,7 +868,7 @@ Get page load time(`PerformanceNavigationTiming`).
 
 This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
 The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
-If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/mazeyqian/mazey/releases/tag/v3.9.7)).
+If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/chengchuu/mazey/releases/tag/v3.9.7)).
 
 Usage:
 
@@ -985,4 +985,4 @@ npm run docs
 
 ## License
 
-This software is released under the terms of the [MIT license](https://github.com/mazeyqian/mazey/blob/main/LICENSE).
+This software is released under the terms of the [MIT license](https://github.com/chengchuu/mazey/blob/main/LICENSE).
