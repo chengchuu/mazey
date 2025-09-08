@@ -55,9 +55,20 @@ export function isSafePWAEnv(): boolean {
     }
     return false;
   }
+  // HTTPS
+  function isHttps() {
+    return window.location.protocol === "https:";
+  }
   // 浏览器信息
   const BrowserType = getBrowserInfo();
-  if ("serviceWorker" in navigator && isSupportAsyncAwait() && isSupportPromise() && Boolean(window.fetch) && Boolean(window.indexedDB) && Boolean(window.caches) && !BrowserType["shell"]) {
+  if (
+    "serviceWorker" in navigator &&
+    isSupportAsyncAwait() &&
+    isSupportPromise() &&
+    Boolean(window.fetch) && Boolean(window.indexedDB) && Boolean(window.caches) &&
+    !BrowserType["shell"] &&
+    isHttps()
+  ) {
     pwaSupport = "pwa";
     return true;
   }
