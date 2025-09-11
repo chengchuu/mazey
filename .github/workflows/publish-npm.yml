@@ -1,0 +1,87 @@
+name: Publish npm Packages
+
+env:
+  NODE_VERSION: '16'
+  PROJECT_NAME: 'mazey'
+
+on:
+  push:
+    branches:
+      - 'release/v*'
+  pull_request:
+    branches:
+      - main
+      - 'release/v*'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build package
+        run: npm run build --if-present
+
+      - name: Run tests
+        run: npm test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: 'https://registry.npmjs.org/'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build package
+        run: npm run build --if-present
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
+
+      - name: Configure .npmrc for GitHub Packages
+        run: |
+          echo "@${{ github.actor }}:registry=https://npm.pkg.github.com/" > .npmrc
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" >> .npmrc
+
+      - name: Publish to GitHub Packages
+        if: success() # Only if previous steps succeed
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/change-package-name.js "@${{ github.actor }}/${{ env.PROJECT_NAME }}"
+          npm publish --registry=https://npm.pkg.github.com/
+
+      - name: Restore modified files
+        if: always() # Always run this step
+        run: git checkout -- package.json .npmrc
+
+      - name: Create git tag for version
+        if: success()
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag -a "v$VERSION" -m "Release v$VERSION"
+          git push origin "v$VERSION"
