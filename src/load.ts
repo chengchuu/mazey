@@ -259,7 +259,7 @@ export function loadScript(
   if (cssUrl) {
     const resolvedCssUrl = resolveCssUrl(url, cssUrl);
     if (resolvedCssUrl) loadCSS(resolvedCssUrl).catch(err => {
-      console.error(`Failed to load CSS from ${resolvedCssUrl}: ${err.message}`);
+      console.error(`Failed to load CSS from ${resolvedCssUrl}: ${err?.message}`);
     });
   }
   // 如果没有 script 标签，那么代码就不会运行。可以利用这一事实，在页面的第一个 script 标签上使用 insertBefore()。
