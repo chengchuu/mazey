@@ -2,6 +2,7 @@ import type {
   MazeyFnParams, MazeyFnReturn, LoadScriptReturns, MazeyWindow, 
 } from "./typing";
 import { doFn } from "./util";
+import { isValidHttpUrl } from "./url";
 
 /**
  * EN: Load a CSS file from the server.
@@ -159,7 +160,26 @@ const defaultLoadScriptOptions = {
   isAsync: false,
   isCrossOrigin: false,
   attributes: null,
+  cssURL: "",
 };
+
+/**
+ * Resolve a CSS URL relative to a JS URL's directory
+ * 
+ * @param jsURL - The JavaScript URL
+ * @param cssPath - The CSS path (filename or relative path)
+ * @returns The resolved CSS URL
+ */
+function resolveCSSURL(jsURL: string, cssPath: string): string {
+  if (!cssPath) return "";
+  if (isValidHttpUrl(cssPath)) return cssPath;
+  // Get the directory of the JS URL
+  const jsUrlParts = jsURL.split('/');
+  jsUrlParts.pop(); // Remove filename
+  const jsDirectory = jsUrlParts.join('/');
+  // Combine with CSS path
+  return `${jsDirectory}/${cssPath}`;
+}
 
 /**
  * EN: Load a JavaScript file from the server and execute it.
@@ -204,6 +224,7 @@ const defaultLoadScriptOptions = {
  * @param {boolean} options.isAsync -- 是否添加 async 标签
  * @param {boolean} options.isCrossOrigin -- 是否跨域
  * @param {object} options.attributes -- 其他属性
+ * @param {string} options.cssURL -- CSS 资源路径
  * @returns {Promise<string>} -- true 成功
  * @category Load
  */
@@ -217,11 +238,12 @@ export function loadScript(
     isAsync?: boolean;
     isCrossOrigin?: boolean;
     attributes?: Record<string, string> | null;
+    cssURL?: string;
   } = {
     ...defaultLoadScriptOptions,
   }
 ): LoadScriptReturns {
-  const { id, callback, timeout, isDefer, isAsync, isCrossOrigin, attributes } = Object.assign(
+  const { id, callback, timeout, isDefer, isAsync, isCrossOrigin, attributes, cssURL } = Object.assign(
     {
       ...defaultLoadScriptOptions,
     },
@@ -232,6 +254,13 @@ export function loadScript(
   const script: HTMLScriptElement = document.createElement("script");
   if (!script) {
     Promise.reject("Not support create script element");
+  }
+  // 如果提供了 cssURL，则先加载 CSS 文件
+  if (cssURL) {
+    const resolvedCSSURL = resolveCSSURL(url, cssURL);
+    if (resolvedCSSURL) loadCSS(resolvedCSSURL).catch(err => {
+      console.error(`Failed to load CSS from ${resolvedCSSURL}: ${err.message}`);
+    });
   }
   // 如果没有 script 标签，那么代码就不会运行。可以利用这一事实，在页面的第一个 script 标签上使用 insertBefore()。
   const firstScript: HTMLScriptElement = document.getElementsByTagName("script")[0];
