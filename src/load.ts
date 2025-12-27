@@ -174,9 +174,9 @@ function resolveCssUrl(jsUrl: string, cssPath: string): string {
   if (!cssPath) return "";
   if (isValidHttpUrl(cssPath)) return cssPath;
   // Get the directory of the JS URL
-  const jsUrlParts = jsUrl.split('/');
+  const jsUrlParts = jsUrl.split("/");
   jsUrlParts.pop(); // Remove filename
-  const jsDirectory = jsUrlParts.join('/');
+  const jsDirectory = jsUrlParts.join("/");
   // Combine with CSS path
   return `${jsDirectory}/${cssPath}`;
 }

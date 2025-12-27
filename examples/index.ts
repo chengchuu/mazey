@@ -104,8 +104,9 @@ const loadScriptOptions = {
   isAsync: true,
   isCrossOrigin: true,
   attributes: { onece: "onece-9977", class: "diy-script" },
+  cssUrl: "swiper.min.css",
 };
-loadScript("//i.mazey.net/lib/layer/mobile/layer.js", {
+loadScript("//i.mazey.net/lib/swiper/9.3.2/swiper.min.js", {
   ...loadScriptOptions,
 });
 
