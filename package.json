@@ -1,7 +1,7 @@
 {
   "name": "mazey",
-  "version": "4.7.18",
-  "description": "A functional library for daily front-end work.",
+  "version": "4.8.0",
+  "description": "A functional library for daily frontend work.",
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",
   "typings": "lib/index.d.ts",
@@ -30,7 +30,7 @@
     "url": "git+https://github.com/chengchuu/mazey.git"
   },
   "keywords": [
-    "front-end",
+    "frontend",
     "load",
     "math",
     "url",

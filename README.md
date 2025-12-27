@@ -12,7 +12,7 @@ English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README_ZH.
 [l-image]: https://img.shields.io/npm/l/mazey
 [l-url]: https://github.com/chengchuu/mazey
 
-Mazey is a functional library for daily front-end work. There are already many excellent libraries for front-end development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for front-end needs.
+Mazey is a functional library for daily frontend work. There are already many excellent libraries for frontend development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for frontend needs.
 
 ## Install
 
@@ -933,10 +933,10 @@ MazeyLog: I am object. {a: 123, b: 456}
 
 ### Development Environment
 
-| Dependency | Version  |
-|------------|----------|
-| Node.js    | v16.19.0, v18.12.1 |
-| TypeScript | v5.1.6   |
+| Dependency | Version                      |
+|------------|------------------------------|
+| Node.js    | v16.19.0, v18.12.1, v22.21.1 |
+| TypeScript | v5.1.6                       |
 
 ### Scripts
 

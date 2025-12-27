@@ -355,7 +355,7 @@ export function genStyleString(selector: string, styleArray: Array<string>): str
  * Usage:
  * 
  * ```html
- * <meta name="keywords" content="mazey,web,front-end">
+ * <meta name="keywords" content="mazey,web,frontend">
  * ```
  * 
  * ```javascript
@@ -368,7 +368,7 @@ export function genStyleString(selector: string, styleArray: Array<string>): str
  * Output:
  * 
  * ```text
- * mazey,web,front-end
+ * mazey,web,frontend
  * ```
  * 
  * @param {string} name - The name of the meta tag.
