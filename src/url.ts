@@ -379,6 +379,10 @@ export function getUrlFileType(url: string): boolean | string {
  *
  * Usage:
  *
+ * ```html
+ * <script src="https://example.com/example.js?test=hello&name=mazey"></script>
+ * ```
+ * 
  * ```javascript
  * import { getScriptQueryParam } from "mazey";
  * 
