@@ -8,7 +8,9 @@ import { deepCopy } from "./util";
  * Usage:
  *
  * ```javascript
- * const ret = longestComSubstring('fish', 'finish');
+ * import { longestComSubstring } from "mazey";
+ * 
+ * const ret = longestComSubstring("fish", "finish");
  * console.log(ret);
  * ```
  *
@@ -63,7 +65,9 @@ export function calLongestCommonSubstring(aStr: string, bStr: string): number {
  * Usage:
  *
  * ```javascript
- * const ret = longestComSubsequence('fish', 'finish');
+ * import { longestComSubsequence } from "mazey";
+ * 
+ * const ret = longestComSubsequence("fish", "finish");
  * console.log(ret);
  * ```
  *
@@ -127,6 +131,8 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * Usage:
  *
  * ```javascript
+ * import { isHit } from "mazey";
+ * 
  * const ret = isHit(0.5); // 0.01 ~ 1 true/false
  * console.log(ret);
  * ```
@@ -140,7 +146,6 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * Example: Test the precision.
  *
  * ```javascript
- * // Test
  * let trueCount = 0;
  * let falseCount = 0;
  * new Array(1000000).fill(0).forEach(() => {
@@ -150,10 +155,16 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  *     falseCount++;
  *   }
  * });
- * console.log(trueCount, falseCount); // 499994 500006
+ * console.log(trueCount, falseCount);
+ * ```
+ * 
+ * Output:
+ * 
+ * ```text
+ * 499994 500006
  * ```
  *
- * @param {number} rate -- 0.1 ~ 1 => 1% ~ 100%
+ * @param {number} rate 0.1 ~ 1 => 1% ~ 100%
  * @returns {boolean} true 命中
  * @category Calculate and Formula
  */

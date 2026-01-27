@@ -22,9 +22,13 @@ export interface DefineListeners {
 export type TestUa = (regexp: RegExp) => boolean;
 export type TestVs = (regexp: RegExp) => string;
 
-export interface UrlParams {
+export type MultiValueUrlParams = {
   [key: string]: string[];
-}
+};
+
+export type SingleValueUrlParams = {
+  [key: string]: string;
+};
 
 export type ThrottleFunc<T extends (...args: any[]) => any> = (...args: Parameters<T>) => ReturnType<T> | null;
 
@@ -79,3 +83,5 @@ export interface WebPerformance {
 }
 
 export type MazeyElement = HTMLElement | null;
+
+export type MazeyDate = Date | string | number;

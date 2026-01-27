@@ -17,7 +17,6 @@ module.exports = {
     static: {
       directory: _resolve("../dist"),
     },
-    // contentBase: _resolve('../dist'),
     allowedHosts: [
       ".mazey.net",
     ],
@@ -36,7 +35,6 @@ module.exports = {
       filename: _resolve("../dist/index.html"),
       template: _resolve("../examples/index.html"),
       inject: true,
-      // chunksSortMode: 'dependency',
     }),
     new CleanWebpackPlugin({ cleanOnceBeforeBuildPatterns: [ _resolve("../dist") ] }),
   ],

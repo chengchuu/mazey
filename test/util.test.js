@@ -5,20 +5,16 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopyObject, repeatUntilConditionMet,
-  formatDate,
-  isJsonString, isNumber,
+  formatDate, isBrowser, waitTime, isArray,
+  isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
   getFriendlyInterval, getFileSize, getCurrentVersion,
-  waitTime,
   genUniqueNumString, generateRndNum, genHashCode,
-  floatToPercent, floatFixed,
-  throttle, debounce,
-  doFn, mTrim,
-  removeHtml,
-  convertKebabToCamel, convert10To26,
+  floatToPercent, floatFixed, throttle, debounce,
+  doFn, mTrim, removeHtml, truncateZHString,
+  convertKebabToCamel, convert10To26, zAxiosIsValidRes,
   unsanitize, sanitizeInput, unsanitizeInput,
-  truncateZHString,
-  zAxiosIsValidRes,
+  isFunction, isString, isBoolean, isUdfOrNul,
 } from "../lib/index.esm";
 
 test("isNumber: Is -1/123/Infinity/NaN Number?", () => {
@@ -271,6 +267,46 @@ test("Throttled function should respect the leading and trailing options", () =>
   // The mock function should not be called
   expect(mockFn).not.toHaveBeenCalled();
 });
+
+// describe("throttle", () => {
+//   // Mock function for testing
+//   const mockFn = jest.fn();
+
+//   beforeEach(() => {
+//     jest.useFakeTimers();
+//     mockFn.mockClear();
+//   });
+
+//   it("should throttle the function call", () => {
+//     const throttledFn = throttle(mockFn, 100);
+
+//     // Call the throttled function multiple times within the throttle period
+//     throttledFn();
+//     throttledFn();
+//     throttledFn();
+
+//     // Fast-forward time by 100ms
+//     jest.advanceTimersByTime(100);
+
+//     // The throttled function should only be called once
+//     expect(mockFn).toHaveBeenCalledTimes(1);
+//   });
+
+//   it("should respect the leading option", () => {
+//     const throttledFn = throttle(mockFn, 100, { leading: false });
+
+//     // Call the throttled function multiple times within the throttle period
+//     throttledFn();
+//     throttledFn();
+//     throttledFn();
+
+//     // Fast-forward time by 100ms
+//     jest.advanceTimersByTime(100);
+
+//     // The throttled function should not be called
+//     expect(mockFn).not.toHaveBeenCalled();
+//   });
+// });
 
 describe("debounce", () => {
   // Mock function for testing
@@ -625,5 +661,140 @@ describe("repeatUntilConditionMet error handling", () => {
     
     repeatUntilConditionMet(() => true, { times: -1 }, () => true);
     expect(console.error).toHaveBeenCalledWith("Expected a non-negative number for times.");
+  });
+});
+
+describe("isNonEmptyObject", () => {
+  it("should return true for an empty object", () => {
+    const obj = {};
+    const result = isNonEmptyObject(obj);
+    expect(result).toBe(false);
+  });
+
+  it("should return false for a non-empty object", () => {
+    const obj = { key: "value" };
+    const result = isNonEmptyObject(obj);
+    expect(result).toBe(true);
+  });
+
+  it("should return false for a non-object value", () => {
+    const value = "not an object";
+    const result = isNonEmptyObject(value);
+    expect(result).toBe(false);
+  });
+
+  it("should return true for a number-string object", () => {
+    const value = { 1: "1" };
+    const result = isNonEmptyObject(value);
+    expect(result).toBe(true);
+  });
+});
+
+describe("isPureObject", () => {
+  it("should return true for a pure object", () => {
+    const obj = { key: "value" };
+    const result = isPureObject(obj);
+    expect(result).toBe(true);
+  });
+
+  it("should return false for an array", () => {
+    const arr = [ 1, 2, 3 ];
+    const result = isPureObject(arr);
+    expect(result).toBe(false);
+  });
+
+  it("should return false for a function", () => {
+    const func = () => {};
+    const result = isPureObject(func);
+    expect(result).toBe(false);
+  });
+
+  it("should return false for a non-object value", () => {
+    const value = "not an object";
+    const result = isPureObject(value);
+    expect(result).toBe(false);
+  });
+});
+
+describe("isArray", () => {
+  it("should return true for an array", () => {
+    const arr = [ 1, 2, 3 ];
+    const result = isArray(arr);
+    expect(result).toBe(true);
+  });
+
+  it("should return false for a non-array value", () => {
+    const value = "not an array";
+    const result = isArray(value);
+    expect(result).toBe(false);
+  });
+});
+
+describe("isString", () => {
+  it("should return true for a string", () => {
+    const str = "Hello, world!";
+    const result = isString(str);
+    expect(result).toBe(true);
+  });
+
+  it("should return false for a non-string value", () => {
+    const value = 123;
+    const result = isString(value);
+    expect(result).toBe(false);
+  });
+});
+
+describe("isFunction", () => {
+  it("should return true for a function", () => {
+    const func = () => {};
+    const result = isFunction(func);
+    expect(result).toBe(true);
+  });
+
+  it("should return false for a non-function value", () => {
+    const value = "not a function";
+    const result = isFunction(value);
+    expect(result).toBe(false);
+  });
+});
+
+describe("isBoolean", () => {
+  it("should return true for a boolean", () => {
+    const bool = true;
+    const result = isBoolean(bool);
+    expect(result).toBe(true);
+  });
+
+  it("should return false for a non-boolean value", () => {
+    const value = "not a boolean";
+    const result = isBoolean(value);
+    expect(result).toBe(false);
+  });
+});
+
+describe("isUdfOrNul", () => {
+  it("should return true for undefined", () => {
+    const value = undefined;
+    const result = isUdfOrNul(value);
+    expect(result).toBe(true);
+  });
+
+  it("should return true for null", () => {
+    const value = null;
+    const result = isUdfOrNul(value);
+    expect(result).toBe(true);
+  });
+
+  it("should return false for a non-undefined and non-null value", () => {
+    const value = "not undefined or null";
+    const result = isUdfOrNul(value);
+    expect(result).toBe(false);
+  });
+});
+
+describe("isBrowser function", () => {
+  it("should return false if running in a node environment", () => {
+    const result = isBrowser();
+    expect(result).toBe(false);
   });
 });

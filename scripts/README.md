@@ -7,7 +7,7 @@ Release this project with version by `process.env.VERSION` or `package.json`.
 Usage:
 
 ```javascript
-const pkgVersion = process.env.VERSION || require('../package.json').version;
+const pkgVersion = process.env.VERSION || require("../package.json").version;
 release(pkgVersion);
 ```
 

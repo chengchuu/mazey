@@ -23,6 +23,8 @@ export function isSupportedEntryType(name: string) {
  * Usage:
  *
  * ```javascript
+ * import { getFCP } from "mazey";
+ * 
  * getFCP().then(
  *  res => {
  *   console.log(`FCP: ${res}`);
@@ -36,7 +38,7 @@ export function isSupportedEntryType(name: string) {
  * FCP: 123
  * ```
  *
- * @returns A promise that resolves with the FCP time in milliseconds, or 0 if the 'paint' entry type is not supported.
+ * @returns A promise that resolves with the FCP time in milliseconds, or 0 if the "paint" entry type is not supported.
  * @category Perf
  */
 export async function getFCP(): Promise<number> {
@@ -63,6 +65,8 @@ export async function getFCP(): Promise<number> {
  * Usage:
  *
  * ```javascript
+ * import { getFP } from "mazey";
+ * 
  * getFP().then(
  *  res => {
  *    console.log(`FP: ${res}`);
@@ -76,7 +80,7 @@ export async function getFCP(): Promise<number> {
  * FP: 123
  * ```
  *
- * @returns A promise that resolves with the FP time in milliseconds, or 0 if the 'paint' entry type is not supported.
+ * @returns A promise that resolves with the FP time in milliseconds, or 0 if the "paint" entry type is not supported.
  * @category Perf
  */
 export async function getFP(): Promise<number> {
@@ -103,6 +107,8 @@ export async function getFP(): Promise<number> {
  * Usage:
  *
  * ```javascript
+ * import { getLCP } from "mazey";
+ * 
  * getLCP().then(
  *  res => {
  *    console.log(`LCP: ${res}`);
@@ -116,7 +122,7 @@ export async function getFP(): Promise<number> {
  * LCP: 123
  * ```
  *
- * @returns A promise that resolves with the LCP time in milliseconds, or 0 if the 'largest-contentful-paint' entry type is not supported.
+ * @returns A promise that resolves with the LCP time in milliseconds, or 0 if the "largest-contentful-paint" entry type is not supported.
  * @category Perf
  */
 export async function getLCP(): Promise<number> {
@@ -143,6 +149,8 @@ export async function getLCP(): Promise<number> {
  * Usage:
  *
  * ```javascript
+ * import { getFID } from "mazey";
+ * 
  * getFID().then(
  *  res => {
  *    console.log(`FID: ${res}`);
@@ -156,7 +164,7 @@ export async function getLCP(): Promise<number> {
  * FID: 123
  * ```
  *
- * @returns A promise that resolves with the FID in milliseconds, or 0 if the 'first-input' entry type is not supported.
+ * @returns A promise that resolves with the FID in milliseconds, or 0 if the "first-input" entry type is not supported.
  * @category Perf
  */
 export async function getFID(): Promise<number> {
@@ -188,6 +196,8 @@ export async function getFID(): Promise<number> {
  * Usage:
  *
  * ```javascript
+ * import { getCLS } from "mazey";
+ * 
  * getCLS().then(
  *  res => {
  *    console.log(`CLS: ${res}`);
@@ -201,7 +211,7 @@ export async function getFID(): Promise<number> {
  * CLS: 123
  * ```
  *
- * @returns A promise that resolves with the CLS score, or 0 if the 'layout-shift' entry type is not supported.
+ * @returns A promise that resolves with the CLS score, or 0 if the "layout-shift" entry type is not supported.
  * @category Perf
  */
 export async function getCLS(): Promise<number> {
@@ -232,6 +242,8 @@ export async function getCLS(): Promise<number> {
  * Usage:
  *
  * ```javascript
+ * import { getTTFB } from "mazey";
+ * 
  * getTTFB().then(
  *  res => {
  *    console.log(`TTFB: ${res}`);
@@ -272,11 +284,13 @@ export async function getTTFB(): Promise<number> {
  * @remarks
  * This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
  * The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
- * If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/mazeyqian/mazey/releases/tag/v3.9.7)).
+ * If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/chengchuu/mazey/releases/tag/v3.9.7)).
  *
  * Usage:
  *
  * ```javascript
+ * import { getPerformance } from "mazey";
+ * 
  * // `camelCase：false` (Default) Return underline(`a_b`) data.
  * // `camelCase：true` Return hump(`aB`) data.
  * getPerformance()

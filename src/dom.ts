@@ -1,6 +1,6 @@
 import type { MazeyElement } from "./typing";
 import { isNonEmptyArray } from "./util";
-import { cusCon } from "./debug";
+import { mazeyCon } from "./debug";
 
 /**
  * Modify `class`: determine `class`.
@@ -8,8 +8,9 @@ import { cusCon } from "./debug";
  * Usage:
  *
  * ```javascript
+ * import { hasClass, addClass, removeClass } from "mazey";
+ * 
  * const dom = document.querySelector("#box");
- *
  * // Determine `class`
  * hasClass(dom, "test");
  * // Add `class`
@@ -22,7 +23,7 @@ import { cusCon } from "./debug";
  */
 export function hasClass(obj: MazeyElement, cls: string): boolean {
   if (!obj) {
-    cusCon.error("The element is not exist.");
+    mazeyCon.error("The element is not exist.");
     return false;
   }
   const oriCls = obj.className; // 获取对象的 class 值
@@ -72,7 +73,7 @@ export function hasClass(obj: MazeyElement, cls: string): boolean {
  */
 export function addClass(ele: MazeyElement, cls: string | string[]): void {
   if (!ele) {
-    cusCon.error("The element is not exist.");
+    mazeyCon.error("The element is not exist.");
     return;
   }
   if (Array.isArray(cls)) {
@@ -114,8 +115,9 @@ export function setClass(ele: HTMLElement, cls: string): void {
  * Usage:
  *
  * ```javascript
+ * import { hasClass, addClass, removeClass } from "mazey";
+ * 
  * const dom = document.querySelector("#box");
- *
  * // Determine `class`
  * hasClass(dom, "test");
  * // Add `class`
@@ -128,7 +130,7 @@ export function setClass(ele: HTMLElement, cls: string): void {
  */
 export function removeClass(obj: MazeyElement, cls: string): void {
   if (!obj) {
-    cusCon.error("The element is not exist.");
+    mazeyCon.error("The element is not exist.");
     return;
   }
   const oriCls = obj.className;
@@ -145,9 +147,13 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  *
  * ZH: 添加样式标签; style: 样式标签内的字符串; id: `<style>` 标签的 `id`; 返回: 添加成功/失败。
  *
+ * Usage:
+ * 
  * Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
  *
  * ```javascript
+ * import { addStyle } from "mazey";
+ * 
  * addStyle(
  *   `
  *     body {
@@ -158,16 +164,23 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  *     id: "test",
  *   }
  * );
- * // <style id="test">
- * //   body {
- * //     background-color: #333;
- * //   }
- * // </style>
+ * ```
+ * 
+ * Output:
+ * 
+ * ```html
+ * <style id="test">
+ *   body {
+ *     background-color: #333;
+ *   }
+ * </style>
  * ```
  *
  * Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
  *
  * ```javascript
+ * import { addStyle } from "mazey";
+ * 
  * addStyle(
  *   `
  *     body {
@@ -175,13 +188,18 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  *     }
  *   `
  * );
- * // <style>
- * //   body {
- * //     background-color: #444;
- * //   }
- * // </style>
  * ```
- *
+ * 
+ * Output:
+ * 
+ * ```html
+ * <style>
+ *   body {
+ *     background-color: #444;
+ *   }
+ * </style>
+ * ```
+ * 
  * @category DOM
  */
 export function addStyle(style: string, options: { id?: string } = { id: "" }): boolean {
@@ -224,15 +242,20 @@ export function addStyle(style: string, options: { id?: string } = { id: "" }): 
  *
  * Usage:
  *
+ * ```html
+ * <img src="image.jpg?width=100px&height=200px">
+ * ```
+ * 
  * ```javascript
- * // Example images with `src` attributes containing `width` and/or `height` values
- * const img1 = document.createElement("img");
- * img1.setAttribute("src", "https://example.com/example.png?width=2233&height=111");
- * document.body.appendChild(img1);
- *
- * const img2 = document.createElement("img");
- * img2.setAttribute("src", "https://example.com/example.png?width=100%&height=auto");
- * document.body.appendChild(img2);
+ * import { setImgSizeBySrc } from "mazey";
+ * 
+ * setImgSizeBySrc();
+ * ```
+ * 
+ * Output:
+ * 
+ * ```html
+ * <img src="image.jpg?width=100px&height=200px" width="100px" height="200px">
  * ```
  *
  * @returns {boolean} - Returns `true` if images were found and their dimensions were set, otherwise `false`.
@@ -324,4 +347,35 @@ export function genStyleString(selector: string, styleArray: Array<string>): str
     style = styleArray.join(";") + ";";
   }
   return `${selector}{${style}}`;
+}
+
+/**
+ * Get the value of the meta tag by the given name.
+ * 
+ * Usage:
+ * 
+ * ```html
+ * <meta name="keywords" content="mazey,web,frontend">
+ * ```
+ * 
+ * ```javascript
+ * import { getPageMeta } from "mazey";
+ * 
+ * const keywords = getPageMeta("keywords");
+ * console.log(keywords);
+ * ```
+ * 
+ * Output:
+ * 
+ * ```text
+ * mazey,web,frontend
+ * ```
+ * 
+ * @param {string} name - The name of the meta tag.
+ * @returns {string} The content of the meta tag.
+ * @category DOM
+ */
+export function getPageMeta(name: string): string {
+  if (!document.querySelector) return "";
+  return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || "";
 }

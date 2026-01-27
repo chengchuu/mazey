@@ -2,6 +2,7 @@ import type {
   MazeyFnParams, MazeyFnReturn, LoadScriptReturns, MazeyWindow, 
 } from "./typing";
 import { doFn } from "./util";
+import { isValidHttpUrl } from "./url";
 
 /**
  * EN: Load a CSS file from the server.
@@ -11,10 +12,12 @@ import { doFn } from "./util";
  * Usage:
  *
  * ```javascript
+ * import { loadCSS } from "mazey";
+ * 
  * loadCSS(
- *     'http://example.com/path/example.css',
+ *     "http://example.com/path/example.css",
  *     {
- *       id: 'iamid', // Optional, link ID, default none
+ *       id: "iamid", // Optional, link ID, default none
  *     }
  *   )
  *   .then(
@@ -47,9 +50,7 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
   const status = new Promise((resolve, reject) => {
     [ success, fail ] = [ resolve, reject ];
   });
-  // const tempCB = (typeof callback === 'function' ? callback : function () { });
   const callback = function() {
-    // doFn(success, true);
     success("loaded");
   };
   let node: HTMLLinkElement | null = document.createElement("link");
@@ -57,8 +58,8 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     fail(new Error("Not support create link element"));
   }
   const supportOnload = "onload" in node;
-  const isOldWebKit = +navigator.userAgent.replace(/.*(?:AppleWebKit|AndroidWebKit)\/?(\d+).*/i, "$1") < 536; // webkit旧内核做特殊处理
-  const protectNum = 300000; // 阈值10分钟，一秒钟执行 pollCss 500 次
+  const isOldWebKit = +navigator.userAgent.replace(/.*(?:AppleWebKit|AndroidWebKit)\/?(\d+).*/i, "$1") < 536; // webkit 旧内核做特殊处理
+  const protectNum = 300000; // 阈值 10 分钟，一秒钟执行 pollCss 500 次
   node.rel = "stylesheet";
   node.type = "text/css";
   node.href = url;
@@ -95,7 +96,7 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     node = null;
     callback();
   }
-  // 循环判断css是否已加载成功
+  // 循环判断 CSS 是否已加载成功
   /*
    * @param node -- link节点
    * @param callback -- 回调函数
@@ -139,7 +140,7 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     }
     setTimeout(function() {
       if (isLoaded) {
-        // 延迟20ms是为了给下载的样式留够渲染的时间
+        // 延迟 20ms 是为了给下载的样式留够渲染的时间
         callback();
       } else {
         pollCss(node, callback, step);
@@ -147,6 +148,37 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     }, 20);
   }
   return status;
+}
+
+const defaultLoadScriptOptions = {
+  id: "",
+  callback: function() {
+    /* pass */
+  },
+  timeout: 5000,
+  isDefer: false,
+  isAsync: false,
+  isCrossOrigin: false,
+  attributes: null,
+  cssUrl: "",
+};
+
+/**
+ * Resolve a CSS URL relative to a JS URL's directory
+ * 
+ * @param jsUrl - The JavaScript URL
+ * @param cssPath - The CSS path (filename or relative path)
+ * @returns The resolved CSS URL
+ */
+function resolveCssUrl(jsUrl: string, cssPath: string): string {
+  if (!cssPath) return "";
+  if (isValidHttpUrl(cssPath)) return cssPath;
+  // Get the directory of the JS URL
+  const jsUrlParts = jsUrl.split("/");
+  jsUrlParts.pop(); // Remove filename
+  const jsDirectory = jsUrlParts.join("/");
+  // Combine with CSS path
+  return `${jsDirectory}/${cssPath}`;
 }
 
 /**
@@ -157,12 +189,13 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
  * Usage:
  *
  * ```javascript
+ * import { loadScript } from "mazey";
+ * 
  * loadScript(
- *     'http://example.com/static/js/plugin-2.1.1.min.js',
+ *     "http://example.com/static/js/plugin-2.1.1.min.js",
  *     {
- *       id: 'iamid', // (Optional) script ID, default none
+ *       id: "iamid", // (Optional) script ID, default none
  *       timeout: 5000, // (Optional) timeout, default `5000`
- *       isDefer: false, // (Optional) defer, default `false`
  *     }
  *   )
  *   .then(
@@ -172,7 +205,7 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
  *   )
  *   .catch(
  *     err => {
- *       console.error(`Load JavaScript script: ${err.message}`)
+ *       console.error(`Load JavaScript script: ${err.message}`);
  *     }
  *   );
  * ```
@@ -188,6 +221,10 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
  * @param {function} options.callback -- 加载后回调函数
  * @param {number} options.timeout -- 超时时长
  * @param {boolean} options.isDefer -- 是否添加 defer 标签
+ * @param {boolean} options.isAsync -- 是否添加 async 标签
+ * @param {boolean} options.isCrossOrigin -- 是否跨域
+ * @param {object} options.attributes -- 其他属性
+ * @param {string} options.cssUrl -- CSS 资源路径
  * @returns {Promise<string>} -- true 成功
  * @category Load
  */
@@ -198,23 +235,17 @@ export function loadScript(
     callback?: (...params: MazeyFnParams) => MazeyFnReturn;
     timeout?: number;
     isDefer?: boolean;
+    isAsync?: boolean;
+    isCrossOrigin?: boolean;
+    attributes?: Record<string, string> | null;
+    cssUrl?: string;
   } = {
-    id: "",
-    callback: function() {
-      /* pass */
-    },
-    timeout: 5000,
-    isDefer: false,
+    ...defaultLoadScriptOptions,
   }
 ): LoadScriptReturns {
-  const { id, callback, timeout, isDefer } = Object.assign(
+  const { id, callback, timeout, isDefer, isAsync, isCrossOrigin, attributes, cssUrl } = Object.assign(
     {
-      id: "",
-      callback: function() {
-        /* pass */
-      },
-      timeout: 5000,
-      isDefer: false,
+      ...defaultLoadScriptOptions,
     },
     options
   );
@@ -224,14 +255,32 @@ export function loadScript(
   if (!script) {
     Promise.reject("Not support create script element");
   }
+  // 如果提供了 cssUrl，则先加载 CSS 文件
+  if (cssUrl) {
+    const resolvedCssUrl = resolveCssUrl(url, cssUrl);
+    if (resolvedCssUrl) loadCSS(resolvedCssUrl).catch(err => {
+      console.error(`Failed to load CSS from ${resolvedCssUrl}: ${err?.message}`);
+    });
+  }
   // 如果没有 script 标签，那么代码就不会运行。可以利用这一事实，在页面的第一个 script 标签上使用 insertBefore()。
   const firstScript: HTMLScriptElement = document.getElementsByTagName("script")[0];
   script.type = "text/javascript";
   if (isDefer) {
-    script.defer = true; // 'defer';
+    script.defer = true; // "defer";
+  }
+  if (isAsync) {
+    script.async = true; // "async";
+  }
+  if (isCrossOrigin) {
+    script.crossOrigin = "anonymous";
   }
   if (id) {
     script.id = id;
+  }
+  if (attributes) {
+    Object.keys(attributes).forEach(key => {
+      script.setAttribute(key, attributes[key]);
+    });
   }
   if (script.readyState) {
     // IE
@@ -267,6 +316,8 @@ export function loadScript(
  * Usage:
  *
  * ```javascript
+ * import { windowLoaded } from "mazey";
+ * 
  * windowLoaded()
  *   .then(res => {
  *     console.log(`Load Success: ${res}`);
@@ -282,11 +333,11 @@ export function loadScript(
  * Load Success: load
  * ```
  *
- * @param {number} timeout 超时时间 / 单位：秒
- * @returns {Promise<string>} document is loaded? 'complete' 'load' / 'timeout'
+ * @param {number} timeout 超时时间 / 单位：毫秒，默认：30000(30 秒)
+ * @returns {Promise<string>} document is loaded? "complete" "load" / "timeout"
  * @category Load
  */
-export function windowLoaded(timeout = 90): Promise<string | Error> {
+export function windowLoaded(timeout = 30000): Promise<string | Error> {
   let loaded: (value: string) => void = () => undefined;
   let loadFail: (value: Error) => void;
   const status = new Promise((resolve: (value: string) => void, reject: (value: Error) => void) => {
@@ -299,7 +350,7 @@ export function windowLoaded(timeout = 90): Promise<string | Error> {
     window.addEventListener("load", () => loaded("load"));
   }
   // 超过 timeout 秒后加载失败
-  setTimeout(() => loadFail(Error("timeout")), timeout * 1000);
+  setTimeout(() => loadFail(Error("timeout")), timeout);
   return status;
 }
 
@@ -313,7 +364,9 @@ export function windowLoaded(timeout = 90): Promise<string | Error> {
  * Usage:
  *
  * ```javascript
- * loadImage('https://example.com/example.png')
+ * import { loadImage } from "mazey";
+ * 
+ * loadImage("https://example.com/example.png")
  *   .then((img) => {
  *     console.log(img);
  *   })
@@ -340,17 +393,19 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
 }
 
 /**
- * Load a script from the given URL if it (`window['attribute']`) has not already been loaded.
+ * Load a script from the given URL if it (`window["attribute"]`) has not already been loaded.
  *
  * Usage:
  *
  * ```javascript
- * loadScriptIfUndefined('xyz', 'https://example.com/lib/jquery.min.js')
+ * import { loadScriptIfUndefined } from "mazey";
+ * 
+ * loadScriptIfUndefined("xyz", "https://example.com/lib/xyz.min.js")
  *   .then(() => {
- *     console.log('xyz is loaded.');
+ *     console.log("xyz is loaded.");
  *   })
  *   .catch(err => {
- *     console.log('Failed to load xyz.', err);
+ *     console.log("Failed to load xyz.", err);
  *   });
  * ```
  *

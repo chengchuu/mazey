@@ -52,6 +52,10 @@ declare global {
     name?: string;
   }
 
+  interface URLSearchParams {
+    entries: () => IterableIterator<[string, string]>;
+  }
+
   interface Window {
     // VAR
     MAZEY_DEFINE_LISTENERS: {

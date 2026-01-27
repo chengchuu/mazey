@@ -1,8 +1,10 @@
-import { cusCon } from "./debug";
+import { mazeyCon } from "./debug";
 import type {
   BrowserInfo, MazeyObject, TestUa, TestVs, 
 } from "./typing";
 import { isNonEmptyArray } from "./util";
+
+let pwaSupport = "";
 
 /**
  * EN: Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
@@ -12,6 +14,8 @@ import { isNonEmptyArray } from "./util";
  * Usage:
  *
  * ```javascript
+ * import { isSafePWAEnv } from "mazey";
+ * 
  * const ret = isSafePWAEnv();
  * console.log(ret);
  * ```
@@ -22,18 +26,22 @@ import { isNonEmptyArray } from "./util";
  * true
  * ```
  *
+ * @environment Browser
  * @returns {boolean} true 是
  * @category Browser Information
  */
 export function isSafePWAEnv(): boolean {
+  if (pwaSupport) {
+    return pwaSupport === "pwa";
+  }
   // 判断是否支持 async await
   function isSupportAsyncAwait() {
     let isSupportAsyncAwaitFunc;
     try {
       const fn = new Function("return async function(){};");
       isSupportAsyncAwaitFunc = fn();
-      // 由于async函数的构造器不是全局对象，所以我们需要由下面代码来获取async函数的构造器
-      // 具体可以查看以下MDN上有关于AsyncFunction的说明，
+      // 由于 async 函数的构造器不是全局对象，所以我们需要由下面代码来获取 async 函数的构造器
+      // 具体可以查看以下 MDN 上有关于 AsyncFunction 的说明
       // 地址：https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncFunction
       return Object.getPrototypeOf(isSupportAsyncAwaitFunc).constructor != null;
     } catch (e) {
@@ -47,22 +55,37 @@ export function isSafePWAEnv(): boolean {
     }
     return false;
   }
+  // HTTPS
+  function isHttps() {
+    return window.location.protocol === "https:";
+  }
   // 浏览器信息
   const BrowserType = getBrowserInfo();
-  if ("serviceWorker" in navigator && isSupportAsyncAwait() && isSupportPromise() && Boolean(window.fetch) && Boolean(window.indexedDB) && Boolean(window.caches) && !BrowserType["shell"]) {
+  if (
+    "serviceWorker" in navigator &&
+    isSupportAsyncAwait() &&
+    isSupportPromise() &&
+    Boolean(window.fetch) && Boolean(window.indexedDB) && Boolean(window.caches) &&
+    !BrowserType["shell"] &&
+    isHttps()
+  ) {
+    pwaSupport = "pwa";
     return true;
   }
+  pwaSupport = "no-pwa";
   return false;
 }
 
 /**
- * EN: Browser Information
+ * EN: Provides detailed information about the browser.
  *
- * ZH: 返回浏览器信息。
+ * ZH: 返回有关浏览器的详细信息。
  *
  * Usage:
  *
  * ```javascript
+ * import { getBrowserInfo } from "mazey";
+ * 
  * const ret = getBrowserInfo();
  * console.log(ret);
  * ```
@@ -92,16 +115,17 @@ export function isSafePWAEnv(): boolean {
  *
  * ```javascript
  * const { system, shell } = getBrowserInfo();
- * const isMobileQQ = ['android', 'ios'].includes(system) && ['qq_browser', 'qq_app'].includes(shell);
+ * const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app"].includes(shell);
  * ```
  *
- * @returns 浏览器信息
+ * @environment Browser
+ * @returns Browser information
  * @category Browser Information
  */
 export function getBrowserInfo(): BrowserInfo {
   // Cache
   if (window.MAZEY_BROWSER_INFO && typeof window.MAZEY_BROWSER_INFO === "object") {
-    // console.log('getBrowserInfo cache');
+    // mazeyCon.log("getBrowserInfo cache");
     return window.MAZEY_BROWSER_INFO;
   }
   let browserInfo: BrowserInfo = {
@@ -125,7 +149,7 @@ export function getBrowserInfo(): BrowserInfo {
     const testUa: TestUa = regexp => regexp.test(ua);
     const testVs: TestVs = regexp => {
       let ret = "";
-      const matchRes = ua.match(regexp); // ['os 13_2_3']
+      const matchRes = ua.match(regexp); // ["os 13_2_3"]
       // Confirm the Safety of the match result
       if (matchRes && isNonEmptyArray(matchRes)) {
         ret = matchRes.toString();
@@ -139,15 +163,15 @@ export function getBrowserInfo(): BrowserInfo {
     // Apple Device Type
     let appleType = "";
     if (testUa(/windows|win32|win64|wow32|wow64/g)) {
-      system = "windows"; // windows系统
+      system = "windows"; // windows 系统
     } else if (testUa(/macintosh|macintel/g)) {
-      system = "macos"; // macos系统
+      system = "macos"; // macos 系统
     } else if (testUa(/x11/g)) {
-      system = "linux"; // linux系统
+      system = "linux"; // linux 系统
     } else if (testUa(/android|adr/g)) {
-      system = "android"; // android系统
+      system = "android"; // android 系统
     } else if (testUa(/ios|iphone|ipad|ipod|iwatch/g)) {
-      system = "ios"; // ios系统
+      system = "ios"; // ios 系统
       if (testUa(/ipad/g)) {
         appleType = "ipad";
       } else if (testUa(/iphone/g)) {
@@ -209,25 +233,25 @@ export function getBrowserInfo(): BrowserInfo {
     let engine = "";
     let supporter = "";
     if (testUa(/applewebkit/g)) {
-      engine = "webkit"; // webkit内核
+      engine = "webkit"; // webkit 内核
       if (testUa(/edge/g)) {
-        supporter = "edge"; // edge浏览器
+        supporter = "edge"; // edge 浏览器
       } else if (testUa(/opr/g)) {
-        supporter = "opera"; // opera浏览器
+        supporter = "opera"; // opera 浏览器
       } else if (testUa(/chrome/g)) {
-        supporter = "chrome"; // chrome浏览器
+        supporter = "chrome"; // chrome 浏览器
       } else if (testUa(/safari/g)) {
-        supporter = "safari"; // safari浏览器
+        supporter = "safari"; // safari 浏览器
       }
     } else if (testUa(/gecko/g) && testUa(/firefox/g)) {
-      engine = "gecko"; // gecko内核
-      supporter = "firefox"; // firefox浏览器
+      engine = "gecko"; // gecko 内核
+      supporter = "firefox"; // firefox 浏览器
     } else if (testUa(/presto/g)) {
-      engine = "presto"; // presto内核
-      supporter = "opera"; // opera浏览器
+      engine = "presto"; // presto 内核
+      supporter = "opera"; // opera 浏览器
     } else if (testUa(/trident|compatible|msie/g)) {
-      engine = "trident"; // trident内核
-      supporter = "iexplore"; // iexplore浏览器
+      engine = "trident"; // trident 内核
+      supporter = "iexplore"; // iexplore 浏览器
     }
     browserInfo = {
       ...browserInfo,
@@ -280,12 +304,12 @@ export function getBrowserInfo(): BrowserInfo {
     } else if (testUa(/\sqq/g)) {
       shell = "qq_app"; // QQ APP
     } else if (testUa(/ucbrowser/g)) {
-      shell = "uc"; // UC浏览器
+      shell = "uc"; // UC 浏览器
       shellVs = testVs(/ucbrowser\/[\d._]+/g);
     } else if (testUa(/qihu 360se/g)) {
-      shell = "360"; // 360浏览器(无版本)
+      shell = "360"; // 360 浏览器(无版本)
     } else if (testUa(/2345explorer/g)) {
-      shell = "2345"; // 2345浏览器
+      shell = "2345"; // 2345 浏览器
       shellVs = testVs(/2345explorer\/[\d._]+/g);
     } else if (testUa(/metasr/g)) {
       shell = "sougou"; // 搜狗浏览器(无版本)
@@ -305,17 +329,21 @@ export function getBrowserInfo(): BrowserInfo {
     window.MAZEY_BROWSER_INFO = browserInfo;
     return browserInfo;
   } catch (err) {
-    cusCon.warn(err);
+    mazeyCon.warn(err);
     return browserInfo;
   }
 }
 
 /**
- * Generate browser attributes.
+ * EN: Generate browser attributes.
+ * 
+ * ZH: 生成浏览器属性。
  * 
  * Usage:
  * 
  * ```javascript
+ * import { genBrowserAttrs } from "mazey";
+ * 
  * const attrs = genBrowserAttrs();
  * console.log(attrs);
  * ```
@@ -326,6 +354,7 @@ export function getBrowserInfo(): BrowserInfo {
  * ["windows", "desktop", "webkit", "chrome"]
  * ```
  * 
+ * @environment Browser
  * @param {string} prefix
  * @returns {array} Browser attributes
  * @category Browser Information
@@ -347,14 +376,18 @@ export function genBrowserAttrs(prefix = "", separator = "-"): string[] {
   return attrs;
 }
 
+let webpSupport = "";
+
 /**
  * Detect webp support.
  *
  * Usage:
  *
  * ```javascript
+ * import { isSupportWebp } from "mazey";
+ * 
  * isSupportWebp().then(res => {
- *  console.log('isSupportWebp:', res);
+ *  console.log("isSupportWebp:", res);
  * });
  * ```
  *
@@ -369,12 +402,19 @@ export function genBrowserAttrs(prefix = "", separator = "-"): string[] {
  * @category Browser Information
  */
 export function isSupportWebp(): Promise<boolean> {
+  if (webpSupport) {
+    // mazeyCon.log("isSupportWebp cache");
+    return Promise.resolve(webpSupport === "webp");
+  }
   const fn = (resolve: (v: boolean) => void) => {
     const img = new Image();
     img.onload = () => {
-      resolve(img.width > 0 && img.height > 0);
+      const ret = img.width > 0 && img.height > 0;
+      webpSupport = ret ? "webp" : "no-webp";
+      resolve(ret);
     };
     img.onerror = () => {
+      webpSupport = "no-webp";
       resolve(false);
     };
     img.src = "data:image/webp;base64,UklGRh4AAABXRUJQVlA4TBEAAAAvAAAAAAfQ//73v/+BiOh/AAA=";

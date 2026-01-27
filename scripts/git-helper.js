@@ -9,7 +9,7 @@ const execa = require("execa");
  * Usage:
  * 
  * ```javascript
- * const pkgVersion = process.env.VERSION || require('../package.json').version;
+ * const pkgVersion = process.env.VERSION || require("../package.json").version;
  * release(pkgVersion);
  * ```
  * 
@@ -58,8 +58,8 @@ async function release (ver, { canGenerateToc = false, defaultBranch = "main" } 
   await gitCommit(releaseVersion);
   // Push
   console.log("Pushing to the remote Git...");
-  // await execa('git', ['tag', '-a', `${releaseVersion}`, '-m', `Release ${releaseVersion}`]);
-  // await execa('git', ['push', 'origin', `refs/tags/${releaseVersion}`]);
+  // await execa("git", ["tag", "-a", `${releaseVersion}`, "-m", `Release ${releaseVersion}`]);
+  // await execa("git", ["push", "origin", `refs/tags/${releaseVersion}`]);
   await gitTagPush(releaseVersion);
   await gitPush();
   console.log("All done.");
@@ -70,7 +70,7 @@ async function release (ver, { canGenerateToc = false, defaultBranch = "main" } 
  * 
  * @example
  * ```
- * await gitTagPush('v1.0.0');
+ * await gitTagPush("v1.0.0");
  * ```
  * 
  * @param {string} ver Release version

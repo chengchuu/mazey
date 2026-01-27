@@ -5,6 +5,7 @@
 import {
   isValidUrl, getUrlFileType, isValidHttpUrl, updateQueryParam, getUrlParam,
   getScriptQueryParam, convertObjectToQuery, convertHttpToHttps,
+  getAllQueryParams,
 } from "../lib/index.esm";
 
 const validUrls = [
@@ -16,6 +17,7 @@ const validUrls = [
   "https://example.com/qwe/e?bar=baz&inss=33&qa",
   "http://example.com#home?id=1&name=33",
   "http://example.com?foo=bar&name=名字&age=24",
+  "http://example.com?foo=bar&name=？？一；&age=24",
   "http://.example.com",
   "http://example?foo=bar",
   "http://example.",
@@ -299,5 +301,57 @@ describe("convertHttpToHttps", () => {
     const url = "example.com";
     const expected = "example.com";
     expect(convertHttpToHttps(url)).toBe(expected);
+  });
+});
+
+describe("getAllQueryParams", () => {
+  beforeEach(() => {
+    // Mock the global location object
+    delete global.location;
+    global.location = {
+      search: "",
+    };
+  });
+
+  test("should return an empty object when no query params are present", () => {
+    global.location.search = "";
+    const result = getAllQueryParams();
+    expect(result).toEqual({});
+  });
+
+  test("should return an object with query params from location.search", () => {
+    global.location.search = "?t1=1&t2=2&t3=3&t4=4";
+    const result = getAllQueryParams();
+    expect(result).toEqual({ t1: "1", t2: "2", t3: "3", t4: "4" });
+  });
+
+  test("should return an object with query params from the provided URL", () => {
+    const url = "?a=10&b=20&c=30";
+    const result = getAllQueryParams(url);
+    expect(result).toEqual({ a: "10", b: "20", c: "30" });
+  });
+
+  test("should decode URI components in query params", () => {
+    const url = "?name=John%20Doe&city=New%20York";
+    const result = getAllQueryParams(url);
+    expect(result).toEqual({ name: "John Doe", city: "New York" });
+  });
+
+  test("should handle empty values in query params", () => {
+    const url = "?key1=&key2=value2";
+    const result = getAllQueryParams(url);
+    expect(result).toEqual({ key1: "", key2: "value2" });
+  });
+
+  test("should handle query params without values", () => {
+    const url = "?key1&key2=value2";
+    const result = getAllQueryParams(url);
+    expect(result).toEqual({ key2: "value2" });
+  });
+
+  test("should handle duplicate keys by keeping the first occurrence", () => {
+    const url = "?key=value1&key=value2";
+    const result = getAllQueryParams(url);
+    expect(result).toEqual({ key: "value1" });
   });
 });

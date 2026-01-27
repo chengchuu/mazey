@@ -6,19 +6,11 @@ name: Test
 on:
   push:
     branches: 
-      - main
-      - master
-      - 'feat/**'
-      - 'feature/**'
-      - 'fix/**'
-      - 'test/**'
-      - 'chore/**'
+      - release/v3
 
 jobs:
   build-and-test:
-
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v3
       - name: Use Node.js

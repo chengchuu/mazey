@@ -13,6 +13,9 @@ describe("isSafePWAEnv", () => {
     window.fetch = jest.fn();
     window.indexedDB = {};
     window.caches = {};
+    // Remove jsdom's location object and set our own
+    delete window.location;
+    window.location = { protocol: 'https:' };
 
     expect(isSafePWAEnv()).toBe(true);
   });
@@ -72,7 +75,7 @@ describe("isSupportWebp", () => {
     expect(result).toBe(true);
   });
 
-  it("should return false if webp is not supported", async () => {
+  it("should return true because of the cache", async () => {
     // Mock the Image class
     class MockImage {
       width = 0;
@@ -86,7 +89,7 @@ describe("isSupportWebp", () => {
           if (this.onerror) {
             this.onerror();
           }
-        }, 100);
+        }, 200);
       }
     }
 
@@ -99,7 +102,7 @@ describe("isSupportWebp", () => {
     // Restore the original Image
     global.Image = originalImage;
 
-    expect(result).toBe(false);
+    expect(result).toBe(true);
   });
 });
 

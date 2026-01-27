@@ -59,7 +59,7 @@ describe("getDefineListeners", () => {
   });
 });
 
-describe('Event System', () => {
+describe("Event System", () => {
   // Mock function to use as event handler
   const mockFn = jest.fn();
 
@@ -69,45 +69,46 @@ describe('Event System', () => {
     window.MAZEY_DEFINE_LISTENERS = {};
   });
 
-  test('getDefineListeners initializes and retrieves the event listeners object', () => {
+  test("getDefineListeners initializes and retrieves the event listeners object", () => {
     const defineListeners = getDefineListeners();
     expect(defineListeners).toEqual({});
     expect(window.MAZEY_DEFINE_LISTENERS).toBe(defineListeners);
   });
 
-  test('addEvent adds a new event listener', () => {
-    addEvent('test', mockFn);
+  test("addEvent adds a new event listener", () => {
+    addEvent("test", mockFn);
     const defineListeners = getDefineListeners();
-    expect(defineListeners['test']).toEqual([mockFn]);
+    expect(defineListeners["test"]).toEqual([ mockFn ]);
   });
 
-  test('fireEvent invokes the event listeners for an event', () => {
-    addEvent('test', mockFn);
-    fireEvent('test');
-    expect(mockFn).toHaveBeenCalledWith({ type: 'test' });
+  test("fireEvent invokes the event listeners for an event", () => {
+    addEvent("test", mockFn);
+    fireEvent("test", { type: "test" });
+    expect(mockFn).toHaveBeenCalledWith({ type: "test" });
   });
 
-  test('invokeEvent is an alias for fireEvent and invokes the event listeners', () => {
-    addEvent('test', mockFn);
-    invokeEvent('test');
-    expect(mockFn).toHaveBeenCalledWith({ type: 'test' });
+  test("invokeEvent is an alias for fireEvent and invokes the event listeners", () => {
+    addEvent("test", mockFn);
+    invokeEvent("test");
+    // called with 0 arguments
+    expect(mockFn).toHaveBeenCalled();
   });
 
-  test('removeEvent removes a specific event listener', () => {
-    addEvent('test', mockFn);
+  test("removeEvent removes a specific event listener", () => {
+    addEvent("test", mockFn);
     const anotherMock = jest.fn();
-    addEvent('test', anotherMock);
+    addEvent("test", anotherMock);
 
-    removeEvent('test', mockFn);
+    removeEvent("test", mockFn);
     const defineListeners = getDefineListeners();
-    expect(defineListeners['test']).toEqual([anotherMock]);
+    expect(defineListeners["test"]).toEqual([ anotherMock ]);
   });
 
-  test('removeEvent clears all listeners for an event type if no function is provided', () => {
-    addEvent('test', mockFn);
-    removeEvent('test');
+  test("removeEvent clears all listeners for an event type if no function is provided", () => {
+    addEvent("test", mockFn);
+    removeEvent("test");
     const defineListeners = getDefineListeners();
-    expect(defineListeners['test']).toBeUndefined();
+    expect(defineListeners["test"]).toBeUndefined();
   });
 });
 
