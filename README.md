@@ -976,7 +976,7 @@ npm run docs
 | :-------- | :--------------------------------------- | :------ |
 | ok        | The operation was successful.            | string  |
 | loaded    | Some assets have been loaded.            | string  |
-| fail      | An error occurred.                       | string  |
+| failed    | An error occurred.                       | string  |
 | defined   | The value is defined.                    | string  |
 | undefined | The value is undefined.                  | string  |
 | timeout   | The operation timed out.                 | string  |
