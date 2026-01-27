@@ -40,8 +40,8 @@ const defaultGenCustomConsoleOptions = {
  *
  * @param {string} prefix The prefix string.
  * @param {object} options The options object.
- * @param {boolean} options.enabled Whether to close the console.
- * @param {boolean} options.isClosed Deprecated: Use `enabled` instead.
+ * @param {boolean} options.enabled Whether logging is enabled.
+ * @param {boolean} options.isClosed @deprecated Use `enabled` instead.
  * @param {boolean} options.showWrap Whether to show the wrap.
  * @param {boolean} options.showDate Whether to show the date.
  * @param {string} options.locales A locale string.
@@ -62,9 +62,7 @@ export function genCustomConsole(
     isStringifyObject?: boolean;
     logFn?: () => void;
     errorFn?: () => void;
-  } = {
-    ...defaultGenCustomConsoleOptions,
-  }
+  } = {}
 ): Console {
   let {
     enabled, isClosed, showWrap, showDate,
@@ -76,6 +74,7 @@ export function genCustomConsole(
     },
     options
   );
+  // Handle Deprecation
   if (isClosed === true) {
     mazeyCon.warn("The options.isClosed is deprecated. Please use options.enabled instead.");
     enabled = false;
@@ -102,9 +101,7 @@ export function genCustomConsole(
   };
   methods.forEach(method => {
     newConsole[method] = function(...argu: MazeyFnParams) {
-      if (!enabled) {
-        return false;
-      }
+      if (!enabled) return;
       let elaboratePrefix = prefix;
       let datePrefix = prefix;
       if (typeof prefix === "string" && prefix.length >= 2) {
