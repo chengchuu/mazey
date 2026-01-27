@@ -933,10 +933,10 @@ MazeyLog: I am object. {a: 123, b: 456}
 
 ### Development Environment
 
-| Dependency | Version                      |
-|------------|------------------------------|
-| Node.js    | v16.19.0, v18.12.1, v22.21.1 |
-| TypeScript | v5.1.6                       |
+| Dependency | Version  |
+|------------|----------|
+| Node.js    | v22.21.1 |
+| TypeScript | v5.1.6   |
 
 ### Scripts
 
@@ -964,7 +964,7 @@ Test:
 npm run test
 ```
 
-Document:
+Documentation:
 
 ```bash
 npm run docs
