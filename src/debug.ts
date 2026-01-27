@@ -2,7 +2,8 @@ import type { MazeyFnParams } from "./typing";
 import { isPureObject } from "./util";
 
 const defaultGenCustomConsoleOptions = {
-  isClosed: false,
+  enabled: true,
+  isClosed: false, // Deprecated
   showWrap: false,
   showDate: false,
   locales: "en-US",
@@ -39,7 +40,8 @@ const defaultGenCustomConsoleOptions = {
  *
  * @param {string} prefix The prefix string.
  * @param {object} options The options object.
- * @param {boolean} options.isClosed Whether to close the console.
+ * @param {boolean} options.enabled Whether to close the console.
+ * @param {boolean} options.isClosed Deprecated: Use `enabled` instead.
  * @param {boolean} options.showWrap Whether to show the wrap.
  * @param {boolean} options.showDate Whether to show the date.
  * @param {string} options.locales A locale string.
@@ -52,7 +54,8 @@ const defaultGenCustomConsoleOptions = {
 export function genCustomConsole(
   prefix = "",
   options: {
-    isClosed?: boolean;
+    enabled?: boolean;
+    isClosed?: boolean; // Deprecated
     showWrap?: boolean;
     showDate?: boolean;
     locales?: string;
@@ -63,12 +66,20 @@ export function genCustomConsole(
     ...defaultGenCustomConsoleOptions,
   }
 ): Console {
-  const { isClosed, showWrap, showDate, locales, isStringifyObject, logFn, errorFn } = Object.assign(
+  let {
+    enabled, isClosed, showWrap, showDate,
+    locales, isStringifyObject, logFn,
+    errorFn,
+  } = Object.assign(
     {
       ...defaultGenCustomConsoleOptions,
     },
     options
   );
+  if (isClosed === true) {
+    mazeyCon.warn("The options.isClosed is deprecated. Please use options.enabled instead.");
+    enabled = false;
+  }
   const methods = [ "log", "info", "warn", "error" ];
   const newConsole = Object.create(null);
   // https://stackoverflow.com/questions/3552461/how-do-i-format-a-date-in-javascript
@@ -91,7 +102,7 @@ export function genCustomConsole(
   };
   methods.forEach(method => {
     newConsole[method] = function(...argu: MazeyFnParams) {
-      if (isClosed) {
+      if (!enabled) {
         return false;
       }
       let elaboratePrefix = prefix;
