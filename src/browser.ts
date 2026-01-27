@@ -125,7 +125,6 @@ export function isSafePWAEnv(): boolean {
 export function getBrowserInfo(): BrowserInfo {
   // Cache
   if (window.MAZEY_BROWSER_INFO && typeof window.MAZEY_BROWSER_INFO === "object") {
-    // mazeyCon.log("getBrowserInfo cache");
     return window.MAZEY_BROWSER_INFO;
   }
   let browserInfo: BrowserInfo = {
@@ -403,7 +402,6 @@ let webpSupport = "";
  */
 export function isSupportWebp(): Promise<boolean> {
   if (webpSupport) {
-    // mazeyCon.log("isSupportWebp cache");
     return Promise.resolve(webpSupport === "webp");
   }
   const fn = (resolve: (v: boolean) => void) => {
