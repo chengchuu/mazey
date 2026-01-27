@@ -1,8 +1,8 @@
 <!-- markdownlint-disable MD041 -->
 
-⚠️ Note: The document has expired, please check the latest [README.md](https://github.com/mazeyqian/mazey/blob/release/v4/README.md).
+⚠️ Note: The document has expired, please check the latest [README.md](https://github.com/chengchuu/mazey/blob/release/v4/README.md).
 
-⚠️ 注意: 此文档只适用于 v1.4.39 版本，[查看 v4.x 版本的文档](https://github.com/mazeyqian/mazey/blob/release/v4/README.md)
+⚠️ 注意: 此文档只适用于 v1.4.39 版本，[查看 v4.x 版本的文档](https://github.com/chengchuu/mazey/blob/release/v4/README.md)
 
 <!-- omit from toc -->
 # Mazey

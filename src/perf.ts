@@ -284,7 +284,7 @@ export async function getTTFB(): Promise<number> {
  * @remarks
  * This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
  * The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
- * If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/mazeyqian/mazey/releases/tag/v3.9.7)).
+ * If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/chengchuu/mazey/releases/tag/v3.9.7)).
  *
  * Usage:
  *

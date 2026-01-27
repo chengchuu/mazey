@@ -13,6 +13,9 @@ describe("isSafePWAEnv", () => {
     window.fetch = jest.fn();
     window.indexedDB = {};
     window.caches = {};
+    // Remove jsdom's location object and set our own
+    delete window.location;
+    window.location = { protocol: 'https:' };
 
     expect(isSafePWAEnv()).toBe(true);
   });
