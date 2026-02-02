@@ -62,7 +62,9 @@ export function genCustomConsole(
     isStringifyObject?: boolean;
     logFn?: () => void;
     errorFn?: () => void;
-  } = {}
+  } = {
+    ...defaultGenCustomConsoleOptions,
+  }
 ): Console {
   let {
     enabled, isClosed, showWrap, showDate,
