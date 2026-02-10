@@ -340,7 +340,7 @@ export function getBrowserInfo(): BrowserInfo {
     browserInfo = {
       ...browserInfo,
       colorScheme,
-    }
+    };
     window.MAZEY_BROWSER_INFO = browserInfo;
     return browserInfo;
   } catch (err) {
