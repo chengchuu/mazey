@@ -138,6 +138,7 @@ export function getBrowserInfo(): BrowserInfo {
     shell: "",
     shellVs: "",
     appleType: "",
+    colorScheme: "",
   };
   try {
     // Priority: system + system version > platform > engine + carrier + engine version + carrier version > shell + shell version
@@ -325,6 +326,21 @@ export function getBrowserInfo(): BrowserInfo {
       shell,
       shellVs,
     };
+    // Add colorScheme based on prefers-color-scheme media query
+    let colorScheme = "";
+    if (window.matchMedia) {
+      const mqDarkRes = window.matchMedia("(prefers-color-scheme: dark)");
+      const mqLightRes = window.matchMedia("(prefers-color-scheme: light)");
+      if (mqDarkRes.matches) {
+        colorScheme = "dark";
+      } else if (mqLightRes.matches) {
+        colorScheme = "light";
+      }
+    }
+    browserInfo = {
+      ...browserInfo,
+      colorScheme,
+    }
     window.MAZEY_BROWSER_INFO = browserInfo;
     return browserInfo;
   } catch (err) {
