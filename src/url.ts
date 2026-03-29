@@ -245,7 +245,6 @@ export function getHashQueryParam(param: string): string {
 export function getDomain(url: string, rules = [ "hostname" ]): string {
   if (checkIfURLIsSupported(url)) {
     const u = new window.URL(url);
-    // mazeyCon.log(u);
     return rules.reduce((ret, v) => {
       ret += u[v as keyof URL];
       return ret;
