@@ -41,6 +41,9 @@ describe("getBrowserInfo", () => {
     // Test the shell information
     expect(browserInfo.shell).toBeDefined();
     expect(browserInfo.shellVs).toBeDefined();
+
+    // Test Color Scheme
+    expect(browserInfo.colorScheme).toBeDefined();
   });
 });
 

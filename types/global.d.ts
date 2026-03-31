@@ -65,5 +65,7 @@ declare global {
     // LIB
     $: typeof $;
     jQuery: typeof $;
+    // Supply
+    // matchMedia: any;
   }
 }
