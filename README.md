@@ -94,8 +94,8 @@ There are some examples maintained by hand below. For more information, please c
   - [Cookie](#cookie)
   - [Storage](#storage)
 - [DOM](#dom)
+  - [Class Helpers](#class-helpers)
   - [addStyle](#addstyle)
-  - [Class](#class)
   - [newLine](#newline)
 - [Calculate and Formula](#calculate-and-formula)
   - [inRate](#inrate)
@@ -655,48 +655,7 @@ Output:
 
 ### DOM
 
-#### addStyle
-
-Add `<style>` in `<head>`.
-
-Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
-
-```javascript
-addStyle(
-  `
-    body {
-      background-color: #333;
-    }
-  `,
-  {
-    id: "test",
-  }
-);
-// <style id="test">
-//   body {
-//     background-color: #333;
-//   }
-// </style>
-```
-
-Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
-
-```javascript
-addStyle(
-  `
-    body {
-      background-color: #444;
-    }
-  `
-);
-// <style>
-//   body {
-//     background-color: #444;
-//   }
-// </style>
-```
-
-#### Class
+#### Class Helpers
 
 Modify `class`.
 
@@ -711,6 +670,74 @@ hasClass(dom, "test");
 addClass(dom, "test");
 // Remove `class`
 removeClass(dom, "test");
+```
+
+#### addStyle
+
+Add `<style>` in `<head>`.
+
+Usage:
+
+Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
+
+```javascript
+import { addStyle } from "mazey";
+
+addStyle(
+  "body { background-color: #333; }",
+  { id: "test" }
+);
+```
+
+Output:
+
+```html
+<style id="test">body { background-color: #333; }</style>
+```
+
+Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
+
+```javascript
+import { addStyle } from "mazey";
+
+addStyle("body { background-color: #444; }");
+```
+
+Output:
+
+```html
+<style>body { background-color: #444; }</style>
+```
+
+Example 3: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+
+```javascript
+import { genStyleString, addStyle } from "mazey";
+
+const xStyle = genStyleString(
+  ".footer>.x-wish>a:first-child" +
+  ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
+  ",.m-hide",
+  [ "display: none" ]
+);
+const yStyle = genStyleString(
+  ".footer>.y-wish:before",
+  [
+    `content: 'Copyright (c) chengchuu'`,
+    "color: inherit",
+    "padding-inline-start: var(--y-wish-1_5)",
+    "padding-inline-end: var(--y-wish-1_5)",
+    "padding-top: var(--y-wish-1)",
+    "padding-bottom: var(--y-wish-1)",
+  ]
+);
+addStyle(xStyle + yStyle, { id: "z-style" });
+```
+
+Output:
+
+```html
+<style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
 ```
 
 #### newLine
