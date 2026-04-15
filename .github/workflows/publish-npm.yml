@@ -5,11 +5,13 @@ env:
   PROJECT_NAME: 'mazey'
 
 on:
-  pull_request: # Test
+  # Test
+  pull_request:
     branches:
       - main
       - 'release/v*'
-  push: # Publish
+  # Publish
+  push:
     branches:
       - 'release/v*'
   workflow_dispatch:
