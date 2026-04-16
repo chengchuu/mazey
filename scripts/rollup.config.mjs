@@ -2,6 +2,7 @@
 /* eslint-disable no-undef */
 import { babel } from "@rollup/plugin-babel";
 import commonjs from "@rollup/plugin-commonjs";
+import { nodeResolve } from "@rollup/plugin-node-resolve";
 import rollupTypescript from "rollup-plugin-typescript2";
 import { DEFAULT_EXTENSIONS } from "@babel/core";
 import cleaner from "rollup-plugin-cleaner";
@@ -23,6 +24,9 @@ const banner =
   " * Released under the MIT License.\n" +
   " */";
 const plugins = [
+  nodeResolve({
+    extensions: [".mjs", ".js", ".json", ".node", ".ts"],
+  }),
   rollupTypescript(),
   commonjs({
     include: /node_modules/,
