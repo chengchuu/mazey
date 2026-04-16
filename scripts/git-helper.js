@@ -31,7 +31,7 @@ const execa = require("execa");
  * @param {string} ver Version
  * @returns {void}
  */
-async function release (ver, { canGenerateToc = false, enerateTocOnly = false, defaultBranch = "main" } = {}) {
+async function release (ver, { canGenerateToc = false, generateTocOnly = false, defaultBranch = "main" } = {}) {
   if (!ver) {
     ver = process.env.SCRIPTS_NPM_PACKAGE_VERSION;
   }
@@ -47,7 +47,7 @@ async function release (ver, { canGenerateToc = false, enerateTocOnly = false, d
   if (canGenerateToc) {
     generateToc();
   }
-  if (enerateTocOnly) {
+  if (generateTocOnly) {
     return;
   }
   // Commit
