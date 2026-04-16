@@ -19,7 +19,7 @@
     "test": "jest",
     "test:debug": "npm run build:debug && npm run test",
     "test:coverage": "npm run build:debug && npx jest --coverage",
-    "lint:fix": "eslint --ext 'js,ts,tsx' --fix ./src/*.ts ./test/*.js ./scripts/*.js ./scripts/*.mjs",
+    "lint:fix": "eslint --ext 'js,ts,tsx,mjs' --fix ./src/*.ts ./test/*.js ./scripts/*.js ./scripts/*.mjs",
     "docs": "typedoc --readme ./README.md --excludeProtected --excludePrivate --excludeInternal --hideGenerator",
     "preview": "npm run build && npm run test",
     "release": "npm run preview && cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/release.js",

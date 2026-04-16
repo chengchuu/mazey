@@ -6,4 +6,4 @@ const pkgVersion = process.env.SCRIPTS_NPM_PACKAGE_VERSION || process.env.VERSIO
 
 console.log("release: SCRIPTS_NPM_PACKAGE_VERSION", process.env.SCRIPTS_NPM_PACKAGE_VERSION);
 
-release(pkgVersion, { canGenerateToc: true });
+release(pkgVersion, { canGenerateToc: true, enerateTocOnly: true });

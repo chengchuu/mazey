@@ -347,6 +347,37 @@ export function setImgWidHeiBySrc(): boolean {
  * #b{color:red;font-size:12px;}
  * ```
  *
+ * Example: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+ *
+ * ```javascript
+ * import { genStyleString, addStyle } from "mazey";
+ *
+ * const xStyle = genStyleString(
+ *   ".footer>.x-wish>a:first-child" +
+ *   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
+ *   ",.m-hide",
+ *   [ "display: none" ]
+ * );
+ * const yStyle = genStyleString(
+ *   ".footer>.y-wish:before",
+ *   [
+ *     `content: 'Copyright (c) chengchuu'`,
+ *     "color: inherit",
+ *     "padding-inline-start: var(--y-wish-1_5)",
+ *     "padding-inline-end: var(--y-wish-1_5)",
+ *     "padding-top: var(--y-wish-1)",
+ *     "padding-bottom: var(--y-wish-1)",
+ *   ]
+ * );
+ * addStyle(xStyle + yStyle, { id: "z-style" });
+ * ```
+ *
+ * Output:
+ *
+ * ```html
+ * <style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
+ * ```
+ *
  * @param {string} selector
  * @param {array} styleArray
  * @returns {string} The inline style string.

@@ -66,7 +66,7 @@ export function genCustomConsole(
     ...defaultGenCustomConsoleOptions,
   }
 ): Console {
-  let {
+  const {
     enabled, isClosed, showWrap, showDate,
     locales, isStringifyObject, logFn,
     errorFn,
@@ -76,10 +76,11 @@ export function genCustomConsole(
     },
     options
   );
+  let tempEnabled = enabled;
   // Handle Deprecation
   if (isClosed === true) {
     mazeyCon.warn("The options.isClosed is deprecated. Please use options.enabled instead.");
-    enabled = false;
+    tempEnabled = false;
   }
   const methods = [ "log", "info", "warn", "error" ];
   const newConsole = Object.create(null);
@@ -103,7 +104,7 @@ export function genCustomConsole(
   };
   methods.forEach(method => {
     newConsole[method] = function(...argu: MazeyFnParams) {
-      if (!enabled) return;
+      if (!tempEnabled) return;
       let elaboratePrefix = prefix;
       let datePrefix = prefix;
       if (typeof prefix === "string" && prefix.length >= 2) {

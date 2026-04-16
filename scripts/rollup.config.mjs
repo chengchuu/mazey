@@ -25,7 +25,7 @@ const banner =
   " */";
 const plugins = [
   nodeResolve({
-    extensions: [".mjs", ".js", ".json", ".node", ".ts"],
+    extensions: [ ".mjs", ".js", ".json", ".node", ".ts" ],
   }),
   rollupTypescript(),
   commonjs({
