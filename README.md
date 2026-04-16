@@ -28,7 +28,7 @@ Use Mazey from CDN.
 <script type="text/javascript" src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 ```
 
-Of course, you can also download and serve the file [lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
+Of course, you can also download and serve the file [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
 
 ## Usage
 
