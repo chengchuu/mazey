@@ -73,7 +73,7 @@ const gTsConf = {
 
 if (debugMode !== "open") {
   iifePlugins.push(
-    // Add minification.
+    // Add Minification
     // https://github.com/TrySound/rollup-plugin-terser
     terser({ // https://github.com/terser/terser
       format: {
