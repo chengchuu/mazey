@@ -23,15 +23,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v5
 
-      - name: Normalize line endings
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y dos2unix
-          dos2unix src/*.ts
-          dos2unix scripts/**
-          dos2unix test/**
-          dos2unix types/*.ts
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
@@ -41,7 +32,7 @@ jobs:
         run: npm install
 
       - name: Build package
-        run: dos2unix src/*.ts && npm run build --if-present
+        run: npm run build --if-present
 
       - name: Run tests
         run: npm test
@@ -53,15 +44,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
-
-      - name: Normalize line endings
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y dos2unix
-          dos2unix src/*.ts
-          dos2unix scripts/**
-          dos2unix test/**
-          dos2unix types/*.ts
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
