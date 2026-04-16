@@ -9,7 +9,7 @@ import { deepCopy } from "./util";
  *
  * ```javascript
  * import { longestComSubstring } from "mazey";
- * 
+ *
  * const ret = longestComSubstring("fish", "finish");
  * console.log(ret);
  * ```
@@ -66,7 +66,7 @@ export function calLongestCommonSubstring(aStr: string, bStr: string): number {
  *
  * ```javascript
  * import { longestComSubsequence } from "mazey";
- * 
+ *
  * const ret = longestComSubsequence("fish", "finish");
  * console.log(ret);
  * ```
@@ -132,7 +132,7 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  *
  * ```javascript
  * import { isHit } from "mazey";
- * 
+ *
  * const ret = isHit(0.5); // 0.01 ~ 1 true/false
  * console.log(ret);
  * ```
@@ -157,9 +157,9 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * });
  * console.log(trueCount, falseCount);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * 499994 500006
  * ```

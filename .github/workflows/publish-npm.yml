@@ -28,8 +28,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dos2unix
           dos2unix src/*.ts
-          dos2unix scripts/*.ts
-          dos2unix test/*.ts
+          dos2unix scripts/**
+          dos2unix test/**
           dos2unix types/*.ts
 
       - name: Setup Node.js
@@ -59,8 +59,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y dos2unix
           dos2unix src/*.ts
-          dos2unix scripts/*.ts
-          dos2unix test/*.ts
+          dos2unix scripts/**
+          dos2unix test/**
           dos2unix types/*.ts
 
       - name: Setup Node.js

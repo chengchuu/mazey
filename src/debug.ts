@@ -21,7 +21,7 @@ const defaultGenCustomConsoleOptions = {
  *
  * ```javascript
  * import { genCustomConsole } from "mazey";
- * 
+ *
  * const cusConsole = genCustomConsole("[MazeyLog]");
  * cusConsole.log("I am string.");
  * cusConsole.info("I am boolean.", true);
@@ -158,21 +158,21 @@ export const mazeyCon = genCustomConsole("[Mazey]");
 
 /**
  * EN: Print logs with Time.
- * 
+ *
  * ZH: 打印带有时间的日志。
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * timeCon("I am string.");
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * 2024年11月2日周六 09:24:40 I am string.
  * ```
- * 
+ *
  * @hidden
  */
 export const timeCon = genCustomConsole("", { showDate: true, locales: "zh-CN", isStringifyObject: true });
