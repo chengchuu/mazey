@@ -8,7 +8,7 @@ import type { MultiValueUrlParams, SingleValueUrlParams } from "./typing";
  *
  * ```javascript
  * import { getQueryParam } from "mazey";
- * 
+ *
  * // http://example.com/?t1=1&t2=2&t3=3&t4=4#2333
  * // ?t1=1&t2=2&t3=3&t4=4
  * const p1 = getQueryParam("t3");
@@ -37,24 +37,24 @@ export function getQueryParam(param: string): string {
 
 /**
  * Get the all query params of the current Web URL(`location.search`).
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { getAllQueryParams } from "mazey";
- * 
+ *
  * // http://example.com/?t1=1&t2=2&t3=3&t4=4#2333
  * // ?t1=1&t2=2&t3=3&t4=4
  * const ret = getAllQueryParams();
  * console.log(ret);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * { t1: "1", t2: "2", t3: "3", t4: "4" }
  * ```
- * 
+ *
  * @param {string} url Optional, The URL string.
  * @returns {object} The query params object.
  * @category URL
@@ -80,7 +80,7 @@ export function getAllQueryParams(url: string = ""): SingleValueUrlParams {
  *
  * ```javascript
  * import { getUrlParam } from "mazey";
- * 
+ *
  * const p1 = getUrlParam("http://example.com/?t1=1&t2=2&t3=3&t4=4", "t3");
  * const p2 = getUrlParam("http://example.com/?t1=1&t2=2&t3=3&t4=4", "t4");
  * console.log(p1, p2);
@@ -122,7 +122,7 @@ export function getUrlParam(url: string, param: string, options: { returnArray?:
     if (res.length) {
       return res[ 0 ];
     } else {
-      return null;      
+      return null;
     }
   }
 }
@@ -134,7 +134,7 @@ export function getUrlParam(url: string, param: string, options: { returnArray?:
  *
  * ```javascript
  * import { updateQueryParam } from "mazey";
- * 
+ *
  * const ret1 = updateQueryParam("http://example.com/?t1=1&t2=2&t3=3&t4=4", "t3", "three");
  * const ret2 = updateQueryParam("http://example.com/?t1=1&t2=2&t3=3&t4=4", "t4", "four");
  * console.log(ret1);
@@ -177,7 +177,7 @@ export function updateQueryParam(url: string, param: string, value: string): str
  *
  * ```javascript
  * import { getHashQueryParam } from "mazey";
- * 
+ *
  * // http://example.com/?#2333?t1=1&t2=2&t3=3&t4=4
  * // #2333?t1=1&t2=2&t3=3&t4=4
  * const p1 = getHashQueryParam("t3");
@@ -212,7 +212,7 @@ export function getHashQueryParam(param: string): string {
  *
  * ```javascript
  * import { getDomain } from "mazey";
- * 
+ *
  * const ret1 = getDomain("http://example.com/?t1=1&t2=2&t3=3&t4=4");
  * const ret2 = getDomain("http://example.com/test/thanks?t1=1&t2=2&t3=3&t4=4", ["hostname", "pathname"]);
  * const ret3 = getDomain("http://example.com:7890/test/thanks", ["hostname"]);
@@ -266,7 +266,7 @@ export function getDomain(url: string, rules = [ "hostname" ]): string {
  *
  * ```javascript
  * import { isValidUrl } from "mazey";
- * 
+ *
  * const ret1 = isValidUrl("https://www.example.com");
  * const ret2 = isValidUrl("http://example.com/path/exx/ss");
  * const ret3 = isValidUrl("https://www.example.com/?q=hello&age=24#world");
@@ -301,7 +301,7 @@ export function isValidUrl(url: string): boolean {
  *
  * ```javascript
  * import { isValidHttpUrl } from "mazey";
- * 
+ *
  * const ret1 = isValidHttpUrl("https://www.example.com");
  * const ret2 = isValidHttpUrl("http://example.com/path/exx/ss");
  * const ret3 = isValidHttpUrl("https://www.example.com/?q=hello&age=24#world");
@@ -339,7 +339,7 @@ export function isValidHttpUrl(url: string, options: { strict: boolean } = { str
  *
  * ```javascript
  * import { getUrlFileType } from "mazey";
- * 
+ *
  * const ret1 = getUrlFileType("https://example.com/a/b/c.png");
  * const ret2 = getUrlFileType("https://example.com/a/b/c.jpg");
  * const ret3 = getUrlFileType("https://example.com/a/b/c.jpeg");
@@ -381,10 +381,10 @@ export function getUrlFileType(url: string): boolean | string {
  * ```html
  * <script src="https://example.com/example.js?test=hello&name=mazey"></script>
  * ```
- * 
+ *
  * ```javascript
  * import { getScriptQueryParam } from "mazey";
- * 
+ *
  * const ret = getScriptQueryParam("test", "https://example.com/example.js");
  * console.log(ret);
  * ```
@@ -421,22 +421,22 @@ export function getScriptQueryParam(param: string, matchString = ""): string {
 
 /**
  * Convert an object to a query string.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { convertObjectToQuery } from "mazey";
- * 
+ *
  * const ret = convertObjectToQuery({ t1: "1", t2: "2", t3: "3", t4: "4" });
  * console.log(ret);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * ?t1=1&t2=2&t3=3&t4=4
  * ```
- * 
+ *
  * @param obj - The object to convert to a query string.
  * @returns The query string.
  * @category URL
@@ -454,22 +454,22 @@ export function convertObjectToQuery(obj: { [key: string]: string }): string {
 
 /**
  * Convert an HTTP URL to an HTTPS URL.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { convertHttpToHttps } from "mazey";
- * 
+ *
  * const ret = convertHttpToHttps("http://example.com");
  * console.log(ret);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * https://example.com
  * ```
- * 
+ *
  * @param url - The HTTP URL to convert to HTTPS.
  * @returns The HTTPS URL.
  * @category URL
@@ -480,7 +480,7 @@ export function convertHttpToHttps(url: string): string {
 
 /**
  * Alias of `convertHttpToHttps`.
- * 
+ *
  * @hidden
  */
 export function replaceHttp(url: string): string {
@@ -522,22 +522,22 @@ function checkIfURLIsSupported(url: string = "") {
 
 /**
  * Get the host of the URL.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { getUrlHost } from "mazey";
- * 
+ *
  * const ret = getUrlHost("https://example.com/path/to/page");
  * console.log(ret);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * example.com
  * ```
- * 
+ *
  * @param url - The URL to get the host from.
  * @returns The host of the URL.
  * @category URL
@@ -556,22 +556,22 @@ export function getUrlHost(url: string): string {
 
 /**
  * Get the path of the URL.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { getUrlPath } from "mazey";
- * 
+ *
  * const ret = getUrlPath("https://example.com/path/to/page");
  * console.log(ret);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * /path/to/page
  * ```
- * 
+ *
  * @param url - The URL to get the path from.
  * @returns The path of the URL.
  * @category URL

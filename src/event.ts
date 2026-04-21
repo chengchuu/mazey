@@ -7,7 +7,7 @@ import type { DefineListeners, MazeyFn, MazeyObject } from "./typing";
  *
  * ```javascript
  * import { cancelBubble } from "mazey";
- * 
+ *
  * const ret1 = cancelBubble(e);
  * ```
  *
@@ -31,13 +31,13 @@ export function cancelBubble(e: Event): void {
  *
  * ```javascript
  * import { getDefineListeners } from "mazey";
- * 
+ *
  * const ret = getDefineListeners();
  * console.log(ret);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * {}
  * ```
@@ -61,15 +61,15 @@ export function getDefineListeners(): DefineListeners {
  *
  * ```javascript
  * import { addEvent } from "mazey";
- * 
+ *
  * addEvent("test", (e) => {
  *  console.log("test event:", e);
  * });
  * fireEvent("test");
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```javascript
  * test event: { type: "test" }
  * ```
@@ -95,7 +95,7 @@ export function addEvent(type: string, fn: MazeyFn): void {
  *
  * ```javascript
  * import { fireEvent } from "mazey";
- * 
+ *
  * fireEvent("test");
  * ```
  *
@@ -117,7 +117,7 @@ export function fireEvent(type: string, params?: MazeyObject): void {
 
 /**
  * Alias of `fireEvent`.
- * 
+ *
  * @hidden
  */
 export function invokeEvent(type: string): void {
@@ -131,7 +131,7 @@ export function invokeEvent(type: string): void {
  *
  * ```javascript
  * import { removeEvent } from "mazey";
- * 
+ *
  * removeEvent("test");
  * ```
  *

@@ -9,7 +9,7 @@ import { mazeyCon } from "./debug";
  *
  * ```javascript
  * import { hasClass, addClass, removeClass } from "mazey";
- * 
+ *
  * const dom = document.querySelector("#box");
  * // Determine `class`
  * hasClass(dom, "test");
@@ -43,28 +43,28 @@ export function hasClass(obj: MazeyElement, cls: string): boolean {
  *
  * ```javascript
  * import { addClass } from "mazey";
- * 
+ *
  * const ele = document.querySelector("#box");
  * addClass(ele, "test");
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```html
  * <div id="box" class="test"></div>
  * ```
- * 
+ *
  * Advanced Usage:
- * 
+ *
  * ```javascript
  * import { addClass, genBrowserAttrs } from "mazey";
- * 
+ *
  * const ele = document.querySelector("html");
  * addClass(ele, genBrowserAttrs());
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```html
  * <html class="windows desktop webkit chrome"></html>
  * ```
@@ -116,7 +116,7 @@ export function setClass(ele: HTMLElement, cls: string): void {
  *
  * ```javascript
  * import { hasClass, addClass, removeClass } from "mazey";
- * 
+ *
  * const dom = document.querySelector("#box");
  * // Determine `class`
  * hasClass(dom, "test");
@@ -148,58 +148,69 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  * ZH: 添加样式标签; style: 样式标签内的字符串; id: `<style>` 标签的 `id`; 返回: 添加成功/失败。
  *
  * Usage:
- * 
+ *
  * Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
  *
  * ```javascript
  * import { addStyle } from "mazey";
- * 
+ *
  * addStyle(
- *   `
- *     body {
- *       background-color: #333;
- *     }
- *   `,
- *   {
- *     id: "test",
- *   }
+ *   "body { background-color: #333; }",
+ *   { id: "test" }
  * );
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```html
- * <style id="test">
- *   body {
- *     background-color: #333;
- *   }
- * </style>
+ * <style id="test">body { background-color: #333; }</style>
  * ```
  *
  * Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
  *
  * ```javascript
  * import { addStyle } from "mazey";
- * 
- * addStyle(
- *   `
- *     body {
- *       background-color: #444;
- *     }
- *   `
- * );
+ *
+ * addStyle("body { background-color: #444; }");
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```html
- * <style>
- *   body {
- *     background-color: #444;
- *   }
- * </style>
+ * <style>body { background-color: #444; }</style>
  * ```
- * 
+ *
+ * Example 3: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+ *
+ * ```javascript
+ * import { genStyleString, addStyle } from "mazey";
+ *
+ * const xStyle = genStyleString(
+ *   ".footer>.x-wish>a:first-child" +
+ *   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
+ *   ",.m-hide",
+ *   [ "display: none" ]
+ * );
+ * const yStyle = genStyleString(
+ *   ".footer>.y-wish:before",
+ *   [
+ *     `content: 'Copyright (c) chengchuu'`,
+ *     "color: inherit",
+ *     "padding-inline-start: var(--y-wish-1_5)",
+ *     "padding-inline-end: var(--y-wish-1_5)",
+ *     "padding-top: var(--y-wish-1)",
+ *     "padding-bottom: var(--y-wish-1)",
+ *   ]
+ * );
+ * addStyle(xStyle + yStyle, { id: "z-style" });
+ * ```
+ *
+ * Output:
+ *
+ * ```html
+ * <style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
+ * ```
+ *
  * @category DOM
  */
 export function addStyle(style: string, options: { id?: string } = { id: "" }): boolean {
@@ -245,15 +256,15 @@ export function addStyle(style: string, options: { id?: string } = { id: "" }): 
  * ```html
  * <img src="image.jpg?width=100px&height=200px">
  * ```
- * 
+ *
  * ```javascript
  * import { setImgSizeBySrc } from "mazey";
- * 
+ *
  * setImgSizeBySrc();
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```html
  * <img src="image.jpg?width=100px&height=200px" width="100px" height="200px">
  * ```
@@ -310,7 +321,7 @@ export function setImgSizeBySrc(): boolean {
 
 /**
  * Alias of `setImgSizeBySrc`.
- * 
+ *
  * @hidden
  */
 export function setImgWidHeiBySrc(): boolean {
@@ -336,6 +347,37 @@ export function setImgWidHeiBySrc(): boolean {
  * #b{color:red;font-size:12px;}
  * ```
  *
+ * Example: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+ *
+ * ```javascript
+ * import { genStyleString, addStyle } from "mazey";
+ *
+ * const xStyle = genStyleString(
+ *   ".footer>.x-wish>a:first-child" +
+ *   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
+ *   ",.m-hide",
+ *   [ "display: none" ]
+ * );
+ * const yStyle = genStyleString(
+ *   ".footer>.y-wish:before",
+ *   [
+ *     `content: 'Copyright (c) chengchuu'`,
+ *     "color: inherit",
+ *     "padding-inline-start: var(--y-wish-1_5)",
+ *     "padding-inline-end: var(--y-wish-1_5)",
+ *     "padding-top: var(--y-wish-1)",
+ *     "padding-bottom: var(--y-wish-1)",
+ *   ]
+ * );
+ * addStyle(xStyle + yStyle, { id: "z-style" });
+ * ```
+ *
+ * Output:
+ *
+ * ```html
+ * <style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
+ * ```
+ *
  * @param {string} selector
  * @param {array} styleArray
  * @returns {string} The inline style string.
@@ -351,26 +393,26 @@ export function genStyleString(selector: string, styleArray: Array<string>): str
 
 /**
  * Get the value of the meta tag by the given name.
- * 
+ *
  * Usage:
- * 
+ *
  * ```html
  * <meta name="keywords" content="mazey,web,frontend">
  * ```
- * 
+ *
  * ```javascript
  * import { getPageMeta } from "mazey";
- * 
+ *
  * const keywords = getPageMeta("keywords");
  * console.log(keywords);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * mazey,web,frontend
  * ```
- * 
+ *
  * @param {string} name - The name of the meta tag.
  * @returns {string} The content of the meta tag.
  * @category DOM

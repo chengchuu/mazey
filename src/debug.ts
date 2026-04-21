@@ -21,7 +21,7 @@ const defaultGenCustomConsoleOptions = {
  *
  * ```javascript
  * import { genCustomConsole } from "mazey";
- * 
+ *
  * const cusConsole = genCustomConsole("[MazeyLog]");
  * cusConsole.log("I am string.");
  * cusConsole.info("I am boolean.", true);
@@ -41,7 +41,7 @@ const defaultGenCustomConsoleOptions = {
  * @param {string} prefix The prefix string.
  * @param {object} options The options object.
  * @param {boolean} options.enabled Whether logging is enabled.
- * @param {boolean} options.isClosed @deprecated Use `enabled` instead.
+ * @param {boolean} options.isClosed Deprecated, Use "enabled" instead.
  * @param {boolean} options.showWrap Whether to show the wrap.
  * @param {boolean} options.showDate Whether to show the date.
  * @param {string} options.locales A locale string.
@@ -62,9 +62,11 @@ export function genCustomConsole(
     isStringifyObject?: boolean;
     logFn?: () => void;
     errorFn?: () => void;
-  } = {}
+  } = {
+    ...defaultGenCustomConsoleOptions,
+  }
 ): Console {
-  let {
+  const {
     enabled, isClosed, showWrap, showDate,
     locales, isStringifyObject, logFn,
     errorFn,
@@ -74,10 +76,11 @@ export function genCustomConsole(
     },
     options
   );
+  let tempEnabled = enabled;
   // Handle Deprecation
   if (isClosed === true) {
     mazeyCon.warn("The options.isClosed is deprecated. Please use options.enabled instead.");
-    enabled = false;
+    tempEnabled = false;
   }
   const methods = [ "log", "info", "warn", "error" ];
   const newConsole = Object.create(null);
@@ -101,7 +104,7 @@ export function genCustomConsole(
   };
   methods.forEach(method => {
     newConsole[method] = function(...argu: MazeyFnParams) {
-      if (!enabled) return;
+      if (!tempEnabled) return;
       let elaboratePrefix = prefix;
       let datePrefix = prefix;
       if (typeof prefix === "string" && prefix.length >= 2) {
@@ -156,21 +159,21 @@ export const mazeyCon = genCustomConsole("[Mazey]");
 
 /**
  * EN: Print logs with Time.
- * 
+ *
  * ZH: 打印带有时间的日志。
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * timeCon("I am string.");
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * 2024年11月2日周六 09:24:40 I am string.
  * ```
- * 
+ *
  * @hidden
  */
 export const timeCon = genCustomConsole("", { showDate: true, locales: "zh-CN", isStringifyObject: true });
