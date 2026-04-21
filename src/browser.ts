@@ -1,6 +1,6 @@
 import { mazeyCon } from "./debug";
 import type {
-  BrowserInfo, MazeyObject, TestUa, TestVs, 
+  BrowserInfo, MazeyObject, TestUa, TestVs,
 } from "./typing";
 import { isNonEmptyArray } from "./util";
 
@@ -15,7 +15,7 @@ let pwaSupport = "";
  *
  * ```javascript
  * import { isSafePWAEnv } from "mazey";
- * 
+ *
  * const ret = isSafePWAEnv();
  * console.log(ret);
  * ```
@@ -85,7 +85,7 @@ export function isSafePWAEnv(): boolean {
  *
  * ```javascript
  * import { getBrowserInfo } from "mazey";
- * 
+ *
  * const ret = getBrowserInfo();
  * console.log(ret);
  * ```
@@ -351,24 +351,24 @@ export function getBrowserInfo(): BrowserInfo {
 
 /**
  * EN: Generate browser attributes.
- * 
+ *
  * ZH: 生成浏览器属性。
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { genBrowserAttrs } from "mazey";
- * 
+ *
  * const attrs = genBrowserAttrs();
  * console.log(attrs);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * ["windows", "desktop", "webkit", "chrome"]
  * ```
- * 
+ *
  * @environment Browser
  * @param {string} prefix
  * @returns {array} Browser attributes
@@ -400,7 +400,7 @@ let webpSupport = "";
  *
  * ```javascript
  * import { isSupportWebp } from "mazey";
- * 
+ *
  * isSupportWebp().then(res => {
  *  console.log("isSupportWebp:", res);
  * });

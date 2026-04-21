@@ -28,7 +28,7 @@ Use Mazey from CDN.
 <script type="text/javascript" src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 ```
 
-Of course, you can also download and serve the file [lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
+Of course, you can also download and serve the file [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
 
 ## Usage
 
@@ -77,11 +77,11 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
+  - [deepCopy](#deepcopy)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToUnder](#convertcameltounder)
-  - [deepCopy](#deepcopy)
 - [URL](#url)
   - [getQueryParam](#getqueryparam)
   - [getUrlParam](#geturlparam)
@@ -91,11 +91,12 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidUrl](#isvalidurl)
   - [isValidHttpUrl](#isvalidhttpurl)
 - [Store](#store)
-  - [Cookie](#cookie)
-  - [Storage](#storage)
+  - [Cookie Helpers](#cookie-helpers)
+  - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
+  - [Class Helpers](#class-helpers)
   - [addStyle](#addstyle)
-  - [Class](#class)
+  - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [Calculate and Formula](#calculate-and-formula)
   - [inRate](#inrate)
@@ -360,6 +361,26 @@ Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
 ```
 
+#### deepCopy
+
+Copy/Clone Object deeply.
+
+Usage:
+
+```javascript
+const ret1 = deepCopy(["a", "b", "c"]);
+const ret2 = deepCopy("abc");
+console.log(ret1);
+console.log(ret2);
+```
+
+Output:
+
+```text
+["a", "b", "c"]
+abc
+```
+
 #### debounce
 
 Debounce
@@ -424,26 +445,6 @@ Output:
 ```text
 a_b_c
 a_b_c
-```
-
-#### deepCopy
-
-Copy/Clone Object deeply.
-
-Usage:
-
-```javascript
-const ret1 = deepCopy(["a", "b", "c"]);
-const ret2 = deepCopy("abc");
-console.log(ret1);
-console.log(ret2);
-```
-
-Output:
-
-```text
-["a", "b", "c"]
-abc
 ```
 
 ### URL
@@ -605,7 +606,7 @@ true true true true false
 
 ### Store
 
-#### Cookie
+#### Cookie Helpers
 
 Handle Cookie.
 
@@ -623,7 +624,7 @@ Output:
 123
 ```
 
-#### Storage
+#### Storage Helpers
 
 Handle Storage (Keep fit for JSON, it can transfer format automatically).
 
@@ -655,48 +656,7 @@ Output:
 
 ### DOM
 
-#### addStyle
-
-Add `<style>` in `<head>`.
-
-Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
-
-```javascript
-addStyle(
-  `
-    body {
-      background-color: #333;
-    }
-  `,
-  {
-    id: "test",
-  }
-);
-// <style id="test">
-//   body {
-//     background-color: #333;
-//   }
-// </style>
-```
-
-Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
-
-```javascript
-addStyle(
-  `
-    body {
-      background-color: #444;
-    }
-  `
-);
-// <style>
-//   body {
-//     background-color: #444;
-//   }
-// </style>
-```
-
-#### Class
+#### Class Helpers
 
 Modify `class`.
 
@@ -711,6 +671,125 @@ hasClass(dom, "test");
 addClass(dom, "test");
 // Remove `class`
 removeClass(dom, "test");
+```
+
+#### addStyle
+
+Add `<style>` in `<head>`.
+
+Usage:
+
+Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
+
+```javascript
+import { addStyle } from "mazey";
+
+addStyle(
+  "body { background-color: #333; }",
+  { id: "test" }
+);
+```
+
+Output:
+
+```html
+<style id="test">body { background-color: #333; }</style>
+```
+
+Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
+
+```javascript
+import { addStyle } from "mazey";
+
+addStyle("body { background-color: #444; }");
+```
+
+Output:
+
+```html
+<style>body { background-color: #444; }</style>
+```
+
+Example 3: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+
+```javascript
+import { genStyleString, addStyle } from "mazey";
+
+const xStyle = genStyleString(
+  ".footer>.x-wish>a:first-child" +
+  ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
+  ",.m-hide",
+  [ "display: none" ]
+);
+const yStyle = genStyleString(
+  ".footer>.y-wish:before",
+  [
+    `content: 'Copyright (c) chengchuu'`,
+    "color: inherit",
+    "padding-inline-start: var(--y-wish-1_5)",
+    "padding-inline-end: var(--y-wish-1_5)",
+    "padding-top: var(--y-wish-1)",
+    "padding-bottom: var(--y-wish-1)",
+  ]
+);
+addStyle(xStyle + yStyle, { id: "z-style" });
+```
+
+Output:
+
+```html
+<style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
+```
+
+#### genStyleString
+
+Generate the inline style string from the given parameters. The first parameter is the query selector, and the second parameter is the style array.
+
+Usage:
+
+```javascript
+const ret1 = genStyleString(".a", [ "color:red" ]);
+const ret2 = genStyleString("#b", [ "color:red", "font-size:12px" ]);
+console.log(ret1);
+console.log(ret2);
+```
+
+Output:
+
+```text
+.a{color:red;}
+#b{color:red;font-size:12px;}
+```
+
+Example: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+
+```javascript
+import { genStyleString, addStyle } from "mazey";
+
+const xStyle = genStyleString(
+  ".footer>.x-wish>a:first-child" +
+  ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
+  ",.m-hide",
+  [ "display: none" ]
+);
+const yStyle = genStyleString(
+  ".footer>.y-wish:before",
+  [
+    `content: 'Copyright (c) chengchuu'`,
+    "color: inherit",
+    "padding-inline-start: var(--y-wish-1_5)",
+    "padding-inline-end: var(--y-wish-1_5)",
+    "padding-top: var(--y-wish-1)",
+    "padding-bottom: var(--y-wish-1)",
+  ]
+);
+addStyle(xStyle + yStyle, { id: "z-style" });
+```
+
+Output:
+
+```html
+<style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
 ```
 
 #### newLine

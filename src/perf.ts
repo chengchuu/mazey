@@ -24,7 +24,7 @@ export function isSupportedEntryType(name: string) {
  *
  * ```javascript
  * import { getFCP } from "mazey";
- * 
+ *
  * getFCP().then(
  *  res => {
  *   console.log(`FCP: ${res}`);
@@ -66,7 +66,7 @@ export async function getFCP(): Promise<number> {
  *
  * ```javascript
  * import { getFP } from "mazey";
- * 
+ *
  * getFP().then(
  *  res => {
  *    console.log(`FP: ${res}`);
@@ -108,7 +108,7 @@ export async function getFP(): Promise<number> {
  *
  * ```javascript
  * import { getLCP } from "mazey";
- * 
+ *
  * getLCP().then(
  *  res => {
  *    console.log(`LCP: ${res}`);
@@ -150,7 +150,7 @@ export async function getLCP(): Promise<number> {
  *
  * ```javascript
  * import { getFID } from "mazey";
- * 
+ *
  * getFID().then(
  *  res => {
  *    console.log(`FID: ${res}`);
@@ -197,7 +197,7 @@ export async function getFID(): Promise<number> {
  *
  * ```javascript
  * import { getCLS } from "mazey";
- * 
+ *
  * getCLS().then(
  *  res => {
  *    console.log(`CLS: ${res}`);
@@ -243,7 +243,7 @@ export async function getCLS(): Promise<number> {
  *
  * ```javascript
  * import { getTTFB } from "mazey";
- * 
+ *
  * getTTFB().then(
  *  res => {
  *    console.log(`TTFB: ${res}`);
@@ -290,7 +290,7 @@ export async function getTTFB(): Promise<number> {
  *
  * ```javascript
  * import { getPerformance } from "mazey";
- * 
+ *
  * // `camelCase：false` (Default) Return underline(`a_b`) data.
  * // `camelCase：true` Return hump(`aB`) data.
  * getPerformance()
