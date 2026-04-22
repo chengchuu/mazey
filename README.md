@@ -49,7 +49,7 @@ isNumber(y); // Output: false
 Import from CDN.
 
 ```html
-<script type="text/javascript" src="//i.mazey.net/mazey/lib/mazey.min.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
   const x = Infinity;
   // <=> typeof x === "string" && !isNaN(x)

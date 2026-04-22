@@ -41,7 +41,7 @@ const defaultGenCustomConsoleOptions = {
  * @param {string} prefix The prefix string.
  * @param {object} options The options object.
  * @param {boolean} options.enabled Whether logging is enabled.
- * @param {boolean} options.isClosed @deprecated Use `enabled` instead.
+ * @param {boolean} options.isClosed Deprecated, Use "enabled" instead.
  * @param {boolean} options.showWrap Whether to show the wrap.
  * @param {boolean} options.showDate Whether to show the date.
  * @param {string} options.locales A locale string.
@@ -62,7 +62,9 @@ export function genCustomConsole(
     isStringifyObject?: boolean;
     logFn?: () => void;
     errorFn?: () => void;
-  } = {}
+  } = {
+    ...defaultGenCustomConsoleOptions,
+  }
 ): Console {
   let {
     enabled, isClosed, showWrap, showDate,
