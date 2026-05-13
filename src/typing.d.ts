@@ -13,6 +13,7 @@ export interface BrowserInfo {
   shell: string; // wechat qq uc 360 2345 sougou liebao maxthon
   shellVs: string;
   appleType: string;
+  colorScheme: string;
 }
 
 export interface DefineListeners {

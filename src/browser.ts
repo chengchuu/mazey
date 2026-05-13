@@ -138,9 +138,10 @@ export function getBrowserInfo(): BrowserInfo {
     shell: "",
     shellVs: "",
     appleType: "",
+    colorScheme: "",
   };
   try {
-    // 权重：系统 + 系统版本 > 平台 > 内核 + 载体 + 内核版本 + 载体版本 > 外壳 + 外壳版本
+    // Priority: system + system version > platform > engine + carrier + engine version + carrier version > shell + shell version
     const ua: string = navigator.userAgent.toLowerCase();
     if (!ua) {
       return browserInfo;
@@ -162,15 +163,15 @@ export function getBrowserInfo(): BrowserInfo {
     // Apple Device Type
     let appleType = "";
     if (testUa(/windows|win32|win64|wow32|wow64/g)) {
-      system = "windows"; // windows 系统
+      system = "windows"; // Windows system
     } else if (testUa(/macintosh|macintel/g)) {
-      system = "macos"; // macos 系统
+      system = "macos"; // macOS system
     } else if (testUa(/x11/g)) {
-      system = "linux"; // linux 系统
+      system = "linux"; // Linux system
     } else if (testUa(/android|adr/g)) {
-      system = "android"; // android 系统
+      system = "android"; // Android system
     } else if (testUa(/ios|iphone|ipad|ipod|iwatch/g)) {
-      system = "ios"; // ios 系统
+      system = "ios"; // iOS system
       if (testUa(/ipad/g)) {
         appleType = "ipad";
       } else if (testUa(/iphone/g)) {
@@ -220,9 +221,9 @@ export function getBrowserInfo(): BrowserInfo {
     // Platform
     let platform = "";
     if (system === "windows" || system === "macos" || system === "linux") {
-      platform = "desktop"; // 桌面端
+      platform = "desktop"; // Desktop
     } else if (system === "android" || system === "ios" || testUa(/mobile/g)) {
-      platform = "mobile"; // 移动端
+      platform = "mobile"; // Mobile
     }
     browserInfo = {
       ...browserInfo,
@@ -232,25 +233,25 @@ export function getBrowserInfo(): BrowserInfo {
     let engine = "";
     let supporter = "";
     if (testUa(/applewebkit/g)) {
-      engine = "webkit"; // webkit 内核
+      engine = "webkit"; // webkit engine
       if (testUa(/edge/g)) {
-        supporter = "edge"; // edge 浏览器
+        supporter = "edge"; // Edge browser
       } else if (testUa(/opr/g)) {
-        supporter = "opera"; // opera 浏览器
+        supporter = "opera"; // Opera browser
       } else if (testUa(/chrome/g)) {
-        supporter = "chrome"; // chrome 浏览器
+        supporter = "chrome"; // Chrome browser
       } else if (testUa(/safari/g)) {
-        supporter = "safari"; // safari 浏览器
+        supporter = "safari"; // Safari browser
       }
     } else if (testUa(/gecko/g) && testUa(/firefox/g)) {
-      engine = "gecko"; // gecko 内核
-      supporter = "firefox"; // firefox 浏览器
+      engine = "gecko"; // gecko engine
+      supporter = "firefox"; // Firefox browser
     } else if (testUa(/presto/g)) {
-      engine = "presto"; // presto 内核
-      supporter = "opera"; // opera 浏览器
+      engine = "presto"; // presto engine
+      supporter = "opera"; // Opera browser
     } else if (testUa(/trident|compatible|msie/g)) {
-      engine = "trident"; // trident 内核
-      supporter = "iexplore"; // iexplore 浏览器
+      engine = "trident"; // trident engine
+      supporter = "iexplore"; // Internet Explorer browser
     }
     browserInfo = {
       ...browserInfo,
@@ -295,7 +296,7 @@ export function getBrowserInfo(): BrowserInfo {
     let shell = "";
     let shellVs = "";
     if (testUa(/micromessenger/g)) {
-      shell = "wechat"; // 微信浏览器
+      shell = "wechat"; // WeChat browser
       shellVs = testVs(/micromessenger\/[\d._]+/g);
     } else if (testUa(/qqbrowser/g)) {
       shell = "qq_browser"; // QQ Browser
@@ -303,27 +304,42 @@ export function getBrowserInfo(): BrowserInfo {
     } else if (testUa(/\sqq/g)) {
       shell = "qq_app"; // QQ APP
     } else if (testUa(/ucbrowser/g)) {
-      shell = "uc"; // UC 浏览器
+      shell = "uc"; // UC Browser
       shellVs = testVs(/ucbrowser\/[\d._]+/g);
     } else if (testUa(/qihu 360se/g)) {
-      shell = "360"; // 360 浏览器(无版本)
+      shell = "360"; // 360 Browser (no version)
     } else if (testUa(/2345explorer/g)) {
-      shell = "2345"; // 2345 浏览器
+      shell = "2345"; // 2345 Browser
       shellVs = testVs(/2345explorer\/[\d._]+/g);
     } else if (testUa(/metasr/g)) {
-      shell = "sougou"; // 搜狗浏览器(无版本)
+      shell = "sougou"; // Sogou Browser (no version)
     } else if (testUa(/lbbrowser/g)) {
-      shell = "liebao"; // 猎豹浏览器(无版本)
+      shell = "liebao"; // Liebao Browser (no version)
     } else if (testUa(/maxthon/g)) {
-      shell = "maxthon"; // 遨游浏览器
+      shell = "maxthon"; // Maxthon Browser
       shellVs = testVs(/maxthon\/[\d._]+/g);
     } else if (testUa(/biliapp/g)) {
-      shell = "bilibili"; // 哔哩哔哩
+      shell = "bilibili"; // Bilibili
     }
     browserInfo = {
       ...browserInfo,
       shell,
       shellVs,
+    };
+    // Add colorScheme based on prefers-color-scheme media query
+    let colorScheme = "";
+    if (window.matchMedia) {
+      const mqDarkRes = window.matchMedia("(prefers-color-scheme: dark)");
+      const mqLightRes = window.matchMedia("(prefers-color-scheme: light)");
+      if (mqDarkRes.matches) {
+        colorScheme = "dark";
+      } else if (mqLightRes.matches) {
+        colorScheme = "light";
+      }
+    }
+    browserInfo = {
+      ...browserInfo,
+      colorScheme,
     };
     window.MAZEY_BROWSER_INFO = browserInfo;
     return browserInfo;
