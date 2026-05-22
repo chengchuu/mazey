@@ -1,5 +1,5 @@
 import type {
-  MazeyFnParams, MazeyFnReturn, LoadScriptReturns, MazeyWindow, 
+  MazeyFnParams, MazeyFnReturn, LoadScriptReturns, MazeyWindow,
 } from "./typing";
 import { doFn } from "./util";
 import { isValidHttpUrl } from "./url";
@@ -13,7 +13,7 @@ import { isValidHttpUrl } from "./url";
  *
  * ```javascript
  * import { loadCSS } from "mazey";
- * 
+ *
  * loadCSS(
  *     "http://example.com/path/example.css",
  *     {
@@ -165,7 +165,7 @@ const defaultLoadScriptOptions = {
 
 /**
  * Resolve a CSS URL relative to a JS URL's directory
- * 
+ *
  * @param jsUrl - The JavaScript URL
  * @param cssPath - The CSS path (filename or relative path)
  * @returns The resolved CSS URL
@@ -190,7 +190,7 @@ function resolveCssUrl(jsUrl: string, cssPath: string): string {
  *
  * ```javascript
  * import { loadScript } from "mazey";
- * 
+ *
  * loadScript(
  *     "http://example.com/static/js/plugin-2.1.1.min.js",
  *     {
@@ -317,7 +317,7 @@ export function loadScript(
  *
  * ```javascript
  * import { windowLoaded } from "mazey";
- * 
+ *
  * windowLoaded()
  *   .then(res => {
  *     console.log(`Load Success: ${res}`);
@@ -365,7 +365,7 @@ export function windowLoaded(timeout = 30000): Promise<string | Error> {
  *
  * ```javascript
  * import { loadImage } from "mazey";
- * 
+ *
  * loadImage("https://example.com/example.png")
  *   .then((img) => {
  *     console.log(img);
@@ -399,7 +399,7 @@ export function loadImage(url: string): Promise<HTMLImageElement> {
  *
  * ```javascript
  * import { loadScriptIfUndefined } from "mazey";
- * 
+ *
  * loadScriptIfUndefined("xyz", "https://example.com/lib/xyz.min.js")
  *   .then(() => {
  *     console.log("xyz is loaded.");
