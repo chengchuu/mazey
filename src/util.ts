@@ -13,7 +13,7 @@ import type {
  *
  * ```javascript
  * import { deepCopy } from "mazey";
- * 
+ *
  * const ret1 = deepCopy(["a", "b", "c"]);
  * const ret2 = deepCopy("abc");
  * console.log(ret1);
@@ -65,7 +65,7 @@ export function deepCopyObject<T>(obj: T): T {
  *
  * ```javascript
  * import { convertCamelToKebab } from "mazey";
- * 
+ *
  * const ret1 = convertCamelToKebab("ABC");
  * const ret2 = convertCamelToKebab("aBC");
  * console.log(ret1);
@@ -90,23 +90,23 @@ export function convertCamelToKebab(camelCase: string): string {
 
 /**
  * Convert KebabCase to CamelCase.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { convertKebabToCamel } from "mazey";
- * 
+ *
  * const ret1 = convertKebabToCamel("a-b-c");
  * const ret2 = convertKebabToCamel("a-bb-cc");
  * console.log(ret1, ret2);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * aBC aBbCc
  * ```
- * 
+ *
  * @param {string} kebabCase "a-bb-cc"
  * @returns {string} "aBbCc"
  * @category Util
@@ -132,7 +132,7 @@ export function camelCaseToKebabCase(camelCase: string): string {
  *
  * ```javascript
  * import { convertCamelToUnder } from "mazey";
- * 
+ *
  * const ret1 = convertCamelToUnder("ABC");
  * const ret2 = convertCamelToUnder("aBC");
  * console.log(ret1);
@@ -162,14 +162,14 @@ export function convertCamelToUnder(camelCase: string): string {
  *
  * ```javascript
  * import { convertUnderToCamel } from "mazey";
- * 
+ *
  * const ret1 = convertUnderToCamel("a_b_c");
  * const ret2 = convertUnderToCamel("a_bb_cc");
  * console.log(ret1, ret2);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * aBC aBbCc
  * ```
@@ -201,7 +201,7 @@ export function camelCase2Underscore(camelCase: string): string {
  *
  * ```javascript
  * import { mTrim } from "mazey";
- * 
+ *
  * const ret1 = mTrim(" 1 2 3 ");
  * const ret2 = mTrim("abc ");
  * console.log(ret1);
@@ -237,7 +237,7 @@ export function mTrim(str: string): string {
  *
  * ```javascript
  * import { isJSONString } from "mazey";
- * 
+ *
  * const ret1 = isJSONString(`['a', 'b', 'c']`);
  * const ret2 = isJSONString(`["a", "b", "c"]`);
  * console.log(ret1);
@@ -282,7 +282,7 @@ export function isJsonString(str: string): boolean {
  *
  * ```javascript
  * import { genRndNumString } from "mazey";
- * 
+ *
  * const ret1 = genRndNumString(4);
  * const ret2 = genRndNumString(7);
  * console.log(ret1);
@@ -319,14 +319,14 @@ export function generateRndNum(n = 5): string {
 
 /**
  * EN: Generate a unique identifier number based on time: `genUniqueNumString()` => `1538324722364123`
- * 
+ *
  * ZH: 根据时间生成唯一标志的数字：`genUniqueNumString()` => `1538324722364123`。
  *
  * Usage:
  *
  * ```javascript
  * import { genUniqueNumString } from "mazey";
- * 
+ *
  * const ret1 = genUniqueNumString();
  * const ret2 = genUniqueNumString(3);
  * console.log(ret1);
@@ -359,14 +359,14 @@ export function generateUniqueNum(n = 3): string {
 
 /**
  * EN: Get timestamp.
- * 
+ *
  * ZH: 获取时间戳。
  *
  * Usage:
  *
  * ```javascript
  * import { mNow } from "mazey";
- * 
+ *
  * const ret = mNow();
  * console.log(ret);
  * ```
@@ -391,14 +391,14 @@ export function mNow(): number {
 
 /**
  * EN: Floating point number to percentage 0.2 => 20%
- * 
+ *
  * ZH: 浮点数转为百分比 0.2 => 20%。
  *
  * Usage:
  *
  * ```javascript
  * import { floatToPercent } from "mazey";
- * 
+ *
  * const ret1 = floatToPercent(0.2);
  * const ret2 = floatToPercent(0.2, 2);
  * console.log(ret1);
@@ -428,14 +428,14 @@ export function floatToPercent(num: number, fixSize = 0): string {
 
 /**
  * EN: Keep the specified number of decimal places for floating-point numbers.
- * 
+ *
  * ZH: 浮点数保留指定位。
  *
  * Usage:
  *
  * ```javascript
  * import { floatFixed } from "mazey";
- * 
+ *
  * const ret1 = floatFixed(0.2);
  * const ret2 = floatFixed(0.2, 2);
  * console.log(ret1);
@@ -464,7 +464,7 @@ export function floatFixed(num: string, size = 0): string {
  *
  * ```javascript
  * import { throttle } from "mazey";
- * 
+ *
  * const foo = throttle(() => {
  *   console.log("The function will be invoked at most once per every wait 1000 milliseconds.");
  * }, 1000, { leading: true });
@@ -523,7 +523,7 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
  *
  * ```javascript
  * import { debounce } from "mazey";
- * 
+ *
  * const foo = debounce(() => {
  *   console.log("The debounced function will only be invoked in 1000 milliseconds, the other invoking will disappear during the wait time.");
  * }, 1000, true);
@@ -574,14 +574,14 @@ const defaultGetFriendlyIntervalOptions = {
 
 /**
  * EN: Get interval time.
- * 
+ *
  * ZH: 获取间隔时间。
  *
  * Usage:
  *
  * ```javascript
  * import { getFriendlyInterval } from "mazey";
- * 
+ *
  * const ret1 = getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" });
  * const ret2 = getFriendlyInterval(1585325367000, 1681786440000, { type: "text" });
  * const ret3 = getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", { type: "text" });
@@ -649,7 +649,7 @@ export function getFriendlyInterval(start: number | string | Date = 0, end: numb
  *
  * ```javascript
  * import { isNumber } from "mazey";
- * 
+ *
  * const ret1 = isNumber(123);
  * const ret2 = isNumber("123");
  * // Default: NaN, Infinity is not Number
@@ -692,14 +692,14 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
 
 /**
  * EN: Invoke effective function.
- * 
+ *
  * ZH: 执行有效函数。
  *
  * Usage:
  *
  * ```javascript
  * import { invokeFn } from "mazey";
- * 
+ *
  * const ret = invokeFn(() => {
  *  console.log("invokeFn");
  * });
@@ -718,7 +718,7 @@ export function invokeFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>
 
 /**
  * Alias of `invokeFn`.
- * 
+ *
  * @hidden
  */
 export function doFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
@@ -732,7 +732,7 @@ export function doFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>): R
  *
  * ```javascript
  * import { isNonEmptyArray } from "mazey";
- * 
+ *
  * const ret = isNonEmptyArray([1, 2, 3]);
  * console.log(ret);
  * ```
@@ -755,26 +755,26 @@ export function isNonEmptyArray<T>(arr: Array<T>): boolean {
 
 /**
  * Verify the validity of a pure object.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { isPureObject } from "mazey";
- * 
+ *
  * const ret1 = isPureObject({ a: 1 });
  * const ret2 = isPureObject("abc");
  * const ret3 = isPureObject(null);
  * const ret4 = isPureObject([]);
- * 
+ *
  * console.log(ret1, ret2, ret3, ret4);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * true false false false
  * ```
- * 
+ *
  * @param {MazeyObject} obj The object to verify.
  * @returns {boolean} Return TRUE if the object is a pure object.
  * @category Util
@@ -788,24 +788,24 @@ export function isPureObject(obj: MazeyObject): boolean {
 
 /**
  * Verify the validity of a function.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { isFunction } from "mazey";
- * 
+ *
  * const ret1 = isFunction(() => {});
  * const ret2 = isFunction("abc");
  * const ret3 = isFunction(null);
  * console.log(ret1, ret2, ret3);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * true false false
  * ```
- * 
+ *
  * @param {MazeyObject} fn The function to verify.
  * @returns {boolean} Return TRUE if the object is a function.
  * @category Util
@@ -816,24 +816,24 @@ export function isFunction(fn: MazeyObject): boolean {
 
 /**
  * Verify the validity of a string.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { isString } from "mazey";
- * 
+ *
  * const ret1 = isString("abc");
  * const ret2 = isString({ a: 1 });
  * const ret3 = isString(null);
  * console.log(ret1, ret2, ret3);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * true false false
  * ```
- * 
+ *
  * @param {MazeyObject} str The string to verify.
  * @returns {boolean} Return TRUE if the object is a string.
  * @category Util
@@ -844,25 +844,25 @@ export function isString(str: MazeyObject): boolean {
 
 /**
  * Verify the validity of a boolean.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { isBool } from "mazey";
- * 
+ *
  * const ret1 = isBool(true);
  * const ret2 = isBool({ a: 1 });
  * const ret3 = isBool("abc");
  * const ret4 = isBool(null);
  * console.log(ret1, ret2, ret3, ret4);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * true false false false
  * ```
- * 
+ *
  * @param {MazeyObject} bool The boolean to verify.
  * @returns {boolean} Return TRUE if the object is a boolean.
  * @category Util
@@ -880,24 +880,24 @@ export function isBoolean(bool: MazeyObject): boolean {
 
 /**
  * Verify the validity of a value.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { isUdfOrNul } from "mazey";
- * 
+ *
  * const ret1 = isUdfOrNul(undefined);
  * const ret2 = isUdfOrNul(null);
  * const ret3 = isUdfOrNul("abc");
  * console.log(ret1, ret2, ret3);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * true true false
  * ```
- * 
+ *
  * @param {MazeyObject} val The value to verify.
  * @returns {boolean} Return TRUE if the object is undefined or null.
  * @category Util
@@ -908,25 +908,25 @@ export function isUdfOrNul(val: MazeyObject): boolean {
 
 /**
  * Verify the validity of an array.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { isArray } from "mazey";
- * 
+ *
  * const ret1 = isArray([1, 2, 3]);
  * const ret2 = isArray({ a: 1 });
  * const ret3 = isArray("abc");
  * const ret4 = isArray(null);
  * console.log(ret1, ret2, ret3, ret4);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * true false false false
  * ```
- * 
+ *
  * @param {MazeyObject} obj The object to verify.
  * @returns {boolean} Return TRUE if the object is an array.
  * @category Util
@@ -937,27 +937,27 @@ export function isArray(obj: MazeyObject): boolean {
 
 /**
  * Verify the validity of a non-empty object.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * import { isNonEmptyObject } from "mazey";
- * 
+ *
  * const ret1 = isNonEmptyObject({ a: 1 });
  * const ret2 = isNonEmptyObject({});
  * const ret3 = isNonEmptyObject("abc");
  * const ret4 = isNonEmptyObject(null);
  * console.log(ret1, ret2, ret3, ret4);
  * ```
- * 
+ *
  * Output:
- * 
+ *
  * ```text
  * true false false false
  * ```
- * 
- * @param obj 
- * @returns 
+ *
+ * @param obj
+ * @returns
  */
 export function isNonEmptyObject(obj: MazeyObject): boolean {
   if (!isPureObject(obj)) {
@@ -976,7 +976,7 @@ export function isNonEmptyObject(obj: MazeyObject): boolean {
  *
  * ```javascript
  * import { convertToHtmlBreaks } from "mazey";
- * 
+ *
  * const ret1 = convertToHtmlBreaks("a\nb\nc");
  * const ret2 = convertToHtmlBreaks("a\n\nbc");
  * console.log(ret1);
@@ -1004,7 +1004,7 @@ export function convertToHtmlBreaks(str: string): string {
 
 /**
  * Alias of `convertToHtmlBreaks`.
- * 
+ *
  * @hidden
  */
 export function newLine(str: string): string {
@@ -1018,7 +1018,7 @@ export function newLine(str: string): string {
  *
  * ```javascript
  * import { removeHTML } from "mazey";
- * 
+ *
  * const ret = removeHTML("<div>hello world</div>");
  * console.log(ret);
  * ```
@@ -1047,7 +1047,7 @@ export function removeHTML(str: string, options: { removeNewLine?: boolean } = {
 
 /**
  * Alias of `removeHTML`.
- * 
+ *
  * @hidden
  */
 export function removeHtml(str: string, options: { removeNewLine?: boolean } = {}): string {
@@ -1079,7 +1079,7 @@ export function clearHtml(str: string, options: { removeNewLine?: boolean } = {}
  *
  * ```javascript
  * import { sanitizeInput } from "mazey";
- * 
+ *
  * const ret = sanitizeInput("<div>hello world</div>");
  * console.log(ret);
  * ```
@@ -1117,7 +1117,7 @@ export function sanitizeInput(input: string): string {
  *
  * ```javascript
  * import { unsanitizeInput } from "mazey";
- * 
+ *
  * const ret = unsanitizeInput("&lt;div&gt;hello world&lt;/div&gt;");
  * console.log(ret);
  * ```
@@ -1159,14 +1159,14 @@ export function unsanitize(str: string): string {
 
 /**
  * EN: Truncate string, Chinese characters count as 2 bytes.
- * 
+ *
  * ZH: 截取字符串，中文算 2 个字节。
  *
  * Usage:
  *
  * ```javascript
  * import { cutZHString } from "mazey";
- * 
+ *
  * const ret = cutZHString("hello world", 5);
  * console.log(ret);
  * ```
@@ -1217,12 +1217,12 @@ export function cutZHString(str: string, len: number, options: { hasDot?: boolea
 
 /**
  * Alias of `cutZHString`.
- * 
+ *
  * Usage:
  *
  * ```javascript
  * import { truncateZHString } from "mazey";
- * 
+ *
  * const ret = truncateZHString("hello world", 5);
  * console.log(ret);
  * ```
@@ -1231,7 +1231,7 @@ export function cutZHString(str: string, len: number, options: { hasDot?: boolea
  *
  * ```text
  * hello
- * 
+ *
  * @param {string} str 要截取的字符串
  * @param {number} len
  * @param {boolean} hasDot
@@ -1293,7 +1293,7 @@ export function zAxiosIsValidRes(
  *
  * ```javascript
  * import { isValidData } from "mazey";
- * 
+ *
  * const validData = {
  *   a: {
  *     b: {
@@ -1344,14 +1344,14 @@ export function isValidData(data: MazeyObject, attributes: string[], validValue:
 
 /**
  * EN: Semantic file size, convert bytes into a readable file size.
- * 
+ *
  * ZH: 语义化文件大小，把字节转换成正常文件大小。
  *
  * Usage:
  *
  * ```javascript
  * import { getFileSize } from "mazey";
- * 
+ *
  * const ret = getFileSize(1024);
  * console.log(ret);
  * ```
@@ -1390,7 +1390,7 @@ export function getFileSize(size: number): string {
  *
  * ```javascript
  * import { genHashCode } from "mazey";
- * 
+ *
  * const ret = genHashCode("hello world");
  * console.log(ret);
  * ```
@@ -1424,7 +1424,7 @@ export function genHashCode(str: string): number {
  *
  * ```javascript
  * import { formatDate } from "mazey";
- * 
+ *
  * const ret1 = formatDate();
  * const ret2 = formatDate("Tue Jan 11 2022 14:12:26 GMT+0800 (China Standard Time)", "yyyy-MM-dd hh:mm:ss a");
  * const ret3 = formatDate(1641881235000, "yyyy-MM-dd hh:mm:ss a");
@@ -1485,7 +1485,7 @@ export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
  *
  * ```javascript
  * import { isMobile } from "mazey";
- * 
+ *
  * const ret1 = isMobile("13800138000");
  * const ret2 = isMobile("1380013800");
  * const ret3 = isMobile("138001380000");
@@ -1515,7 +1515,7 @@ export function isValidPhoneNumber(mobile: string): boolean {
  *
  * ```javascript
  * import { isValidEmail } from "mazey";
- * 
+ *
  * const ret = isValidEmail("mazeyqian@gmail.com");
  * console.log(ret);
  * ```
@@ -1542,7 +1542,7 @@ export function isValidEmail(email: string): boolean {
  *
  * ```javascript
  * import { convert10To26 } from "mazey";
- * 
+ *
  * const ret1 = convert10To26(1);
  * const ret2 = convert10To26(26);
  * const ret3 = convert10To26(27);
@@ -1590,7 +1590,7 @@ export function getCurrentVersion(): string {
  *
  * ```javascript
  * import { repeatUntilConditionMet } from "mazey";
- * 
+ *
  * repeatUntilConditionMet(
  *   () => {
  *     console.log("repeatUntilConditionMet");
@@ -1657,7 +1657,7 @@ export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => Ma
  *
  * ```javascript
  * import { waitTime } from "mazey";
- * 
+ *
  * waitTime(1000).then((time) => {
  *  console.log("waitTime:", time);
  * });
@@ -1699,7 +1699,7 @@ let runtimeEnv = "";
  *
  * ```javascript
  * import { isBrowser } from "mazey";
- * 
+ *
  * const ret = isBrowser();
  * console.log(ret);
  * ```

@@ -5,33 +5,33 @@ const execa = require("execa");
 
 /**
  * Release this project with version by `process.env.VERSION` or `package.json`.
- * 
+ *
  * Usage:
- * 
+ *
  * ```javascript
  * const pkgVersion = process.env.VERSION || require("../package.json").version;
  * release(pkgVersion);
  * ```
- * 
+ *
  * It will be more straightforward if you use the development dependence CrossEnv.
- * 
+ *
  * ```shell
  * # Install
  * npm i cross-env -D
- * 
+ *
  * # scripts
  * cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/release.js
  * ```
- * 
+ *
  * ```javascript
  * // release.js
  * release();
  * ```
- * 
+ *
  * @param {string} ver Version
  * @returns {void}
  */
-async function release (ver, { canGenerateToc = false, defaultBranch = "main" } = {}) {
+async function release (ver, { canGenerateToc = false, generateTocOnly = false, defaultBranch = "main" } = {}) {
   if (!ver) {
     ver = process.env.SCRIPTS_NPM_PACKAGE_VERSION;
   }
@@ -47,6 +47,9 @@ async function release (ver, { canGenerateToc = false, defaultBranch = "main" } 
   if (canGenerateToc) {
     generateToc();
   }
+  if (generateTocOnly) {
+    return;
+  }
   // Commit
   await gitCommit(`${releaseVersion} stage`);
   // Marge
@@ -58,8 +61,6 @@ async function release (ver, { canGenerateToc = false, defaultBranch = "main" } 
   await gitCommit(releaseVersion);
   // Push
   console.log("Pushing to the remote Git...");
-  // await execa("git", ["tag", "-a", `${releaseVersion}`, "-m", `Release ${releaseVersion}`]);
-  // await execa("git", ["push", "origin", `refs/tags/${releaseVersion}`]);
   await gitTagPush(releaseVersion);
   await gitPush();
   console.log("All done.");
@@ -67,12 +68,12 @@ async function release (ver, { canGenerateToc = false, defaultBranch = "main" } 
 
 /**
  * Push git tag.
- * 
+ *
  * @example
  * ```
  * await gitTagPush("v1.0.0");
  * ```
- * 
+ *
  * @param {string} ver Release version
  * @returns {boolean} Is success
  */
