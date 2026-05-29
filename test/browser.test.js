@@ -15,7 +15,7 @@ describe("isSafePWAEnv", () => {
     window.caches = {};
     // Remove jsdom's location object and set our own
     delete window.location;
-    window.location = { protocol: 'https:' };
+    window.location = { protocol: "https:" };
 
     expect(isSafePWAEnv()).toBe(true);
   });
@@ -41,6 +41,9 @@ describe("getBrowserInfo", () => {
     // Test the shell information
     expect(browserInfo.shell).toBeDefined();
     expect(browserInfo.shellVs).toBeDefined();
+
+    // Test Color Scheme
+    expect(browserInfo.colorScheme).toBeDefined();
   });
 });
 
