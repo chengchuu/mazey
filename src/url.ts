@@ -577,11 +577,6 @@ export function getUrlPath(url: string): string {
   return ret;
 }
 
-
-
-
-
-
 /**
  * Listen to URL changes from:
  * - back/forward navigation
