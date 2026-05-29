@@ -1,5 +1,3 @@
-<!-- markdownlint-disable MD041 -->
-
 English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README_ZH.md)
 
 # Mazey

@@ -1,5 +1,7 @@
-// import { mazeyCon } from "./debug";
-import type { MultiValueUrlParams, SingleValueUrlParams } from "./typing";
+import type {
+  MultiValueUrlParams, SingleValueUrlParams, URLChangeTrigger, URLChangeInfo,
+  OnURLChangeOptions, URLChangeSubscriber, PatchedHistory,
+} from "./typing";
 
 /**
  * Get the query param's value of the current Web URL(`location.search`).
@@ -507,19 +509,6 @@ function checkIfURLIsSupported(url: string = "") {
   }
 }
 
-// function checkIfURLSearchParamsSupported() {
-//   try {
-//     const URLSearchParams = window.URLSearchParams;
-//     return (
-//       new URLSearchParams("?a=1").toString() === "a=1" &&
-//       typeof URLSearchParams.prototype.set === "function" &&
-//       typeof URLSearchParams.prototype.entries === "function"
-//     );
-//   } catch (e) {
-//     return false;
-//   }
-// }
-
 /**
  * Get the host of the URL.
  *
@@ -586,4 +575,90 @@ export function getUrlPath(url: string): string {
     ret = urlObj.pathname;
   }
   return ret;
+}
+
+
+
+
+
+
+/**
+ * Listen to URL changes from:
+ * - back/forward navigation
+ * - hash changes
+ * - history.pushState / history.replaceState
+ *
+ * @param callback - Called with current URL, previous URL, and trigger source.
+ * @param options - { fireOnInit?: boolean } default true.
+ * @returns unsubscribe function
+ *
+ * @category URL
+ */
+export function onURLChange(
+  callback: (info: URLChangeInfo) => void,
+  options: OnURLChangeOptions = {}
+): () => void {
+  const { fireOnInit = true } = options;
+  const historyRef = history as PatchedHistory;
+
+  let currentUrl = location.href;
+  const listeners: Array<() => void> = [];
+
+  const notify = (trigger: URLChangeTrigger) => {
+    const newUrl = location.href;
+    if (newUrl === currentUrl && trigger !== "load") {
+      return;
+    }
+
+    const oldUrl = currentUrl;
+    currentUrl = newUrl;
+
+    callback({
+      url: newUrl,
+      oldUrl,
+      trigger,
+    });
+  };
+
+  // Browser events
+  const onPopState = () => notify("popstate");
+  const onHashChange = () => notify("hashchange");
+
+  window.addEventListener("popstate", onPopState);
+  window.addEventListener("hashchange", onHashChange);
+
+  listeners.push(() => window.removeEventListener("popstate", onPopState));
+  listeners.push(() => window.removeEventListener("hashchange", onHashChange));
+
+  // Patch history methods globally once
+  if (!historyRef.__mazeyUrlChangePatched__) {
+    historyRef.__mazeyUrlChangePatched__ = true;
+    historyRef.__mazeyUrlChangeSubscribers__ = new Set<URLChangeSubscriber>();
+
+    historyRef.__mazeyRawPushState__ = history.pushState.bind(history);
+    historyRef.__mazeyRawReplaceState__ = history.replaceState.bind(history);
+
+    history.pushState = function (...args: Parameters<History["pushState"]>): void {
+      historyRef.__mazeyRawPushState__!(...args);
+      historyRef.__mazeyUrlChangeSubscribers__!.forEach((fn) => fn("pushState"));
+    };
+
+    history.replaceState = function (...args: Parameters<History["replaceState"]>): void {
+      historyRef.__mazeyRawReplaceState__!(...args);
+      historyRef.__mazeyUrlChangeSubscribers__!.forEach((fn) => fn("replaceState"));
+    };
+  }
+
+  const historySubscriber: URLChangeSubscriber = (trigger) => notify(trigger);
+  historyRef.__mazeyUrlChangeSubscribers__!.add(historySubscriber);
+  listeners.push(() => historyRef.__mazeyUrlChangeSubscribers__!.delete(historySubscriber));
+
+  if (fireOnInit) {
+    notify("load");
+  }
+
+  // unsubscribe
+  return () => {
+    listeners.forEach((off) => off());
+  };
 }
