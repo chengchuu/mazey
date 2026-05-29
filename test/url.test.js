@@ -361,11 +361,6 @@ describe("onURLChange", () => {
   const rawReplaceState = window.history.replaceState;
 
   const clearOnURLChangeInternals = () => {
-    delete window.history.__urlChangePatched__;
-    delete window.history.__urlChangeSubscribers__;
-    delete window.history.__urlChangeRawPushState__;
-    delete window.history.__urlChangeRawReplaceState__;
-
     delete window.history.__mazeyUrlChangePatched__;
     delete window.history.__mazeyUrlChangeSubscribers__;
     delete window.history.__mazeyRawPushState__;
