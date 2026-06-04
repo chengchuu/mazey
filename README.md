@@ -23,7 +23,7 @@ npm install mazey --save
 Use Mazey from CDN.
 
 ```html
-<script type="text/javascript" src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 ```
 
 Of course, you can also download and serve the file [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
@@ -38,20 +38,20 @@ Import from [npm](https://www.npmjs.com/package/mazey).
 import { isNumber } from "mazey";
 
 const x = 123;
-const y = Infinity;
-// <=> typeof x === "number" && !isNaN(x) && isFinite(x)
+const y = "abc";
+const z = Infinity;
 isNumber(x); // Output: true
 isNumber(y); // Output: false
+isNumber(z, { isInfinityAsNumber: true }); // Output: true
 ```
 
 Import from CDN.
 
 ```html
-<script type="text/javascript" src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
-  const x = Infinity;
-  // <=> typeof x === "string" && !isNaN(x)
-  mazey.isNumber(x, { isInfinityAsNumber: true }); // Output: true
+  const x = 123;
+  mazey.isNumber(x); // Output: true
 </script>
 ```
 
