@@ -1,5 +1,5 @@
 {
-  "$schema": "http://json.schemastore.org/tsconfig",
+  "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
     /* Visit https://aka.ms/tsconfig.json to read more about this file */
 
@@ -43,7 +43,7 @@
 
     /* Module Resolution Options */
     "moduleResolution": "bundler",            /* Specify module resolution strategy: 'node' (Node.js) or 'classic' (TypeScript pre-1.6). */
-    "baseUrl": "./",                       /* Base directory to resolve non-absolute module names. */
+    // "baseUrl": "./",                       /* Base directory to resolve non-absolute module names. */
     "paths": {
       "tslib" : ["./node_modules/tslib/tslib.d.ts"]
     },                           /* A series of entries which re-map imports to lookup locations relative to the 'baseUrl'. */
