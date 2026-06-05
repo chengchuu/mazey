@@ -5,7 +5,7 @@
 import {
   isValidUrl, getUrlFileType, isValidHttpUrl, updateQueryParam, getUrlParam,
   getScriptQueryParam, convertObjectToQuery, convertHttpToHttps,
-  getAllQueryParams,
+  getAllQueryParams, onURLChange,
 } from "../lib/index.esm";
 
 const validUrls = [
@@ -353,5 +353,54 @@ describe("getAllQueryParams", () => {
     const url = "?key=value1&key=value2";
     const result = getAllQueryParams(url);
     expect(result).toEqual({ key: "value1" });
+  });
+});
+
+describe("onURLChange", () => {
+  const rawPushState = window.history.pushState;
+  const rawReplaceState = window.history.replaceState;
+
+  const clearOnURLChangeInternals = () => {
+    delete window.history.__mazeyUrlChangePatched__;
+    delete window.history.__mazeyUrlChangeSubscribers__;
+    delete window.history.__mazeyRawPushState__;
+    delete window.history.__mazeyRawReplaceState__;
+  };
+
+  beforeEach(() => {
+    // Fully reset to native methods before each case
+    window.history.pushState = rawPushState;
+    window.history.replaceState = rawReplaceState;
+    clearOnURLChangeInternals();
+
+    // Safe URL reset (relative path only)
+    window.history.replaceState({}, "", "/");
+  });
+
+  afterEach(() => {
+    window.history.pushState = rawPushState;
+    window.history.replaceState = rawReplaceState;
+    clearOnURLChangeInternals();
+    window.history.replaceState({}, "", "/");
+  });
+
+  test("should fire on init by default", () => {
+    const callback = jest.fn();
+    const unsubscribe = onURLChange(callback);
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback.mock.calls[0][0].trigger).toBe("load");
+    expect(callback.mock.calls[0][0].url).toBe(window.location.href);
+    expect(callback.mock.calls[0][0].oldUrl).toBe(window.location.href);
+
+    unsubscribe();
+  });
+
+  test("should not fire on init when fireOnInit is false", () => {
+    const callback = jest.fn();
+    const unsubscribe = onURLChange(callback, { fireOnInit: false });
+
+    expect(callback).toHaveBeenCalledTimes(0);
+    unsubscribe();
   });
 });

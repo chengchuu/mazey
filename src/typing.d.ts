@@ -86,3 +86,24 @@ export interface WebPerformance {
 export type MazeyElement = HTMLElement | null;
 
 export type MazeyDate = Date | string | number;
+
+export type URLChangeTrigger = "load" | "popstate" | "hashchange" | "pushState" | "replaceState";
+
+export interface URLChangeInfo {
+  url: string;
+  oldUrl: string;
+  trigger: URLChangeTrigger;
+}
+
+export interface OnURLChangeOptions {
+  fireOnInit?: boolean;
+}
+
+export type URLChangeSubscriber = (trigger: URLChangeTrigger) => void;
+
+export interface PatchedHistory extends History {
+  __mazeyUrlChangePatched__?: boolean;
+  __mazeyUrlChangeSubscribers__?: Set<URLChangeSubscriber>;
+  __mazeyRawPushState__?: History["pushState"];
+  __mazeyRawReplaceState__?: History["replaceState"];
+}

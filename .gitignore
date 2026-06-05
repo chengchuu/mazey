@@ -5,6 +5,8 @@ node_modules/
 dist/
 lib/
 coverage/
+.ts-webpack/
+examples/
 
 # Test reports
 test/unit/coverage/
@@ -39,3 +41,4 @@ selenium-debug.log*
 # Package lock files
 package-lock.json
 pnpm-lock.yaml
+pnpm-workspace.yaml
