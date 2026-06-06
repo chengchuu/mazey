@@ -57,6 +57,19 @@ const dTsConf = {
   ],
   external: [],
 };
+const indexDtsConf = {
+  input: _resolve("../src/index.ts"),
+  output: [
+    {
+      file: _resolve("../lib/index.d.ts"),
+      format: "es",
+    },
+  ],
+  plugins: [
+    dts(),
+  ],
+  external: [],
+};
 const gTsConf = {
   input: _resolve("../types/global.d.ts"),
   output: [
@@ -120,6 +133,7 @@ export default [
     ],
     external: [],
   },
+  indexDtsConf,
   dTsConf,
   gTsConf,
 ];
