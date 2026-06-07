@@ -5,6 +5,8 @@ node_modules/
 dist/
 lib/
 coverage/
+.ts-webpack/
+examples/
 
 # Test reports
 test/unit/coverage/
