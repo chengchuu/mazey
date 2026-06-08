@@ -24,6 +24,7 @@ scripts/shell/
 # Code Linters & Formatters
 .editorconfig
 .eslintignore
+.dockerignore
 .lintstagedrc
 .prettierignore
 .prettierrc
@@ -31,6 +32,8 @@ scripts/shell/
 .babelrc
 .eslintrc
 .npmrc
+.gitattributes
+.markdownlint.json
 
 # Configurations
 *.yml
@@ -38,6 +41,7 @@ scripts/shell/
 *.ntvs*
 *.njsproj
 *.sln
+Dockerfile
 
 # Dependency Lock Files
 yarn.lock
@@ -53,9 +57,10 @@ webpack.config.dev.js
 jsdoc.config.json
 tsconfig.json
 
-# Documentation in other languages
+# Documentation in other languages & AGENTS
 README_CN.md
 README_ZH.md
+AGENTS.md
 
 # Global TypeScript definitions
 /global.d.ts
