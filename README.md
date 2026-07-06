@@ -1,4 +1,4 @@
-English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README_ZH.md)
+English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README.zh-CN.md)
 
 # Mazey
 
