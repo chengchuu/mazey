@@ -60,6 +60,7 @@ tsconfig.json
 # Documentation in other languages & AGENTS
 README_CN.md
 README_ZH.md
+README.zh-CN.md
 AGENTS.md
 
 # Global TypeScript definitions
