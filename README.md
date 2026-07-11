@@ -75,6 +75,7 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
+  - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
   - [debounce](#debounce)
@@ -358,6 +359,25 @@ Default formatDate value: 2023-01-11
 String formatDate value: 2022-01-11 14:12:26
 Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
+```
+
+#### generateCalendarVersion
+
+Generate an increasing Calendar Versioning string using the conceptual format `yyyy.MMdd.HHmmss`. Leading zeroes are removed from each numeric segment for Semantic Versioning compatibility.
+
+Usage:
+
+```javascript
+const version = generateCalendarVersion(
+  new Date(2026, 6, 11, 7, 40, 35)
+);
+console.log(version);
+```
+
+Output:
+
+```text
+2026.711.74035
 ```
 
 #### formatDurationFromMs
