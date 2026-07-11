@@ -1522,6 +1522,41 @@ export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
 }
 
 /**
+ * Generate a Calendar Versioning string from a date.
+ *
+ * The conceptual format is `yyyy.MMdd.HHmmss`. Leading zeroes are removed
+ * from each segment to keep numeric Semantic Versioning identifiers valid.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { generateCalendarVersion } from "mazey";
+ *
+ * const ret = generateCalendarVersion(new Date(2026, 6, 11, 7, 40, 35));
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2026.711.74035
+ * ```
+ *
+ * @param {MazeyDate} dateIns Original date. Defaults to the current date.
+ * @returns {string} Return the generated calendar version.
+ * @category Util
+ */
+export function generateCalendarVersion(dateIns?: MazeyDate): string {
+  const normalizedDateIns = dateIns === undefined
+    ? new Date()
+    : new Date(dateIns instanceof Date ? dateIns.getTime() : dateIns);
+  return formatDate(normalizedDateIns, "yyyy.MMdd.HHmmss")
+    .split(".")
+    .map(segment => String(Number(segment)))
+    .join(".");
+}
+
+/**
  * Check if the given string is a mobile phone number.
  *
  * Usage:
