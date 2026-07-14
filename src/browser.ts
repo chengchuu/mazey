@@ -4,12 +4,17 @@ import type {
 } from "./typing";
 import { isNonEmptyArray } from "./util";
 
-let pwaSupport = "";
-
 /**
- * EN: Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
+ * Detect whether the current browser document provides the minimum
+ * JavaScript-detectable prerequisites for PWA functionality.
  *
- * ZH: 判断是否是安全的 PWA 环境。
+ * This function checks for a secure context, Service Worker API support,
+ * and a web app manifest link with a non-empty `href`.
+ *
+ * It does not validate or request the manifest, verify service worker
+ * registration, determine whether the app is installed, or guarantee that an
+ * installation prompt is available. Browser-specific installation policies
+ * may impose additional requirements.
  *
  * Usage:
  *
@@ -27,46 +32,26 @@ let pwaSupport = "";
  * ```
  *
  * @environment Browser
- * @returns {boolean} true if it is a secure PWA environment, otherwise false
+ * @returns Whether the detectable minimum PWA prerequisites are satisfied.
  * @category Browser Information
  */
 export function isSafePWAEnv(): boolean {
-  if (pwaSupport) {
-    return pwaSupport === "pwa";
-  }
-  function isSupportAsyncAwait() {
-    let isSupportAsyncAwaitFunc;
-    try {
-      const fn = new Function("return async function(){};");
-      isSupportAsyncAwaitFunc = fn();
-      return Object.getPrototypeOf(isSupportAsyncAwaitFunc).constructor != null;
-    } catch (e) {
-      return false;
-    }
-  }
-  function isSupportPromise() {
-    if (typeof Promise !== "undefined" && Promise.toString().indexOf("[native code]") !== -1) {
-      return true;
-    }
+  if (
+    typeof window === "undefined" ||
+    typeof document === "undefined" ||
+    typeof navigator === "undefined"
+  ) {
     return false;
   }
-  function isHttps() {
-    return window.location.protocol === "https:";
-  }
-  const BrowserType = getBrowserInfo();
-  if (
+
+  const manifest = document.querySelector<HTMLLinkElement>("link[rel~=\"manifest\"][href]");
+  const manifestHref = manifest?.getAttribute("href")?.trim();
+
+  return (
+    window.isSecureContext === true &&
     "serviceWorker" in navigator &&
-    isSupportAsyncAwait() &&
-    isSupportPromise() &&
-    Boolean(window.fetch) && Boolean(window.indexedDB) && Boolean(window.caches) &&
-    !BrowserType["shell"] &&
-    isHttps()
-  ) {
-    pwaSupport = "pwa";
-    return true;
-  }
-  pwaSupport = "no-pwa";
-  return false;
+    Boolean(manifestHref)
+  );
 }
 
 /**
