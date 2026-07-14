@@ -969,7 +969,15 @@ const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app
 
 #### isSafePWAEnv
 
-Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
+Detect whether the current browser document provides the minimum prerequisites
+for PWA functionality that synchronous JavaScript can identify: a secure
+context, Service Worker API support, and a web app manifest link with a
+non-empty `href`.
+
+This check does not validate or request the manifest, verify service worker
+registration, determine whether the app is installed, or guarantee that an
+installation prompt is available. Browser-specific installation policies may
+impose additional requirements.
 
 Usage:
 
