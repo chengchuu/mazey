@@ -78,6 +78,7 @@ There are some examples maintained by hand below. For more information, please c
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
+  - [deepFreeze](#deepfreeze)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
@@ -424,6 +425,31 @@ Output:
 ```text
 ["a", "b", "c"]
 abc
+```
+
+#### deepFreeze
+
+Recursively freeze an object and its nested enumerable values. Primitive values
+and objects that are already frozen are returned unchanged.
+
+Usage:
+
+```javascript
+const config = deepFreeze({
+  api: {
+    timeout: 5000,
+  },
+});
+
+console.log(Object.isFrozen(config));
+console.log(Object.isFrozen(config.api));
+```
+
+Output:
+
+```text
+true
+true
 ```
 
 #### debounce

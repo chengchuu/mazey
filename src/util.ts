@@ -50,6 +50,46 @@ export function deepCopy<T>(obj: T): T {
 }
 
 /**
+ * Recursively freeze an object and its nested enumerable values.
+ *
+ * Primitive values and objects that are already frozen are returned unchanged.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { deepFreeze } from "mazey";
+ *
+ * const config = deepFreeze({
+ *   api: {
+ *     timeout: 5000,
+ *   },
+ * });
+ *
+ * console.log(Object.isFrozen(config));
+ * console.log(Object.isFrozen(config.api));
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * true
+ * ```
+ *
+ * @param value The value to freeze.
+ * @returns The original value with its nested enumerable values frozen.
+ * @category Util
+ */
+export function deepFreeze<T>(value: T): T {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+
+  Object.values(value).forEach(deepFreeze);
+  return Object.freeze(value);
+}
+
+/**
  * Alias of `deepCopy`.
  *
  * @hidden
