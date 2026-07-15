@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers 124 exported functions in the current repository. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers 125 exported functions in the current repository. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -36,7 +36,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | Function                  | Purpose                                                   | Runtime            | Notes                                                                                                    |
 | ------------------------- | --------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------- |
 | `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Uses `Date.now()` with an older fallback.                                                                |
-| `getFriendlyInterval`     | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` returns days/hours/minutes/seconds; negative or invalid intervals return empty. |
+| `getDateDifference`      | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` returns days/hours/minutes/seconds; negative or invalid intervals return empty. |
 | `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                   |
 | `formatDate`              | Format a date with Mazey tokens                           | Universal          | Local time; supports `yyyy MM dd HH hh mm ss a`; invalid dates throw `RangeError`.                       |
 | `generateCalendarVersion` | Generate `YEAR.MONTHDAY.TIME` calendar versions           | Universal          | Local time, strips segment-leading zeroes, and can decrease after clock or DST rollback.                 |
@@ -236,3 +236,4 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `getDefineListeners`          | Access Mazey's global listener registry | Browser-only       | Hidden low-level API; mutates/returns `window.MAZEY_DEFINE_LISTENERS`.                    |
 | `delCookie`                   | Compatibility deletion wrapper          | Browser-only       | Prefer `removeCookie`; return type is `void`.                                             |
 | `isSupportedEntryType`        | Probe PerformanceObserver entry types   | Browser-preferred  | Hidden low-level API; safely returns false without `window`.                              |
+| `getFriendlyInterval`         | Compatibility alias                     | Universal          | Prefer `getDateDifference`.                                                               |

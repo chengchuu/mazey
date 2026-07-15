@@ -823,11 +823,11 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
   };
 }
 
-const defaultGetFriendlyIntervalOptions = {
+const defaultGetDateDifferenceOptions = {
   type: "d",
 };
 
-function normalizeFriendlyIntervalDate(value: number | string | Date): number | string | Date {
+function normalizeDateDifferenceDate(value: number | string | Date): number | string | Date {
   if (typeof value === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
     return value.replace(" ", "T");
   }
@@ -845,11 +845,11 @@ function normalizeFriendlyIntervalDate(value: number | string | Date): number | 
  * Usage:
  *
  * ```javascript
- * import { getFriendlyInterval } from "mazey";
+ * import { getDateDifference } from "mazey";
  *
- * const days = getFriendlyInterval(0, 90061000);
- * const text = getFriendlyInterval(0, 90061000, { type: "text" });
- * const dateStringDays = getFriendlyInterval(
+ * const days = getDateDifference(0, 90061000);
+ * const text = getDateDifference(0, 90061000, { type: "text" });
+ * const dateStringDays = getDateDifference(
  *   "2020-03-28 00:09:27",
  *   "2023-04-18 10:54:00"
  * );
@@ -873,11 +873,11 @@ function normalizeFriendlyIntervalDate(value: number | string | Date): number | 
  * @remarks Strings in `YYYY-MM-DD HH:mm:ss` format are normalized and parsed as local time. Other date strings use the runtime's native `Date` parser; use timestamps or ISO strings with an explicit timezone when parsing must be portable.
  * @category Util
  */
-export function getFriendlyInterval(start: number | string | Date = 0, end: number | string | Date = 0, options: { type?: string } = defaultGetFriendlyIntervalOptions): number | string {
-  options = Object.assign({}, defaultGetFriendlyIntervalOptions, options);
+export function getDateDifference(start: number | string | Date = 0, end: number | string | Date = 0, options: { type?: string } = defaultGetDateDifferenceOptions): number | string {
+  options = Object.assign({}, defaultGetDateDifferenceOptions, options);
   const { type } = options;
-  if (!isNumber(start)) start = new Date(normalizeFriendlyIntervalDate(start)).getTime();
-  if (!isNumber(end)) end = new Date(normalizeFriendlyIntervalDate(end)).getTime();
+  if (!isNumber(start)) start = new Date(normalizeDateDifferenceDate(start)).getTime();
+  if (!isNumber(end)) end = new Date(normalizeDateDifferenceDate(end)).getTime();
   const t = Number(end) - Number(start);
   let ret = "";
   let [ d, h, m, s ] = new Array(4).fill(0);
@@ -907,6 +907,15 @@ export function getFriendlyInterval(start: number | string | Date = 0, end: numb
     }
   }
   return ret;
+}
+
+/**
+ * Alias of `getDateDifference`.
+ *
+ * @hidden
+ */
+export function getFriendlyInterval(start: number | string | Date = 0, end: number | string | Date = 0, options: { type?: string } = defaultGetDateDifferenceOptions): number | string {
+  return getDateDifference(start, end, options);
 }
 
 function formatDurationUnit(value: number, unit: string): string {

@@ -8,7 +8,7 @@ import {
   formatDate, generateCalendarVersion, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
-  getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
+  getDateDifference, getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
   genUniqueNumString, generateRndNum, genHashCode,
   floatToPercent, floatFixed, throttle, debounce,
   doFn, mTrim, removeHtml, truncateZHString,
@@ -465,19 +465,19 @@ test("convert10To26: Convert 1 to \"a\"?", () => {
   expect(convert10To26(2.9)).toBe("b");
 });
 
-describe("getFriendlyInterval", () => {
+describe("getDateDifference", () => {
   test("formats text intervals in English", () => {
-    expect(getFriendlyInterval(1585325367000, 1681786440000, { type: "text" })).toBe("1116 days 10 hours 44 minutes 33 seconds");
-    expect(getFriendlyInterval(0, 90061000, { type: "text" })).toBe("1 day 1 hour 1 minute 1 second");
-    expect(getFriendlyInterval(0, 0, { type: "text" })).toBe("0 days 0 hours 0 minutes 0 seconds");
+    expect(getDateDifference(1585325367000, 1681786440000, { type: "text" })).toBe("1116 days 10 hours 44 minutes 33 seconds");
+    expect(getDateDifference(0, 90061000, { type: "text" })).toBe("1 day 1 hour 1 minute 1 second");
+    expect(getDateDifference(0, 0, { type: "text" })).toBe("0 days 0 hours 0 minutes 0 seconds");
   });
 
   test("preserves numeric and negative interval behavior", () => {
-    expect(getFriendlyInterval(0, 86400000)).toBe(1);
-    expect(getFriendlyInterval(0, 1500, { type: "seconds" })).toBe(1);
-    expect(getFriendlyInterval(1000, 0, { type: "text" })).toBe("");
-    expect(getFriendlyInterval("invalid", 0)).toBe("");
-    expect(getFriendlyInterval(0, "invalid", { type: "text" })).toBe("");
+    expect(getDateDifference(0, 86400000)).toBe(1);
+    expect(getDateDifference(0, 1500, { type: "seconds" })).toBe(1);
+    expect(getDateDifference(1000, 0, { type: "text" })).toBe("");
+    expect(getDateDifference("invalid", 0)).toBe("");
+    expect(getDateDifference(0, "invalid", { type: "text" })).toBe("");
   });
 
   test("supports documented local date strings", () => {
@@ -493,10 +493,16 @@ describe("getFriendlyInterval", () => {
     };
 
     try {
-      expect(getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00")).toBe(1116);
+      expect(getDateDifference("2020-03-28 00:09:27", "2023-04-18 10:54:00")).toBe(1116);
     } finally {
       global.Date = NativeDate;
     }
+  });
+
+  test("keeps getFriendlyInterval as an alias", () => {
+    expect(getFriendlyInterval(0, 90061000, { type: "text" })).toBe(
+      getDateDifference(0, 90061000, { type: "text" })
+    );
   });
 });
 
