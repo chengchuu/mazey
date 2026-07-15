@@ -1,13 +1,125 @@
 import type {
   ThrottleFunc, DebounceFunc, IsNumberOptions,
   ZResResponse, ZResIsValidResOptions,
-  SimpleObject, SimpleType, MazeyDate,
+  SimpleType, MazeyDate,
   MazeyObject, MazeyFnParams, MazeyFnReturn, MazeyFunction,
   RepeatUntilOptions,
 } from "./typing";
 
+interface CloneCache {
+  get(source: object): unknown;
+  set(source: object, clone: unknown): void;
+}
+
+function createCloneCache(): CloneCache {
+  if (typeof WeakMap !== "undefined") {
+    return new WeakMap<object, unknown>();
+  }
+
+  const sources: object[] = [];
+  const clones: unknown[] = [];
+  return {
+    get(source) {
+      const index = sources.indexOf(source);
+      return index === -1 ? undefined : clones[index];
+    },
+    set(source, clone) {
+      sources.push(source);
+      clones.push(clone);
+    },
+  };
+}
+
+function getRegExpFlags(value: RegExp): string {
+  if (typeof value.flags === "string") {
+    return value.flags;
+  }
+
+  const modernRegExp = value as RegExp & {
+    hasIndices?: boolean;
+    unicodeSets?: boolean;
+  };
+  let flags = "";
+  if (modernRegExp.hasIndices) flags += "d";
+  if (value.global) flags += "g";
+  if (value.ignoreCase) flags += "i";
+  if (value.multiline) flags += "m";
+  if (value.dotAll) flags += "s";
+  if (value.unicode) flags += "u";
+  if (modernRegExp.unicodeSets) flags += "v";
+  if (value.sticky) flags += "y";
+  return flags;
+}
+
+function getCloneKeys(source: object): PropertyKey[] {
+  const keys: PropertyKey[] = Object.getOwnPropertyNames(source);
+  if (typeof Object.getOwnPropertySymbols === "function") {
+    return keys.concat(Object.getOwnPropertySymbols(source));
+  }
+  return keys;
+}
+
+const objectConstructorSource = Function.prototype.toString.call(Object);
+
+function getDateTime(value: object): number | null {
+  try {
+    return Date.prototype.getTime.call(value);
+  } catch (e) {
+    return null;
+  }
+}
+
+function getRegExpSource(value: object): string | null {
+  const sourceGetter = Object.getOwnPropertyDescriptor(RegExp.prototype, "source")?.get;
+  if (!sourceGetter) {
+    return null;
+  }
+  try {
+    return sourceGetter.call(value);
+  } catch (e) {
+    return null;
+  }
+}
+
+function hasBuiltinBrand(value: object, prototype: object, property: string): boolean {
+  const getter = Object.getOwnPropertyDescriptor(prototype, property)?.get;
+  if (!getter) {
+    return false;
+  }
+  try {
+    getter.call(value);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function isPlainObjectValue(value: object): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype === null) {
+    return true;
+  }
+  const constructor = Object.prototype.hasOwnProperty.call(prototype, "constructor")
+    ? prototype.constructor
+    : null;
+  return typeof constructor === "function" &&
+    Function.prototype.toString.call(constructor) === objectConstructorSource;
+}
+
+function isCustomInstanceValue(value: object): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  const constructor = prototype?.constructor;
+  if (typeof constructor !== "function") {
+    return false;
+  }
+  return Function.prototype.toString.call(constructor).indexOf("[native code]") === -1;
+}
+
 /**
  * Copy/Clone Object deeply.
+ *
+ * Custom class instances are copied as plain objects containing their own
+ * properties. Unsupported native instances are preserved by reference.
  *
  * Usage:
  *
@@ -32,21 +144,116 @@ import type {
  * @category Util
  */
 export function deepCopy<T>(obj: T): T {
-  // Check whether it is a primitive type
-  if (typeof obj !== "object") {
+  if (obj === null || typeof obj !== "object") {
     return obj;
   }
-  // Check whether its key-value is simple type, string | number | boolean | null | undefined
-  // ...rest
-  const simpleTypes = [ "string", "number", "boolean", "undefined" ];
-  const values = Object.values(obj as SimpleObject);
-  const isSimpleTypeObj = values.every(v => simpleTypes.includes(typeof v));
-  if (isSimpleTypeObj) {
-    return {
-      ...obj,
-    };
+  return cloneValue(obj, createCloneCache());
+}
+
+function cloneValue<T>(value: T, seen: CloneCache): T {
+  if (value === null || typeof value !== "object") {
+    return value;
   }
-  return JSON.parse(JSON.stringify(obj));
+
+  const source = value as object;
+  const cached = seen.get(source);
+  if (cached !== undefined) {
+    return cached as T;
+  }
+
+  const dateTime = getDateTime(source);
+  if (dateTime !== null) {
+    const result = new Date(dateTime);
+    seen.set(source, result);
+    return result as T;
+  }
+  const regexpSource = getRegExpSource(source);
+  if (regexpSource !== null) {
+    const regexpValue = value as unknown as RegExp;
+    const result = new RegExp(regexpSource, getRegExpFlags(regexpValue));
+    result.lastIndex = regexpValue.lastIndex;
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof ArrayBuffer !== "undefined" &&
+    hasBuiltinBrand(source, ArrayBuffer.prototype, "byteLength")
+  ) {
+    const result = ArrayBuffer.prototype.slice.call(value, 0);
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof SharedArrayBuffer !== "undefined" &&
+    hasBuiltinBrand(source, SharedArrayBuffer.prototype, "byteLength")
+  ) {
+    const result = SharedArrayBuffer.prototype.slice.call(value, 0);
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof ArrayBuffer !== "undefined" &&
+    typeof ArrayBuffer.isView === "function" &&
+    ArrayBuffer.isView(value)
+  ) {
+    const buffer = cloneValue(value.buffer, seen);
+    const isDataView = typeof DataView !== "undefined" &&
+      hasBuiltinBrand(source, DataView.prototype, "byteLength");
+    const result = isDataView
+      ? new DataView(buffer, value.byteOffset, value.byteLength)
+      : new (value.constructor as {
+        new(buffer: ArrayBufferLike, byteOffset: number, length: number): ArrayBufferView;
+      })(buffer, value.byteOffset, (value as unknown as { length: number }).length);
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof Map !== "undefined" &&
+    hasBuiltinBrand(source, Map.prototype, "size")
+  ) {
+    const result = new Map();
+    seen.set(source, result);
+    Map.prototype.forEach.call(value, (mapValue, key) => {
+      result.set(cloneValue(key, seen), cloneValue(mapValue, seen));
+    });
+    return result as T;
+  }
+  if (
+    typeof Set !== "undefined" &&
+    hasBuiltinBrand(source, Set.prototype, "size")
+  ) {
+    const result = new Set();
+    seen.set(source, result);
+    Set.prototype.forEach.call(value, setValue => {
+      result.add(cloneValue(setValue, seen));
+    });
+    return result as T;
+  }
+
+  const isArray = Array.isArray(value);
+  const prototype = Object.getPrototypeOf(value);
+  const isPlainObject = isPlainObjectValue(source);
+  const isCustomInstance = !isArray && !isPlainObject && isCustomInstanceValue(source);
+  if (!isArray && !isPlainObject && !isCustomInstance) {
+    // Unsupported native instances may depend on internal slots.
+    seen.set(source, value);
+    return value;
+  }
+
+  const result = isArray
+    ? new Array(value.length)
+    : Object.create(isCustomInstance ? Object.prototype : prototype);
+  seen.set(source, result);
+  getCloneKeys(source).forEach(key => {
+    if (isArray && key === "length") return;
+    const descriptor = Object.getOwnPropertyDescriptor(source, key);
+    if (!descriptor) return;
+    if ("value" in descriptor) {
+      descriptor.value = cloneValue(descriptor.value, seen);
+    }
+    Object.defineProperty(result, key, descriptor);
+  });
+  return result as T;
 }
 
 /**
@@ -85,8 +292,10 @@ export function deepFreeze<T>(value: T): T {
     return value;
   }
 
+  // Freeze first so circular references terminate at Object.isFrozen().
+  Object.freeze(value);
   Object.values(value).forEach(deepFreeze);
-  return Object.freeze(value);
+  return value;
 }
 
 /**
@@ -296,10 +505,12 @@ export function mTrim(str: string): string {
  * @category Util
  */
 export function isJSONString(str: string): boolean {
+  if (typeof str !== "string") {
+    return false;
+  }
   try {
-    if (typeof JSON.parse(str) === "object") {
-      return true;
-    }
+    JSON.parse(str);
+    return true;
   } catch (e) {
     /* pass */
   }
@@ -341,6 +552,10 @@ export function isJsonString(str: string): boolean {
  * @category Util
  */
 export function genRndNumString(n = 5): string {
+  if (!Number.isFinite(n) || n <= 0) {
+    return "";
+  }
+  n = Math.floor(n);
   let ret = "";
   while (n--) {
     ret += Math.floor(Math.random() * 10);
@@ -491,8 +706,8 @@ export function floatToPercent(num: number, fixSize = 0): string {
  *
  * @category Util
  */
-export function floatFixed(num: string, size = 0): string {
-  return parseFloat(num).toFixed(size);
+export function floatFixed(num: number | string, size = 0): string {
+  return parseFloat(String(num)).toFixed(size);
 }
 
 /**
@@ -645,7 +860,7 @@ const defaultGetFriendlyIntervalOptions = {
  * @category Util
  */
 export function getFriendlyInterval(start: number | string | Date = 0, end: number | string | Date = 0, options: { type?: string } = defaultGetFriendlyIntervalOptions): number | string {
-  options = Object.assign(defaultGetFriendlyIntervalOptions, options);
+  options = Object.assign({}, defaultGetFriendlyIntervalOptions, options);
   const { type } = options;
   const dec = decodeURIComponent;
   if (!isNumber(start)) start = new Date(start).getTime();
@@ -750,8 +965,7 @@ export function formatDurationFromMs(durationMs: number): string {
  * ```
  *
  * @param {*} num 被判断的值
- * @param {boolean} options.isNaNAsNumber 是否 NaN 算数字（默认不算）
- * @param {boolean} options.isInfinityAsNumber 是否 无限 算数字（默认不算）
+ * @param options Controls whether `NaN`, `Infinity`, or other non-finite values count as numbers.
  * @returns {boolean} true 是数字
  * @category Util
  */
@@ -791,7 +1005,7 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
  * @param {function} fn 等待被执行的未知是否有效的函数
  * @category Util
  */
-export function invokeFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
+export function invokeFn(fn: MazeyFunction | null | undefined, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
   let ret: ReturnType<MazeyFunction> | null = null;
   if (fn && typeof fn === "function") {
     ret = fn(...params);
@@ -804,7 +1018,7 @@ export function invokeFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>
  *
  * @hidden
  */
-export function doFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
+export function doFn(fn: MazeyFunction | null | undefined, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
   return invokeFn(fn, ...params);
 }
 
@@ -1267,7 +1481,7 @@ export function unsanitize(str: string): string {
  * @returns {string} 返回截取后的字符串
  * @category Util
  */
-export function cutZHString(str: string, len: number, options: { hasDot?: boolean, dotText?: string } = { hasDot: false, dotText: "..." }): string {
+export function cutZHString(str: string | null | undefined, len: number, options: { hasDot?: boolean, dotText?: string } = { hasDot: false, dotText: "..." }): string {
   options = Object.assign({ hasDot: false, dotText: "..." }, options);
   if (str == "" || !str) {
     return "";
@@ -1321,7 +1535,7 @@ export function cutZHString(str: string, len: number, options: { hasDot?: boolea
  * @returns {string} 返回截取后的字符串
  * @hidden
  */
-export function truncateZHString(str: string, len: number, hasDot = false): string {
+export function truncateZHString(str: string | null | undefined, len: number, hasDot = false): string {
   return cutZHString(str, len, { hasDot });
 }
 
@@ -1330,7 +1544,7 @@ export function truncateZHString(str: string, len: number, hasDot = false): stri
  *
  * @hidden
  */
-export function cutCHSString(str: string, len: number, hasDot = false): string {
+export function cutCHSString(str: string | null | undefined, len: number, hasDot = false): string {
   return truncateZHString(str, len, hasDot);
 }
 
@@ -1344,18 +1558,16 @@ export function cutCHSString(str: string, len: number, hasDot = false): string {
  */
 export function zAxiosIsValidRes(
   res: ZResResponse | undefined,
-  options: ZResIsValidResOptions = {
+  options: ZResIsValidResOptions | null = {
     validStatusRange: [ 200, 300 ],
     validCode: [ 0 ],
   }
 ): boolean {
-  const { validStatusRange, validCode } = Object.assign(
-    {
-      validStatusRange: [ 200, 300 ],
-      validCode: [ 0 ],
-    },
-    options
-  );
+  const normalizedOptions = options || {};
+  const {
+    validStatusRange = [ 200, 300 ],
+    validCode = [ 0 ],
+  } = normalizedOptions;
   if (validStatusRange.length !== 2) {
     console.error("valid validStatusRange is required");
   }
@@ -1407,22 +1619,22 @@ export function zAxiosIsValidRes(
  * @category Util
  */
 export function isValidData(data: MazeyObject, attributes: string[], validValue: SimpleType): boolean {
-  let ret = false;
-  if (typeof data !== "object") {
-    return ret;
+  if (data === null || typeof data !== "object") {
+    return false;
   }
-  const foundRet = attributes.reduce((foundValue, curr) => {
-    if (typeof foundValue[curr] !== "undefined") {
-      foundValue = foundValue[curr];
-    } else {
-      return Object.create(null);
+
+  let foundValue = data;
+  for (const attribute of attributes) {
+    if (
+      foundValue === null ||
+      (typeof foundValue !== "object" && typeof foundValue !== "function") ||
+      !Object.prototype.hasOwnProperty.call(foundValue, attribute)
+    ) {
+      return false;
     }
-    return foundValue;
-  }, data);
-  if (foundRet === validValue) {
-    ret = true;
+    foundValue = foundValue[attribute];
   }
-  return ret;
+  return foundValue === validValue;
 }
 
 /**
@@ -1449,7 +1661,7 @@ export function isValidData(data: MazeyObject, attributes: string[], validValue:
  */
 export function getFileSize(size: number): string {
   const toCeilStr: (v: number) => string = n => String(Math.ceil(n));
-  if (!size || size < 0) return "";
+  if (!Number.isFinite(size) || size <= 0) return "";
   const num = 1024.0; // byte
   if (size < num) {
     return size + " B";
@@ -1530,13 +1742,17 @@ export function genHashCode(str: string): number {
  * @param {MazeyDate} dateIns Original Date
  * @param {string} format Format String
  * @returns {string} Return the formatted date string.
+ * @throws {RangeError} If `dateIns` is not a valid date.
  * @category Util
  */
 export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
-  if (!dateIns) {
+  if (dateIns === undefined) {
     dateIns = new Date();
   }
   const tempDate = new Date(dateIns);
+  if (!Number.isFinite(tempDate.getTime())) {
+    throw new RangeError("Invalid date");
+  }
   const hours = tempDate.getHours();
   const o: {
     [key: string]: string | number;
@@ -1556,13 +1772,13 @@ export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
     if (key === "MM" && Number(value) <= 9) {
       value = `0${value}`;
     }
-    tempFormat = tempFormat.replace(key, String(value));
+    tempFormat = tempFormat.split(key).join(String(value));
   });
   return tempFormat;
 }
 
 /**
- * Generate a Calendar Versioning string from a date.
+ * Generate a local-time Calendar Versioning string from a date.
  *
  * The conceptual format is `yyyy.MMdd.HHmmss`. Leading zeroes are removed
  * from each segment to keep numeric Semantic Versioning identifiers valid.
@@ -1584,6 +1800,7 @@ export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
  *
  * @param {MazeyDate} dateIns Original date. Defaults to the current date.
  * @returns {string} Return the generated calendar version.
+ * @throws {RangeError} If `dateIns` is not a valid date.
  * @category Util
  */
 export function generateCalendarVersion(dateIns?: MazeyDate): string {
@@ -1680,6 +1897,10 @@ export function isValidEmail(email: string): boolean {
  * @category Util
  */
 export function convert10To26(num: number): string {
+  if (!Number.isFinite(num) || num <= 0) {
+    return "";
+  }
+  num = Math.floor(num);
   let result = "";
   while (num > 0) {
     let remainder = num % 26;
@@ -1725,11 +1946,7 @@ export function getCurrentVersion(): string {
  * ```
  *
  * @param callback The callback function to fire.
- * @param options An object containing the options for the function.
- * @param options.interval The interval between each firing of the callback function, in milliseconds. Defaults to 1000.
- * @param options.times The maximum number of times to fire the callback function. Defaults to 10.
- * @param options.context The context to use when calling the callback function. Defaults to null.
- * @param options.args An array of arguments to pass to the callback function.
+ * @param options Controls the interval, maximum invocation count, callback context, and callback arguments.
  * @param condition A function that takes the result of the callback function as its argument and returns a boolean value indicating whether the condition has been met. Defaults to a function that always returns true.
  * @category Util
  */
@@ -1741,6 +1958,25 @@ export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => Ma
   }
 ): void {
   const { interval = 1000, times = 10, context, args } = options;
+  if (typeof callback !== "function") {
+    console.error("Expected a function.");
+    return;
+  }
+
+  if (!Number.isFinite(interval) || interval < 0) {
+    console.error("Expected a non-negative number for interval.");
+    return;
+  }
+
+  if (!Number.isFinite(times) || times < 0) {
+    console.error("Expected a non-negative number for times.");
+    return;
+  }
+
+  if (times === 0) {
+    return;
+  }
+
   let count = 0;
 
   const clearAndInvokeNext = () => {
@@ -1752,18 +1988,6 @@ export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => Ma
       clearAndInvokeNext();
     }, interval);
   };
-
-  if (typeof callback !== "function") {
-    console.error("Expected a function.");
-  }
-
-  if (typeof interval !== "number" || interval < 0) {
-    console.error("Expected a non-negative number for interval.");
-  }
-
-  if (typeof times !== "number" || times < 0) {
-    console.error("Expected a non-negative number for times.");
-  }
 
   clearAndInvokeNext();
 }

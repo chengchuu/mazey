@@ -1,0 +1,15 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "../.ts-webpack",
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["global", "jquery"]
+  },
+  "include": [
+    "../src/**/*.ts",
+    "../types/**/*.ts",
+    "../examples/**/*.ts"
+  ]
+}

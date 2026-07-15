@@ -1,5 +1,6 @@
 # Folders
 build/
+dist/
 node_modules/
 test/
 doc/
@@ -11,6 +12,7 @@ examples/
 images/
 coverage/
 types/
+scripts/
 
 # Specific script subdirectories
 scripts/convert/
@@ -47,6 +49,8 @@ Dockerfile
 yarn.lock
 yarn-error.log
 package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
 
 # Configuration Files
 api-extractor.json

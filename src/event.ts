@@ -46,12 +46,13 @@ export function cancelBubble(e: Event): void {
  * @hidden
  */
 export function getDefineListeners(): DefineListeners {
-  let defineListeners = window.MAZEY_DEFINE_LISTENERS;
-  if (typeof defineListeners !== "object") {
-    defineListeners = {};
-    window.MAZEY_DEFINE_LISTENERS = defineListeners;
+  const defineListeners = window.MAZEY_DEFINE_LISTENERS;
+  if (defineListeners && typeof defineListeners === "object") {
+    return defineListeners;
   }
-  return defineListeners;
+  const newListeners: DefineListeners = Object.create(null);
+  window.MAZEY_DEFINE_LISTENERS = newListeners;
+  return newListeners;
 }
 
 /**
@@ -80,8 +81,13 @@ export function getDefineListeners(): DefineListeners {
  */
 export function addEvent(type: string, fn: MazeyFn): void {
   const defineListeners = getDefineListeners();
-  if (typeof defineListeners[type] === "undefined") {
-    defineListeners[type] = [];
+  if (!Array.isArray(defineListeners[type])) {
+    Object.defineProperty(defineListeners, type, {
+      configurable: true,
+      enumerable: true,
+      value: [],
+      writable: true,
+    });
   }
   if (typeof fn === "function") {
     defineListeners[type].push(fn);
@@ -106,10 +112,11 @@ export function addEvent(type: string, fn: MazeyFn): void {
 export function fireEvent(type: string, params?: MazeyObject): void {
   const defineListeners = getDefineListeners();
   const arrayEvent = defineListeners[type];
-  if (arrayEvent instanceof Array) {
-    for (let i = 0, length = arrayEvent.length; i < length; i++) {
-      if (typeof arrayEvent[i] === "function") {
-        params === undefined ? arrayEvent[i]() : arrayEvent[i](params);
+  if (Array.isArray(arrayEvent)) {
+    const eventQueue = arrayEvent.slice();
+    for (let i = 0, length = eventQueue.length; i < length; i++) {
+      if (typeof eventQueue[i] === "function") {
+        params === undefined ? eventQueue[i]() : eventQueue[i](params);
       }
     }
   }
@@ -120,8 +127,8 @@ export function fireEvent(type: string, params?: MazeyObject): void {
  *
  * @hidden
  */
-export function invokeEvent(type: string): void {
-  fireEvent(type);
+export function invokeEvent(type: string, params?: MazeyObject): void {
+  fireEvent(type, params);
 }
 
 /**
@@ -139,10 +146,10 @@ export function invokeEvent(type: string): void {
  * @param fn
  * @category Event
  */
-export function removeEvent(type: string, fn: MazeyFn): void {
+export function removeEvent(type: string, fn?: MazeyFn): void {
   const defineListeners = getDefineListeners();
   const arrayEvent = defineListeners[type];
-  if (typeof type === "string" && arrayEvent instanceof Array) {
+  if (typeof type === "string" && Array.isArray(arrayEvent)) {
     if (typeof fn === "function") {
       for (let i = 0, length = arrayEvent.length; i < length; i++) {
         if (arrayEvent[i] === fn) {

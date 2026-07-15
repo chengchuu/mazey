@@ -4,7 +4,7 @@
 /* eslint-disable no-undef */
 import {
   camelCaseToKebabCase, camelCase2Underscore,
-  deepCopyObject, deepFreeze, repeatUntilConditionMet,
+  deepCopy, deepCopyObject, deepFreeze, repeatUntilConditionMet,
   formatDate, generateCalendarVersion, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
@@ -16,6 +16,7 @@ import {
   unsanitize, sanitizeInput, unsanitizeInput,
   isFunction, isString, isBoolean, isUdfOrNul,
 } from "../lib/index.esm";
+import { runInNewContext } from "vm";
 
 test("isNumber: Is -1/123/Infinity/NaN Number?", () => {
   expect(isNumber(-1)).toBe(true);
@@ -45,6 +46,195 @@ test("mTrim: Transfer 'abc ' to 'abc'?", () => {
 
 test("deepCopyObject: Transfer 'abc' to 'abc'?", () => {
   expect(deepCopyObject("abc")).toBe("abc");
+});
+
+describe("deepCopy", () => {
+  it("preserves arrays while cloning nested values", () => {
+    const value = [ { id: 1 }, [ 2 ] ];
+    const result = deepCopy(value);
+
+    expect(result).toEqual(value);
+    expect(Array.isArray(result)).toBe(true);
+    expect(result).not.toBe(value);
+    expect(result[0]).not.toBe(value[0]);
+    expect(result[1]).not.toBe(value[1]);
+  });
+
+  it("returns null unchanged and clones Date instances", () => {
+    const date = new Date(1234);
+
+    expect(deepCopy(null)).toBeNull();
+    expect(deepCopy(date)).toEqual(date);
+    expect(deepCopy(date)).not.toBe(date);
+  });
+
+  it("preserves circular references and values that JSON serialization loses", () => {
+    const symbol = Symbol("symbol");
+    const value = {
+      nested: { optional: undefined },
+      pattern: /mazey/gi,
+      map: new Map([ [ "key", { value: 1 } ] ]),
+      [symbol]: "symbol value",
+    };
+    value.self = value;
+
+    const result = deepCopy(value);
+
+    expect(result).not.toBe(value);
+    expect(result.self).toBe(result);
+    expect(result.nested).toEqual({ optional: undefined });
+    expect(result.nested).not.toBe(value.nested);
+    expect(result.pattern).toEqual(/mazey/gi);
+    expect(result.map.get("key")).toEqual({ value: 1 });
+    expect(result.map.get("key")).not.toBe(value.map.get("key"));
+    expect(result[symbol]).toBe("symbol value");
+  });
+
+  it.each([ "d", "v" ])("preserves the supported RegExp %s flag", flag => {
+    let pattern;
+    try {
+      pattern = new RegExp("a", flag);
+    } catch (error) {
+      return;
+    }
+
+    const result = deepCopy(pattern);
+
+    expect(result.flags).toBe(pattern.flags);
+  });
+
+  it("clones supported built-ins from another realm", () => {
+    const value = runInNewContext(`({
+      date: new Date(1234),
+      pattern: /mazey/g,
+      map: new Map([["key", { value: 1 }]]),
+      set: new Set([{ value: 2 }]),
+      bytes: new Uint8Array([10, 20])
+    })`);
+
+    const result = deepCopy(value);
+
+    expect(result).not.toBe(value);
+    expect(result.date).not.toBe(value.date);
+    expect(result.date.getTime()).toBe(1234);
+    expect(result.pattern).not.toBe(value.pattern);
+    expect(result.pattern.flags).toBe("g");
+    expect(result.map).not.toBe(value.map);
+    expect(result.map.get("key")).toEqual({ value: 1 });
+    expect(result.map.get("key")).not.toBe(value.map.get("key"));
+    expect(result.set).not.toBe(value.set);
+    expect(result.bytes).not.toBe(value.bytes);
+    expect(Array.from(result.bytes)).toEqual([ 10, 20 ]);
+    expect(result.bytes.buffer).not.toBe(value.bytes.buffer);
+  });
+
+  it("does not use Symbol.toStringTag as a built-in brand", () => {
+    const value = {
+      nested: { id: 1 },
+      [Symbol.toStringTag]: "Date",
+    };
+
+    const result = deepCopy(value);
+
+    expect(result).not.toBe(value);
+    expect(result.nested).toEqual({ id: 1 });
+    expect(result.nested).not.toBe(value.nested);
+    expect(result[Symbol.toStringTag]).toBe("Date");
+  });
+
+  it("clones binary views with a valid shared backing buffer", () => {
+    const buffer = new ArrayBuffer(4);
+    const bytes = new Uint8Array(buffer);
+    bytes.set([ 10, 20, 30, 40 ]);
+    const value = {
+      buffer,
+      bytes: new Uint8Array(buffer, 1, 2),
+      view: new DataView(buffer, 1, 2),
+    };
+
+    const result = deepCopy(value);
+
+    expect(result.buffer).not.toBe(buffer);
+    expect(result.bytes).toBeInstanceOf(Uint8Array);
+    expect(Array.from(result.bytes)).toEqual([ 20, 30 ]);
+    expect(result.view).toBeInstanceOf(DataView);
+    expect(result.view.getUint8(0)).toBe(20);
+    expect(result.bytes.buffer).toBe(result.buffer);
+    expect(result.view.buffer).toBe(result.buffer);
+  });
+
+  it("clones SharedArrayBuffer views when the runtime supports them", () => {
+    if (typeof SharedArrayBuffer === "undefined") return;
+    const buffer = new SharedArrayBuffer(2);
+    new Uint8Array(buffer).set([ 10, 20 ]);
+
+    const result = deepCopy({
+      buffer,
+      bytes: new Uint8Array(buffer),
+    });
+
+    expect(result.buffer).not.toBe(buffer);
+    expect(Array.from(result.bytes)).toEqual([ 10, 20 ]);
+    expect(result.bytes.buffer).toBe(result.buffer);
+  });
+
+  it("preserves unsupported native objects instead of creating invalid instances", async () => {
+    const promise = Promise.resolve("value");
+    const weakMap = new WeakMap();
+
+    const result = deepCopy({ promise, weakMap });
+
+    expect(result.promise).toBe(promise);
+    expect(result.weakMap).toBe(weakMap);
+    await expect(result.promise).resolves.toBe("value");
+    expect(() => result.weakMap.has({})).not.toThrow();
+  });
+
+  it("clones custom class state without aliasing the original instance", () => {
+    class Secret {
+      #value = 42;
+
+      constructor() {
+        this.options = { enabled: true };
+      }
+
+      read() {
+        return this.#value;
+      }
+    }
+    const value = new Secret();
+
+    const result = deepCopy(value);
+
+    expect(result).not.toBe(value);
+    expect(result.options).toEqual({ enabled: true });
+    expect(result.options).not.toBe(value.options);
+    result.options.enabled = false;
+    expect(value.options.enabled).toBe(true);
+    expect(result.read).toBeUndefined();
+    expect(value.read()).toBe(42);
+  });
+
+  it("clones primitives and circular plain objects without WeakMap", () => {
+    const originalWeakMap = global.WeakMap;
+    const value = { nested: { id: 1 } };
+    value.self = value;
+    let primitiveResult;
+    let objectResult;
+    try {
+      global.WeakMap = undefined;
+      primitiveResult = deepCopy("abc");
+      objectResult = deepCopy(value);
+    } finally {
+      global.WeakMap = originalWeakMap;
+    }
+
+    expect(primitiveResult).toBe("abc");
+    expect(objectResult).toEqual(value);
+    expect(objectResult).not.toBe(value);
+    expect(objectResult.nested).not.toBe(value.nested);
+    expect(objectResult.self).toBe(objectResult);
+  });
 });
 
 describe("deepFreeze", () => {
@@ -79,6 +269,15 @@ describe("deepFreeze", () => {
     expect(deepFreeze(value)).toBe(value);
     expect(Object.isFrozen(value)).toBe(true);
   });
+
+  it("freezes circular object graphs without overflowing", () => {
+    const value = { child: {} };
+    value.child.parent = value;
+
+    expect(deepFreeze(value)).toBe(value);
+    expect(Object.isFrozen(value)).toBe(true);
+    expect(Object.isFrozen(value.child)).toBe(true);
+  });
 });
 
 test("isJsonString: Is '['a', 'b', 'c']' a valid JSON string?", () => {
@@ -89,8 +288,26 @@ test("isJsonString: Is '[\"a\", \"b\", \"c\"]' a valid JSON string?", () => {
   expect(isJsonString("[\"a\", \"b\", \"c\"]")).toBe(true);
 });
 
+test("isJsonString: Accept valid JSON primitive values", () => {
+  expect(isJsonString("123")).toBe(true);
+  expect(isJsonString("true")).toBe(true);
+  expect(isJsonString("null")).toBe(true);
+});
+
+test("isJsonString: Reject non-string values", () => {
+  expect(isJsonString(123)).toBe(false);
+  expect(isJsonString(true)).toBe(false);
+});
+
 test("generateRndNum: Can it produce an empty string?", () => {
   expect(generateRndNum(0)).toBe("");
+});
+
+test("generateRndNum: Invalid lengths terminate with an empty string", () => {
+  expect(generateRndNum(-1)).toBe("");
+  expect(generateRndNum(Infinity)).toBe("");
+  expect(generateRndNum(NaN)).toBe("");
+  expect(generateRndNum(2.9)).toHaveLength(2);
 });
 
 test("formatDate: String formatDate value?", () => {
@@ -146,6 +363,16 @@ test("formatDate: Edge case - Start of the day", () => {
   expect(formatDate(new Date(2024, 0, 1, 0, 0, 0), "yyyy-MM-dd HH:mm:ss")).toBe("2024-01-01 00:00:00");
 });
 
+test("formatDate: Preserves epoch timestamps and replaces repeated tokens", () => {
+  const epoch = new Date(0);
+  expect(formatDate(0, "yyyy-MM-dd HH:mm:ss")).toBe(formatDate(epoch, "yyyy-MM-dd HH:mm:ss"));
+  expect(formatDate(new Date(2024, 0, 2), "yyyy/yyyy-MM/MM-dd/dd")).toBe("2024/2024-01/01-02/02");
+});
+
+test("formatDate: Rejects invalid dates", () => {
+  expect(() => formatDate("not-a-date")).toThrow(RangeError);
+});
+
 describe("generateCalendarVersion", () => {
   test.each([
     [ new Date(2026, 6, 11, 7, 40, 35), "2026.711.74035" ],
@@ -199,6 +426,10 @@ describe("generateCalendarVersion", () => {
     expect(compareVersions(later, earlier)).toBeGreaterThan(0);
     expect(compareVersions(nextDay, later)).toBeGreaterThan(0);
   });
+
+  test("rejects invalid dates instead of returning non-numeric segments", () => {
+    expect(() => generateCalendarVersion("not-a-date")).toThrow(RangeError);
+  });
 });
 
 test("isValidData: Check the valid value?", () => {
@@ -209,6 +440,12 @@ test("isValidData: Check the valid value?", () => {
       },
     },
   }, [ "a", "b", "c" ], 413)).toBe(true);
+});
+
+test("isValidData: Safely rejects null paths and inherited properties", () => {
+  expect(isValidData(null, [ "a" ], 1)).toBe(false);
+  expect(isValidData({ a: null }, [ "a", "b" ], 1)).toBe(false);
+  expect(isValidData({}, [ "toString" ], Object.prototype.toString)).toBe(false);
 });
 
 test("isValidEmail: Check the valid email?", () => {
@@ -223,6 +460,9 @@ test("convert10To26: Convert 1 to \"a\"?", () => {
   expect(convert10To26(27)).toBe("aa");
   expect(convert10To26(52)).toBe("az");
   expect(convert10To26(53)).toBe("ba");
+  expect(convert10To26(-1)).toBe("");
+  expect(convert10To26(Infinity)).toBe("");
+  expect(convert10To26(2.9)).toBe("b");
 });
 
 // Use Jest to test getFriendlyInterval in a `test`
@@ -230,6 +470,7 @@ test("getFriendlyInterval: Get 1116 days?", () => {
   expect(getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" })).toBe(1116);
   expect(getFriendlyInterval(1585325367000, 1681786440000, { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
   expect(getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
+  expect(getFriendlyInterval(0, 86400000)).toBe(1);
 });
 
 describe("formatDurationFromMs", () => {
@@ -705,6 +946,19 @@ describe("zAxiosIsValidRes", () => {
     const isValid = zAxiosIsValidRes(res);
     expect(isValid).toBe(false);
   });
+
+  it("uses defaults when optional properties are explicitly undefined", () => {
+    const res = { status: 200, data: { code: 0 } };
+    expect(zAxiosIsValidRes(res, {
+      validStatusRange: undefined,
+      validCode: undefined,
+    })).toBe(true);
+  });
+
+  it("uses defaults when the options object is null", () => {
+    const res = { status: 200, data: { code: 0 } };
+    expect(zAxiosIsValidRes(res, null)).toBe(true);
+  });
 });
 
 describe("getFileSize", () => {
@@ -740,6 +994,8 @@ describe("getFileSize", () => {
   it("should return an empty string for invalid file sizes", () => {
     expect(getFileSize(0)).toBe("");
     expect(getFileSize(-100)).toBe("");
+    expect(getFileSize(NaN)).toBe("");
+    expect(getFileSize(Infinity)).toBe("");
   });
 });
 
@@ -765,16 +1021,20 @@ describe("repeatUntilConditionMet error handling", () => {
   let consoleSpy;
 
   beforeEach(() => {
+    jest.useFakeTimers();
     consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
   });
 
   afterEach(() => {
+    jest.clearAllTimers();
+    jest.useRealTimers();
     consoleSpy.mockRestore();
   });
 
   it("should log an error if callback is not a function", () => {
     repeatUntilConditionMet("notAFunction", {}, () => true);
     expect(console.error).toHaveBeenCalledWith("Expected a function.");
+    expect(jest.getTimerCount()).toBe(0);
   });
 
   it("should log an error if interval is not a non-negative number", () => {
@@ -791,6 +1051,16 @@ describe("repeatUntilConditionMet error handling", () => {
     
     repeatUntilConditionMet(() => true, { times: -1 }, () => true);
     expect(console.error).toHaveBeenCalledWith("Expected a non-negative number for times.");
+  });
+
+  it("rejects non-finite options and schedules nothing for zero times", () => {
+    const callback = jest.fn();
+    repeatUntilConditionMet(callback, { interval: NaN });
+    repeatUntilConditionMet(callback, { times: Infinity });
+    repeatUntilConditionMet(callback, { times: 0 });
+
+    expect(console.error).toHaveBeenCalledTimes(2);
+    expect(jest.getTimerCount()).toBe(0);
   });
 });
 

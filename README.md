@@ -364,7 +364,9 @@ Date formatDate value: 02/11/2014
 
 #### generateCalendarVersion
 
-Generate an increasing Calendar Versioning string using the conceptual format `yyyy.MMdd.HHmmss`. Leading zeroes are removed from each numeric segment for Semantic Versioning compatibility.
+Generate a local-time Calendar Versioning string using the conceptual format `yyyy.MMdd.HHmmss`. Leading zeroes are removed from each numeric segment for Semantic Versioning compatibility.
+
+Versions increase with the supplied local date and time under normal clock progression. Because the function intentionally follows local time, a manual clock rollback or daylight-saving fallback can produce a value lower than one generated earlier.
 
 Usage:
 

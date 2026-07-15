@@ -212,7 +212,7 @@ export function getBrowserInfo(): BrowserInfo {
     let supporter = "";
     if (testUa(/applewebkit/g)) {
       engine = "webkit"; // webkit engine
-      if (testUa(/edge/g)) {
+      if (testUa(/edg(?:a|ios)?\//g) || testUa(/edge\//g)) {
         supporter = "edge"; // Edge browser
       } else if (testUa(/opr/g)) {
         supporter = "opera"; // Opera browser
@@ -264,7 +264,7 @@ export function getBrowserInfo(): BrowserInfo {
     } else if (supporter === "iexplore") {
       supporterVs = testVs(/(msie [\d._]+)|(rv:[\d._]+)/g);
     } else if (supporter === "edge") {
-      supporterVs = testVs(/edge\/[\d._]+/g);
+      supporterVs = testVs(/(?:edge|edg|edga|edgios)\/[\d._]+/g);
     }
     browserInfo = {
       ...browserInfo,

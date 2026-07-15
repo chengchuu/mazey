@@ -153,6 +153,29 @@ describe("getBrowserInfo", () => {
     // Test Color Scheme
     expect(browserInfo.colorScheme).toBeDefined();
   });
+
+  it("classifies Chromium-based Edge as Edge instead of Chrome", () => {
+    const originalUserAgent = Object.getOwnPropertyDescriptor(navigator, "userAgent");
+    const originalBrowserInfo = window.MAZEY_BROWSER_INFO;
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+        "AppleWebKit/537.36 Chrome/126.0.0.0 Safari/537.36 Edg/126.0.2592.102",
+    });
+    window.MAZEY_BROWSER_INFO = undefined;
+
+    try {
+      const browserInfo = getBrowserInfo();
+
+      expect(browserInfo.supporter).toBe("edge");
+      expect(browserInfo.supporterVs).toBe("126.0.2592.102");
+    } finally {
+      if (originalUserAgent) {
+        Object.defineProperty(navigator, "userAgent", originalUserAgent);
+      }
+      window.MAZEY_BROWSER_INFO = originalBrowserInfo;
+    }
+  });
 });
 
 describe("isSupportWebp", () => {

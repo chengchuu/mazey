@@ -5,6 +5,9 @@ import type { WebPerformance } from "./typing";
  * @hidden
  */
 export function isSupportedEntryType(name: string) {
+  if (typeof window === "undefined") {
+    return false;
+  }
   let supportedEntryTypes: readonly string[] = [];
   const perfObs = window.PerformanceObserver;
   if (!perfObs) {
@@ -46,7 +49,7 @@ export async function getFCP(): Promise<number> {
     return 0;
   }
   return new Promise(resolve => {
-    const observer = new PerformanceObserver(list => {
+    const observer = new window.PerformanceObserver(list => {
       const entries = list.getEntries();
       const fcpIns = entries.find(entry => entry.name === "first-contentful-paint");
       if (fcpIns) {
@@ -88,7 +91,7 @@ export async function getFP(): Promise<number> {
     return 0;
   }
   return new Promise(resolve => {
-    const observer = new PerformanceObserver(list => {
+    const observer = new window.PerformanceObserver(list => {
       const entries = list.getEntries();
       const fpIns = entries.find(entry => entry.name === "first-paint");
       if (fpIns) {
@@ -130,7 +133,7 @@ export async function getLCP(): Promise<number> {
     return 0;
   }
   return new Promise(resolve => {
-    const observer = new PerformanceObserver(list => {
+    const observer = new window.PerformanceObserver(list => {
       const entries = list.getEntries();
       const lcpIns = entries.find(entry => entry.entryType === "largest-contentful-paint");
       if (lcpIns) {
@@ -172,7 +175,7 @@ export async function getFID(): Promise<number> {
     return 0;
   }
   return new Promise(resolve => {
-    const observer = new PerformanceObserver(list => {
+    const observer = new window.PerformanceObserver(list => {
       const entries = list.getEntries();
       const fidIns = entries.find(entry => entry.entryType === "first-input");
       if (fidIns) {
@@ -219,7 +222,7 @@ export async function getCLS(): Promise<number> {
     return 0;
   }
   return new Promise(resolve => {
-    const observer = new PerformanceObserver(list => {
+    const observer = new window.PerformanceObserver(list => {
       const entries = list.getEntries();
       const clsScore = entries.reduce((score, entry) => {
         let ev = 0;
@@ -267,7 +270,7 @@ export async function getTTFB(): Promise<number> {
   if (!window.performance || !window.performance.getEntriesByType) {
     return 0;
   }
-  const navigationTiming = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+  const navigationTiming = window.performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
   let ttfb = 0;
   if (!navigationTiming) {
     return 0;
@@ -326,7 +329,7 @@ export async function getTTFB(): Promise<number> {
  * @returns {Promise<object>} 加载数据
  * @category Perf
  */
-export async function getPerformance(camelCase = false): Promise<WebPerformance | Error> {
+export async function getPerformance(camelCase = false): Promise<WebPerformance> {
   if (!isSupportedEntryType("navigation")) {
     return Promise.reject(new Error("navigation is not supported"));
   }
@@ -424,8 +427,12 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance 
   // Whether the data has been formed (after the page has finished loading).
   if (isNumber(loadEventEnd) && loadEventEnd > 0) {
     getTiming();
+  } else if (document.readyState === "complete") {
+    // loadEventEnd is finalized after load event handlers have completed.
+    window.setTimeout(getTiming, 0);
   } else {
-    window.addEventListener("load", function() {
+    window.addEventListener("load", function onLoad() {
+      window.removeEventListener("load", onLoad);
       // Cannot affect the final time calculation.
       window.setTimeout(function() {
         getTiming();
@@ -433,6 +440,53 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance 
     });
   }
   function getTiming() {
+    if (navigationTiming) {
+      ({ decodedBodySize, encodedBodySize } = navigationTiming);
+      ({
+        unloadEventEnd,
+        unloadEventStart,
+        redirectEnd,
+        redirectStart,
+        domainLookupEnd,
+        domainLookupStart,
+        connectEnd,
+        connectStart,
+        secureConnectionStart,
+        responseStart,
+        requestStart,
+        responseEnd,
+        domContentLoadedEventStart,
+        loadEventStart,
+        loadEventEnd,
+        startTime: navigationStart,
+        fetchStart,
+      } = navigationTiming);
+    } else if (timing) {
+      ({
+        unloadEventEnd,
+        unloadEventStart,
+        redirectEnd,
+        redirectStart,
+        domainLookupEnd,
+        domainLookupStart,
+        connectEnd,
+        connectStart,
+        secureConnectionStart,
+        responseStart,
+        requestStart,
+        responseEnd,
+        domContentLoadedEventStart,
+        loadEventStart,
+        loadEventEnd,
+        navigationStart,
+        fetchStart,
+      } = timing);
+    }
+    if (isNumber(navigationStart)) {
+      startTime = navigationStart;
+    } else if (isNumber(fetchStart)) {
+      startTime = fetchStart;
+    }
     // Get the loading time.
     const data: WebPerformance = {
       // url: encodeURI(location.href),
@@ -489,7 +543,7 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance 
   // Get the current operating system.
   function getOS() {
     let os;
-    if (navigator.userAgent.indexOf("Android") > -1 || navigator.userAgent.indexOf("Linux") > -1) {
+    if (navigator.userAgent.indexOf("Android") > -1) {
       os = "android";
     } else if (navigator.userAgent.indexOf("iPhone") > -1) {
       os = "ios";
@@ -504,7 +558,7 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance 
   function getOSVersion() {
     let OSVision: string | undefined = "";
     const u = navigator.userAgent;
-    const isAndroid = u.indexOf("Android") > -1 || u.indexOf("Linux") > -1; // Android
+    const isAndroid = u.indexOf("Android") > -1; // Android
     const isIOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); // iOS 终端
     const uas = navigator.userAgent.split(";");
     if (uas.length < 2) return OSVision;
@@ -575,7 +629,7 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance 
   // Get the screen orientation status.
   function getOrientationStatu() {
     let orientationStatu = "";
-    if (window.screen && window.screen.orientation && window.screen.orientation.angle) {
+    if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === "number") {
       if (window.screen.orientation.angle === 180 || window.screen.orientation.angle === 0) {
         // 竖屏
         orientationStatu = "|";
