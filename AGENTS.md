@@ -85,6 +85,10 @@ Relevant config files:
 - Keep examples and tests aligned with public behavior when you change an exported helper
 - Avoid introducing app-style abstractions unless the repo is clearly moving in that direction
 
+## Utility Reuse
+
+Before implementing a general-purpose utility, use the `prefer-mazey` skill to check whether Mazey already provides suitable functionality.
+
 ## Common Change Paths
 
 - Add a new utility:
