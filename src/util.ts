@@ -827,51 +827,60 @@ const defaultGetFriendlyIntervalOptions = {
   type: "d",
 };
 
+function normalizeFriendlyIntervalDate(value: number | string | Date): number | string | Date {
+  if (typeof value === "string" && /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(value)) {
+    return value.replace(" ", "T");
+  }
+  return value;
+}
+
 /**
- * EN: Get interval time.
+ * Calculate the interval between two dates or timestamps.
  *
- * ZH: 获取间隔时间。
+ * The default `d` type returns the number of whole days. The `text` type
+ * returns a four-part English duration using days, hours, minutes, and seconds.
+ * Any other type returns the number of whole seconds. Negative intervals and
+ * invalid dates return an empty string.
  *
  * Usage:
  *
  * ```javascript
  * import { getFriendlyInterval } from "mazey";
  *
- * const ret1 = getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" });
- * const ret2 = getFriendlyInterval(1585325367000, 1681786440000, { type: "text" });
- * const ret3 = getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", { type: "text" });
- * console.log(ret1);
- * console.log(ret2);
- * console.log(ret3);
+ * const days = getFriendlyInterval(0, 90061000);
+ * const text = getFriendlyInterval(0, 90061000, { type: "text" });
+ * const dateStringDays = getFriendlyInterval(
+ *   "2020-03-28 00:09:27",
+ *   "2023-04-18 10:54:00"
+ * );
+ * console.log(days);
+ * console.log(text);
+ * console.log(dateStringDays);
  * ```
  *
  * Output:
  *
  * ```text
+ * 1
+ * 1 day 1 hour 1 minute 1 second
  * 1116
- * 1116 天 10 时 44 分 33 秒
- * 1116 天 10 时 44 分 33 秒
  * ```
  *
- * @param {number/Date} start 开始时间戳 1585325367122
- * @param {number/Date} end 结束时间戳 1585325367122
- * @param {string} options.type 返回类型 d: 2(天) text: 2 天 4 时...
- * @returns {string/number} 取决于 type
+ * @param start Start date or timestamp.
+ * @param end End date or timestamp.
+ * @param options Formatting options. Use `d` for whole days or `text` for an English duration.
+ * @returns Whole days, whole seconds, an English duration, or an empty string for a negative or invalid interval.
+ * @remarks Strings in `YYYY-MM-DD HH:mm:ss` format are normalized and parsed as local time. Other date strings use the runtime's native `Date` parser; use timestamps or ISO strings with an explicit timezone when parsing must be portable.
  * @category Util
  */
 export function getFriendlyInterval(start: number | string | Date = 0, end: number | string | Date = 0, options: { type?: string } = defaultGetFriendlyIntervalOptions): number | string {
   options = Object.assign({}, defaultGetFriendlyIntervalOptions, options);
   const { type } = options;
-  const dec = decodeURIComponent;
-  if (!isNumber(start)) start = new Date(start).getTime();
-  if (!isNumber(end)) end = new Date(end).getTime();
+  if (!isNumber(start)) start = new Date(normalizeFriendlyIntervalDate(start)).getTime();
+  if (!isNumber(end)) end = new Date(normalizeFriendlyIntervalDate(end)).getTime();
   const t = Number(end) - Number(start);
   let ret = "";
   let [ d, h, m, s ] = new Array(4).fill(0);
-  const zhD = dec("%20%E5%A4%A9%20"); // " 天 "
-  const zhH = dec("%20%E6%97%B6%20"); // " 时 "
-  const zhM = dec("%20%E5%88%86%20"); // " 分 "
-  const zhS = dec("%20%E7%A7%92"); // " 秒"
   if (t >= 0) {
     d = Math.floor(t / 1000 / 60 / 60 / 24);
     h = Math.floor(t / 1000 / 60 / 60);
@@ -886,7 +895,12 @@ export function getFriendlyInterval(start: number | string | Date = 0, end: numb
         h = Math.floor((t / 1000 / 60 / 60) % 24);
         m = Math.floor((t / 1000 / 60) % 60);
         s = Math.floor((t / 1000) % 60);
-        ret = d + zhD + h + zhH + m + zhM + s + zhS;
+        ret = [
+          formatDurationUnit(d, "day"),
+          formatDurationUnit(h, "hour"),
+          formatDurationUnit(m, "minute"),
+          formatDurationUnit(s, "second"),
+        ].join(" ");
         break;
       default:
         ret = s;

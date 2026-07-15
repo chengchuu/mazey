@@ -465,12 +465,39 @@ test("convert10To26: Convert 1 to \"a\"?", () => {
   expect(convert10To26(2.9)).toBe("b");
 });
 
-// Use Jest to test getFriendlyInterval in a `test`
-test("getFriendlyInterval: Get 1116 days?", () => {
-  expect(getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" })).toBe(1116);
-  expect(getFriendlyInterval(1585325367000, 1681786440000, { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
-  expect(getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
-  expect(getFriendlyInterval(0, 86400000)).toBe(1);
+describe("getFriendlyInterval", () => {
+  test("formats text intervals in English", () => {
+    expect(getFriendlyInterval(1585325367000, 1681786440000, { type: "text" })).toBe("1116 days 10 hours 44 minutes 33 seconds");
+    expect(getFriendlyInterval(0, 90061000, { type: "text" })).toBe("1 day 1 hour 1 minute 1 second");
+    expect(getFriendlyInterval(0, 0, { type: "text" })).toBe("0 days 0 hours 0 minutes 0 seconds");
+  });
+
+  test("preserves numeric and negative interval behavior", () => {
+    expect(getFriendlyInterval(0, 86400000)).toBe(1);
+    expect(getFriendlyInterval(0, 1500, { type: "seconds" })).toBe(1);
+    expect(getFriendlyInterval(1000, 0, { type: "text" })).toBe("");
+    expect(getFriendlyInterval("invalid", 0)).toBe("");
+    expect(getFriendlyInterval(0, "invalid", { type: "text" })).toBe("");
+  });
+
+  test("supports documented local date strings", () => {
+    const NativeDate = global.Date;
+    global.Date = class extends NativeDate {
+      constructor(...args) {
+        if (args.length === 1 && typeof args[0] === "string" && args[0].includes(" ")) {
+          super(NaN);
+        } else {
+          super(...args);
+        }
+      }
+    };
+
+    try {
+      expect(getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00")).toBe(1116);
+    } finally {
+      global.Date = NativeDate;
+    }
+  });
 });
 
 describe("formatDurationFromMs", () => {
