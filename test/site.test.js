@@ -104,6 +104,21 @@ test("API transformation is complete, idempotent, and promotes a page h1", () =>
   expect(transformed.match(/<h1\b/g)).toHaveLength(1);
 });
 
+test("API toolbar reserves space between the project title and search control", () => {
+  const apiCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "api.css"),
+    "utf8"
+  );
+
+  expect(apiCss).toMatch(
+    /\.tsd-page-toolbar \.tsd-toolbar-contents > #tsd-search\s*{[^}]*min-width:\s*8rem;[^}]*}/
+  );
+  expect(apiCss).toMatch(
+    /@media \(max-width: 600px\)\s*{[\s\S]*?#tsd-search > a\.title\s*{[^}]*display:\s*none;[^}]*}/
+  );
+  expect(apiCss).not.toContain(".tsd-toolbar-contents > a.title");
+});
+
 test("API index uses the TypeDoc page title as its primary heading", () => {
   const transformed = transformApiHtml(
     typeDocHtml.replace("<main><p>", "<main><h1>Mazey</h1><p>"),
