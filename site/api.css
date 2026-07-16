@@ -34,10 +34,6 @@
   flex: none;
 }
 
-.tsd-page-toolbar .tsd-toolbar-contents > #tsd-search {
-  min-width: 7rem;
-}
-
 .site-project-links .theme-control {
   display: inline-flex;
   align-items: center;
@@ -110,7 +106,7 @@
 }
 
 @media (max-width: 600px) {
-  #tsd-search > a.title {
+  .tsd-toolbar-contents > a.title {
     display: none;
   }
 

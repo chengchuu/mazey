@@ -20,7 +20,7 @@ import {
 } from "../scripts/project-config-utils";
 import { manifestMetadataFailures } from "../scripts/validate-pwa";
 
-const typeDocHtml = `<!doctype html><html><head><title>mazey</title></head><body><header><div class="tsd-toolbar-contents container"></div></header><div class="tsd-page-title"><h2>mazey</h2></div><main><p>Public API documentation content.</p></main></body></html>`;
+const typeDocHtml = `<!doctype html><html><head><title>mazey</title></head><body><header><div class="tsd-toolbar-contents container"><a href="index.html" class="title">mazey</a><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results"><ul role="listbox" id="tsd-search-results"></ul></dialog></div></header><div class="tsd-page-title"><h2>mazey</h2></div><main><p>Public API documentation content.</p></main></body></html>`;
 
 test("project configuration derives deployment identity from package metadata", () => {
   expect(pkg.private).not.toBe(true);
@@ -104,19 +104,23 @@ test("API transformation is complete, idempotent, and promotes a page h1", () =>
   expect(transformed.match(/<h1\b/g)).toHaveLength(1);
 });
 
-test("API toolbar reserves space between the project title and search control", () => {
+test("API toolbar preserves TypeDoc's search dialog", () => {
+  const transformed = transformApiHtml(typeDocHtml, "index.html");
   const apiCss = fs.readFileSync(
     path.join(process.cwd(), "site", "api.css"),
     "utf8"
   );
 
+  expect(transformed).toContain('id="tsd-search-trigger"');
+  expect(transformed).toContain('<dialog id="tsd-search"');
+  expect(transformed).toContain('id="tsd-search-input"');
+  expect(transformed).toContain('id="tsd-search-results"');
   expect(apiCss).toMatch(
-    /\.tsd-page-toolbar \.tsd-toolbar-contents > #tsd-search\s*{[^}]*min-width:\s*7rem;[^}]*}/
+    /@media \(max-width: 600px\)\s*{[\s\S]*?\.tsd-toolbar-contents > a\.title\s*{[^}]*display:\s*none;[^}]*}/
   );
-  expect(apiCss).toMatch(
-    /@media \(max-width: 600px\)\s*{[\s\S]*?#tsd-search > a\.title\s*{[^}]*display:\s*none;[^}]*}/
+  expect(apiCss).not.toContain(
+    ".tsd-page-toolbar .tsd-toolbar-contents > #tsd-search"
   );
-  expect(apiCss).not.toContain(".tsd-toolbar-contents > a.title");
 });
 
 test("API index uses the TypeDoc page title as its primary heading", () => {

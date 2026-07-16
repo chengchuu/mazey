@@ -215,6 +215,16 @@ function validateApiPages() {
     if (!attribute(html, "script", "src", `${assetPrefix}assets/api.js`)) {
       fail(`API ${relative}: API script is missing`);
     }
+    for (const control of [
+      'id="tsd-search-trigger"',
+      '<dialog id="tsd-search"',
+      'id="tsd-search-input"',
+      'id="tsd-search-results"',
+    ]) {
+      if (!html.includes(control)) {
+        fail(`API ${relative}: search dialog control is missing: ${control}`);
+      }
+    }
     const h1s = matches(html, /<h1\b[^>]*>([\s\S]*?)<\/h1>/gi);
     if (h1s.length !== 1) fail(`API ${relative}: expected exactly one h1`);
     const firstHeading = html.match(/<h([1-6])\b/i);
@@ -332,6 +342,8 @@ function validateSite() {
     description: sitePages.playground.description,
     requiredLinks: [
       "../",
+      "../#installation",
+      "../#usage",
       "../api/",
       projectConfig.urls.github,
       projectConfig.urls.npm,
