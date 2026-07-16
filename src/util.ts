@@ -1742,6 +1742,144 @@ export function genHashCode(str: string): number {
   return hash;
 }
 
+const localDateStringPattern = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/;
+const zonedDateStringPattern = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?(Z|[+-]\d{2}:\d{2})$/;
+
+function hasMatchingDateComponents(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  millisecond = 0,
+  utc = false
+): boolean {
+  const date = new Date(0);
+  if (utc) {
+    date.setUTCFullYear(year, month - 1, day);
+    date.setUTCHours(hour, minute, second, millisecond);
+    return Number.isFinite(date.getTime())
+      && date.getUTCFullYear() === year
+      && date.getUTCMonth() === month - 1
+      && date.getUTCDate() === day
+      && date.getUTCHours() === hour
+      && date.getUTCMinutes() === minute
+      && date.getUTCSeconds() === second
+      && date.getUTCMilliseconds() === millisecond;
+  }
+
+  date.setFullYear(year, month - 1, day);
+  date.setHours(hour, minute, second, millisecond);
+  return Number.isFinite(date.getTime())
+    && date.getFullYear() === year
+    && date.getMonth() === month - 1
+    && date.getDate() === day
+    && date.getHours() === hour
+    && date.getMinutes() === minute
+    && date.getSeconds() === second
+    && date.getMilliseconds() === millisecond;
+}
+
+/**
+ * Check whether an unknown value represents a valid date.
+ *
+ * Valid inputs include `Date` instances, finite millisecond timestamps,
+ * structured local date strings, and ISO 8601 strings with `Z` or a numeric
+ * timezone offset. Structured strings are parsed into numeric components and
+ * validated strictly, so invalid calendar dates are not normalized.
+ *
+ * Supported string forms are `YYYY-MM-DD`, `YYYY-MM-DD HH:mm[:ss]`,
+ * `YYYY-MM-DDTHH:mm[:ss]`, and the same `T`-separated date-time with `Z` or
+ * a `+HH:mm`/`-HH:mm` offset. Zoned strings may include 1-3 millisecond digits.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { isValidDate } from "mazey";
+ *
+ * const ret1 = isValidDate(1577877720000);
+ * const ret2 = isValidDate("2020-01-01 11:22");
+ * const ret3 = isValidDate("2020-02-30");
+ * const ret4 = isValidDate(new Date("invalid"));
+ *
+ * console.log(ret1, ret2, ret3, ret4);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true true false false
+ * ```
+ *
+ * @param value A `Date`, millisecond timestamp, or supported structured date string.
+ * @returns Whether the value represents a valid date.
+ * @category Util
+ */
+export function isValidDate(value: unknown): boolean {
+  if (typeof value === "number") {
+    return Number.isFinite(value) && Number.isFinite(new Date(value).getTime());
+  }
+
+  if (typeof value === "object" && value !== null) {
+    try {
+      return Number.isFinite(Date.prototype.getTime.call(value as Date));
+    } catch (error) {
+      return false;
+    }
+  }
+
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return false;
+  }
+
+  const localMatch = localDateStringPattern.exec(trimmedValue);
+  if (localMatch) {
+    const [ year, month, day, hour = "0", minute = "0", second = "0" ] = localMatch.slice(1);
+    return hasMatchingDateComponents(
+      Number(year),
+      Number(month),
+      Number(day),
+      Number(hour),
+      Number(minute),
+      Number(second)
+    );
+  }
+
+  const zonedMatch = zonedDateStringPattern.exec(trimmedValue);
+  if (!zonedMatch) {
+    return false;
+  }
+
+  const [ year, month, day, hour, minute, second = "0", fraction = "", timezone ] = zonedMatch.slice(1);
+  const millisecond = Number(`${fraction}00`.slice(0, 3));
+  if (!hasMatchingDateComponents(
+    Number(year),
+    Number(month),
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+    millisecond,
+    true
+  )) {
+    return false;
+  }
+
+  if (timezone === "Z") {
+    return true;
+  }
+
+  const offsetHour = Number(timezone.slice(1, 3));
+  const offsetMinute = Number(timezone.slice(4, 6));
+  return offsetHour <= 23 && offsetMinute <= 59;
+}
+
 /**
  * Return the formatted date string in the given format.
  *

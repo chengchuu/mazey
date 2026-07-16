@@ -5,7 +5,7 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopy, deepCopyObject, deepFreeze, repeatUntilConditionMet,
-  formatDate, generateCalendarVersion, isBrowser, waitTime, isArray,
+  formatDate, generateCalendarVersion, isValidDate, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
   getDateDifference, getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
@@ -371,6 +371,92 @@ test("formatDate: Preserves epoch timestamps and replaces repeated tokens", () =
 
 test("formatDate: Rejects invalid dates", () => {
   expect(() => formatDate("not-a-date")).toThrow(RangeError);
+});
+
+describe("isValidDate", () => {
+  test.each([
+    new Date(2020, 0, 1),
+    new Date(0),
+    new Date("2020-01-01T11:22:00"),
+    runInNewContext("new Date(0)"),
+  ])("accepts the valid Date instance %s", value => {
+    expect(isValidDate(value)).toBe(true);
+  });
+
+  test("rejects invalid Date instances", () => {
+    expect(isValidDate(new Date("invalid"))).toBe(false);
+  });
+
+  test.each([
+    0,
+    1577877720000,
+    -1,
+    8640000000000000,
+  ])("accepts the valid millisecond timestamp %s", value => {
+    expect(isValidDate(value)).toBe(true);
+  });
+
+  test.each([
+    NaN,
+    Infinity,
+    -Infinity,
+    8640000000000001,
+    -8640000000000001,
+  ])("rejects the invalid numeric value %s", value => {
+    expect(isValidDate(value)).toBe(false);
+  });
+
+  test.each([
+    "2020-01-01",
+    "2020-01-01 11:22",
+    "2020-01-01 11:22:33",
+    "2020-01-01T11:22",
+    "2020-01-01T11:22:33",
+    "2020-02-29",
+    "2020-01-01T11:22Z",
+    "2020-01-01T11:22:33Z",
+    "2020-01-01T11:22:33+08:00",
+    "2020-01-01T11:22:33.123-05:30",
+    " 2020-01-01 11:22 ",
+  ])("accepts the valid date string %s", value => {
+    expect(isValidDate(value)).toBe(true);
+  });
+
+  test.each([
+    "",
+    " ",
+    "invalid",
+    "2020",
+    "2020-00-01",
+    "2020-13-01",
+    "2020-01-00",
+    "2020-01-32",
+    "2019-02-29",
+    "2020-02-30",
+    "2020-04-31",
+    "2020-01-01 24:00",
+    "2020-01-01 11:60",
+    "2020-01-01 11:22:60",
+    "2020-02-30T11:22:33Z",
+    "2020-01-01T24:00:00Z",
+    "2020-01-01T11:22:33+24:00",
+    "01/01/2020",
+  ])("rejects the invalid or unsupported date string %s", value => {
+    expect(isValidDate(value)).toBe(false);
+  });
+
+  test.each([
+    null,
+    undefined,
+    true,
+    false,
+    {},
+    [],
+    () => undefined,
+    Symbol("date"),
+  ])("rejects the unsupported value %s", value => {
+    expect(isValidDate(value)).toBe(false);
+  });
 });
 
 describe("generateCalendarVersion", () => {

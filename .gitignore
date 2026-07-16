@@ -6,7 +6,6 @@ dist/
 lib/
 coverage/
 .ts-webpack/
-examples/
 docs/
 
 # Test reports

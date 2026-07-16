@@ -74,6 +74,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
+  - [isValidDate](#isvaliddate)
   - [generateCalendarVersion](#generatecalendarversion)
   - [getDateDifference](#getdatedifference)
   - [formatDurationFromMs](#formatdurationfromms)
@@ -360,6 +361,30 @@ console.log("Date formatDate 值:", ret4);
 字符串 formatDate 值: 2022-01-11 02:12:26 PM
 数字 formatDate 值: 2022-01-11 02:07:15 PM
 Date formatDate 值: 02/11/2014
+```
+
+#### isValidDate
+
+检查未知值是否表示有效日期。函数接受 `Date` 实例、有限的毫秒时间戳、受支持的本地日期字符串，以及带有 `Z` 或数字时区偏移的 ISO 8601 字符串。
+
+字符串格式包括 `YYYY-MM-DD`、`YYYY-MM-DD HH:mm[:ss]` 和 `YYYY-MM-DDTHH:mm[:ss]`。使用 `T` 分隔的日期时间还可以包含 `Z` 或 `+HH:mm`、`-HH:mm` 时区偏移。带时区的字符串可以包含 1～3 位毫秒数字。
+
+函数会把结构化字符串解析为数字组件，并执行严格校验。因此，`"2020-02-30"` 等无效日历日期不会被转换为其他日期。
+
+用法:
+
+```javascript
+const ret1 = isValidDate(1577877720000);
+const ret2 = isValidDate("2020-01-01 11:22");
+const ret3 = isValidDate("2020-02-30");
+const ret4 = isValidDate(new Date("invalid"));
+console.log(ret1, ret2, ret3, ret4);
+```
+
+输出:
+
+```text
+true true false false
 ```
 
 #### generateCalendarVersion

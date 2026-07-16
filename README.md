@@ -75,6 +75,7 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
+  - [isValidDate](#isvaliddate)
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
@@ -360,6 +361,36 @@ Default formatDate value: 2023-01-11
 String formatDate value: 2022-01-11 14:12:26
 Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
+```
+
+#### isValidDate
+
+Check whether an unknown value represents a valid date. The function accepts
+`Date` instances, finite millisecond timestamps, supported local date strings,
+and ISO 8601 strings with `Z` or a numeric timezone offset.
+
+Supported string forms are `YYYY-MM-DD`, `YYYY-MM-DD HH:mm[:ss]`,
+`YYYY-MM-DDTHH:mm[:ss]`, and the same `T`-separated date-time with `Z` or a
+`+HH:mm`/`-HH:mm` offset. Zoned strings may include 1-3 millisecond digits.
+
+Structured strings are parsed into numeric components and validated strictly.
+Invalid calendar dates such as `"2020-02-30"` are rejected instead of being
+normalized into another date.
+
+Usage:
+
+```javascript
+const ret1 = isValidDate(1577877720000);
+const ret2 = isValidDate("2020-01-01 11:22");
+const ret3 = isValidDate("2020-02-30");
+const ret4 = isValidDate(new Date("invalid"));
+console.log(ret1, ret2, ret3, ret4);
+```
+
+Output:
+
+```text
+true true false false
 ```
 
 #### generateCalendarVersion
