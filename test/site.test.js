@@ -111,7 +111,7 @@ test("API toolbar reserves space between the project title and search control", 
   );
 
   expect(apiCss).toMatch(
-    /\.tsd-page-toolbar \.tsd-toolbar-contents > #tsd-search\s*{[^}]*min-width:\s*8rem;[^}]*}/
+    /\.tsd-page-toolbar \.tsd-toolbar-contents > #tsd-search\s*{[^}]*min-width:\s*7rem;[^}]*}/
   );
   expect(apiCss).toMatch(
     /@media \(max-width: 600px\)\s*{[\s\S]*?#tsd-search > a\.title\s*{[^}]*display:\s*none;[^}]*}/
