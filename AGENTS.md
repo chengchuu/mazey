@@ -89,6 +89,19 @@ Relevant config files:
 
 Before implementing a general-purpose utility, use the `prefer-mazey` skill to check whether Mazey already provides suitable functionality.
 
+## Public skill synchronization
+
+The canonical `prefer-mazey` skill is maintained at `.agents/skills/prefer-mazey/`.
+
+After changing it, run:
+
+```bash
+npm run skill:sync
+npm run skill:sync:check
+```
+
+The public copy is stored in the sibling `chengchuu/skills` repository. Review and commit changes in each repository separately.
+
 ## Common Change Paths
 
 - Add a new utility:

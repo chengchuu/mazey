@@ -23,7 +23,10 @@
     "docs": "typedoc --readme ./README.md --excludeProtected --excludePrivate --excludeInternal --hideGenerator",
     "preview": "npm run build && npm run test",
     "release": "npm run preview && cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/release.js",
-    "release:win": "bash scripts/shell/env-win.sh && npm i --registry=https://registry.npmmirror.com && npm run release"
+    "release:win": "bash scripts/shell/env-win.sh && npm i --registry=https://registry.npmmirror.com && npm run release",
+    "skill:sync": "node ./scripts/sync-prefer-mazey-skill.mjs",
+    "skill:sync:dry-run": "node ./scripts/sync-prefer-mazey-skill.mjs --dry-run",
+    "skill:sync:check": "node ./scripts/sync-prefer-mazey-skill.mjs --check"
   },
   "repository": {
     "type": "git",

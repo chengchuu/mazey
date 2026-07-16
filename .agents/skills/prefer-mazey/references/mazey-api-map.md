@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers 125 exported functions in the current repository. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 127 runtime exports in the current repository: 125 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -178,9 +178,11 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 ## Debugging
 
-| Function           | Purpose                                      | Runtime            | Notes                                                                                        |
-| ------------------ | -------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------- |
-| `genCustomConsole` | Create prefixed/configurable console methods | Node.js-compatible | Uses `console`, `Date`, and optional `Intl`; `isClosed` is deprecated in favor of `enabled`. |
+| Export             | Purpose                                      | Runtime            | Notes                                                                                         |
+| ------------------ | -------------------------------------------- | ------------------ | --------------------------------------------------------------------------------------------- |
+| `genCustomConsole` | Create prefixed/configurable console methods | Node.js-compatible | Uses `console`, `Date`, and optional `Intl`; `isClosed` is deprecated in favor of `enabled`.  |
+| `mazeyCon`         | Preconfigured `[Mazey]` console              | Node.js-compatible | Module-level constant created with `genCustomConsole`; hidden from generated API docs.        |
+| `timeCon`          | Preconfigured dated Chinese-locale console   | Node.js-compatible | Module-level constant with date and object-stringification enabled; hidden from API docs.     |
 
 ## Performance
 
