@@ -12,6 +12,11 @@ English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README.zh-
 
 Mazey is a functional library for daily frontend work. There are already many excellent libraries for frontend development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for frontend needs.
 
+Website: [chengchuu.github.io/mazey](https://chengchuu.github.io/mazey/)
+
+- [Interactive playground](https://chengchuu.github.io/mazey/playground/)
+- [TypeScript API documentation](https://chengchuu.github.io/mazey/api/)
+
 ## Install
 
 Use Mazey via [npm](https://www.npmjs.com/package/mazey).
@@ -23,10 +28,12 @@ npm install mazey --save
 Use Mazey from CDN.
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 ```
 
-Of course, you can also download and serve the file [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
+You can also download and serve the
+[latest browser bundle](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)
+yourself.
 
 ## Usage
 
@@ -48,7 +55,7 @@ isNumber(z, { isInfinityAsNumber: true }); // Output: true
 Import from CDN.
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
   const x = 123;
   mazey.isNumber(x); // Output: true
@@ -57,7 +64,8 @@ Import from CDN.
 
 ## API Examples
 
-There are some examples maintained by hand below. For more information, please check the [full documentation](https://mazey.cn/t/m).
+There are some examples maintained by hand below. For more information, please check the
+[full API documentation](https://chengchuu.github.io/mazey/api/).
 
 ### Table of Contents
 
@@ -1059,7 +1067,6 @@ Get page load time(`PerformanceNavigationTiming`).
 
 This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
 The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
-If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/chengchuu/mazey/releases/tag/v3.9.7)).
 
 Usage:
 
@@ -1159,6 +1166,23 @@ Documentation:
 
 ```bash
 npm run docs
+```
+
+The documentation command builds the production website, playground, and TypeDoc API into `docs`,
+then validates the final SEO and PWA metadata. Use the focused checks while developing:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build:site
+npm run seo:validate
+npm run pwa:validate
+```
+
+Preview the production Pages artifact at `http://127.0.0.1:4173/mazey/`:
+
+```bash
+npm run pwa:preview
 ```
 
 ### Returns

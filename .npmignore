@@ -1,6 +1,7 @@
 # Folders
 build/
 dist/
+dist-dev/
 node_modules/
 test/
 doc/
@@ -13,6 +14,8 @@ images/
 coverage/
 types/
 scripts/
+site/
+project.config.js
 
 # Specific script subdirectories
 scripts/convert/

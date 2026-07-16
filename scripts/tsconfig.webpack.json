@@ -5,11 +5,13 @@
     "outDir": "../.ts-webpack",
     "declaration": false,
     "declarationMap": false,
-    "types": ["global", "jquery"]
+    "types": ["global"]
   },
   "include": [
     "../src/**/*.ts",
     "../types/**/*.ts",
-    "../examples/**/*.ts"
+    "../examples/**/*.ts",
+    "../site/**/*.ts",
+    "../site/**/*.d.ts"
   ]
 }

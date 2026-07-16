@@ -3,6 +3,7 @@ node_modules/
 
 # Build outputs
 dist/
+dist-dev/
 lib/
 coverage/
 .ts-webpack/

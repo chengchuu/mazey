@@ -23,7 +23,7 @@ npm install mazey --save
 通过内容分发网络 (Content Delivery Network，CDN) 使用 Mazey。
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 ```
 
 你也可以下载 [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)，并自行托管该文件。
@@ -48,7 +48,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
 通过 CDN 导入。
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
   const x = 123;
   mazey.isNumber(x); // 输出: true
@@ -57,7 +57,8 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
 
 ## API 示例
 
-下面列出一些手动维护的 API (应用程序编程接口) 示例。完整内容请查看[完整文档](https://mazey.cn/t/m)。
+下面列出一些手动维护的 API (应用程序编程接口) 示例。完整内容请查看
+[完整 API 文档](https://chengchuu.github.io/mazey/api/)。
 
 ### 目录
 
@@ -1078,8 +1079,6 @@ true
 获取页面加载时间 (`PerformanceNavigationTiming`)。
 
 该函数使用 [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API 获取页面加载数据。与已弃用的 [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API 相比，新 API 提供的数据更准确，也更详细。
-
-旧版浏览器可能不支持 `PerformanceNavigationTiming`。如需使用 `PerformanceTiming`，可以使用 Mazey 的旧版本 [`v3.9.7`](https://github.com/chengchuu/mazey/releases/tag/v3.9.7)。
 
 用法:
 
