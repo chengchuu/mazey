@@ -67,9 +67,9 @@ README_ZH.md
 README.zh-CN.md
 AGENTS.md
 
-# Global TypeScript definitions
-/global.d.ts
-
 # System files
 .DS_Store
 Thumbs.db
+
+# Additional files
+.agents/
