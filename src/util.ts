@@ -838,9 +838,10 @@ function normalizeDateDifferenceDate(value: number | string | Date): number | st
  * Calculate the interval between two dates or timestamps.
  *
  * The default `d` type returns the number of whole days. The `text` type
- * returns a four-part English duration using days, hours, minutes, and seconds.
- * Any other type returns the number of whole seconds. Negative intervals and
- * invalid dates return an empty string.
+ * returns an English duration using days, hours, minutes, and seconds while
+ * omitting zero-valued units. A zero interval returns `"0 seconds"`. Any other
+ * type returns the number of whole seconds. Negative intervals and invalid
+ * dates return an empty string.
  *
  * Usage:
  *
@@ -849,12 +850,14 @@ function normalizeDateDifferenceDate(value: number | string | Date): number | st
  *
  * const days = getDateDifference(0, 90061000);
  * const text = getDateDifference(0, 90061000, { type: "text" });
+ * const compactText = getDateDifference(0, 90060000, { type: "text" });
  * const dateStringDays = getDateDifference(
  *   "2020-03-28 00:09:27",
  *   "2023-04-18 10:54:00"
  * );
  * console.log(days);
  * console.log(text);
+ * console.log(compactText);
  * console.log(dateStringDays);
  * ```
  *
@@ -863,6 +866,7 @@ function normalizeDateDifferenceDate(value: number | string | Date): number | st
  * ```text
  * 1
  * 1 day 1 hour 1 minute 1 second
+ * 1 day 1 hour 1 minute
  * 1116
  * ```
  *
@@ -896,11 +900,14 @@ export function getDateDifference(start: number | string | Date = 0, end: number
         m = Math.floor((t / 1000 / 60) % 60);
         s = Math.floor((t / 1000) % 60);
         ret = [
-          formatDurationUnit(d, "day"),
-          formatDurationUnit(h, "hour"),
-          formatDurationUnit(m, "minute"),
-          formatDurationUnit(s, "second"),
-        ].join(" ");
+          { value: d, unit: "day" },
+          { value: h, unit: "hour" },
+          { value: m, unit: "minute" },
+          { value: s, unit: "second" },
+        ]
+          .filter(({ value }) => value > 0)
+          .map(({ value, unit }) => formatDurationUnit(value, unit))
+          .join(" ") || formatDurationUnit(0, "second");
         break;
       default:
         ret = s;

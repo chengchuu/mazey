@@ -385,7 +385,7 @@ console.log(version);
 
 #### getDateDifference
 
-计算两个日期或时间戳之间的差值。默认返回完整秒数。`type: "d"` 返回完整天数，`type: "text"` 返回由天、小时、分钟和秒组成的英文文本。
+计算两个日期或时间戳之间的差值。默认返回完整秒数。`type: "d"` 返回完整天数，`type: "text"` 返回由天、小时、分钟和秒组成的英文文本。文本会省略值为 `0` 的单位。总时长为零时，函数返回 `"0 seconds"`。
 
 `YYYY-MM-DD HH:mm:ss` 格式的字符串按本地时间解析。其他日期字符串使用运行环境原生的 `Date` 解析器。需要跨环境稳定解析时，请使用时间戳，或使用包含明确时区的 ISO 8601 字符串。结束时间早于开始时间，或任一日期无效时，函数返回空字符串。
 
@@ -394,6 +394,7 @@ console.log(version);
 ```javascript
 const days = getDateDifference(0, 90061000, { type: "d" });
 const text = getDateDifference(0, 90061000, { type: "text" });
+const compactText = getDateDifference(0, 90060000, { type: "text" });
 const dateStringDays = getDateDifference(
   "2020-03-28 00:09:27",
   "2023-04-18 10:54:00",
@@ -401,6 +402,7 @@ const dateStringDays = getDateDifference(
 );
 console.log(days);
 console.log(text);
+console.log(compactText);
 console.log(dateStringDays);
 ```
 
@@ -409,6 +411,7 @@ console.log(dateStringDays);
 ```text
 1
 1 day 1 hour 1 minute 1 second
+1 day 1 hour 1 minute
 1116
 ```
 

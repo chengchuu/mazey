@@ -469,7 +469,9 @@ describe("getDateDifference", () => {
   test("formats text intervals in English", () => {
     expect(getDateDifference(1585325367000, 1681786440000, { type: "text" })).toBe("1116 days 10 hours 44 minutes 33 seconds");
     expect(getDateDifference(0, 90061000, { type: "text" })).toBe("1 day 1 hour 1 minute 1 second");
-    expect(getDateDifference(0, 0, { type: "text" })).toBe("0 days 0 hours 0 minutes 0 seconds");
+    expect(getDateDifference(0, 90060000, { type: "text" })).toBe("1 day 1 hour 1 minute");
+    expect(getDateDifference(0, 86401000, { type: "text" })).toBe("1 day 1 second");
+    expect(getDateDifference(0, 0, { type: "text" })).toBe("0 seconds");
   });
 
   test("preserves numeric and negative interval behavior", () => {
