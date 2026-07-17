@@ -29,7 +29,6 @@ scripts/convert/
 .editorconfig
 .eslintignore
 .dockerignore
-.lintstagedrc
 .prettierignore
 .prettierrc
 .eslintrc.js
@@ -56,7 +55,6 @@ pnpm-workspace.yaml
 
 # Configuration Files
 api-extractor.json
-commitlint.config.js
 rollup.config.js
 webpack.config.js
 webpack.config.dev.js
