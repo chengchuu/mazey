@@ -19,7 +19,6 @@ project.config.js
 
 # Specific script subdirectories
 scripts/convert/
-scripts/shell/
 
 # Editors & IDEs settings
 .idea/
