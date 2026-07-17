@@ -19,6 +19,10 @@ import {
   repositoryDetails,
 } from "../scripts/project-config-utils";
 import { manifestMetadataFailures } from "../scripts/validate-pwa";
+import {
+  localFragmentError,
+  localFragmentErrors,
+} from "../scripts/validate-seo";
 
 const typeDocHtml = `<!doctype html><html><head><title>mazey</title></head><body><header><div class="tsd-toolbar-contents container"><a href="index.html" class="title">mazey</a><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results"><ul role="listbox" id="tsd-search-results"></ul></dialog></div></header><div class="tsd-page-title"><h2>mazey</h2></div><main><p>Public API documentation content.</p></main></body></html>`;
 
@@ -57,6 +61,77 @@ test("README CDN examples track the latest npm release", () => {
   );
   expect(homepage).toContain("<%= CDN_URL %>");
   expect(homepage).not.toContain("Pin an exact version");
+});
+
+test("site fragment labels and targets stay aligned", () => {
+  const home = fs.readFileSync(
+    path.join(process.cwd(), "site", "index.html"),
+    "utf8"
+  );
+  const playground = fs.readFileSync(
+    path.join(process.cwd(), "examples", "index.html"),
+    "utf8"
+  );
+
+  expect(home).toContain('href="#install">Install</a>');
+  expect(home).toContain('id="install"');
+  expect(home).toContain('<h2 id="install-title">Install</h2>');
+  expect(home).toContain('href="#usage">Usage</a>');
+  expect(home).toContain('id="usage"');
+  expect(home).toContain('<h2 id="usage-title">Usage</h2>');
+  expect(playground).toContain('href="../#install">Install</a>');
+  expect(playground).toContain('href="../#usage">Usage</a>');
+  expect(home).not.toContain("#installation");
+  expect(playground).not.toContain("#installation");
+});
+
+test("generated cross-page fragments require a real target ID", () => {
+  const rootDir = fs.mkdtempSync(path.join(tmpdir(), "mazey-fragments-"));
+  const homeFile = path.join(rootDir, "index.html");
+  const playgroundFile = path.join(rootDir, "playground", "index.html");
+
+  try {
+    fs.mkdirSync(path.dirname(playgroundFile), { recursive: true });
+    fs.writeFileSync(homeFile, '<section id="install"></section>');
+    fs.writeFileSync(playgroundFile, "<main></main>");
+
+    expect(
+      localFragmentError(playgroundFile, "../#install", rootDir)
+    ).toBeNull();
+    expect(localFragmentError(playgroundFile, "../#missing", rootDir)).toBe(
+      "fragment target #missing is missing for ../#missing"
+    );
+
+    expect(
+      localFragmentErrors(
+        playgroundFile,
+        '<a href="../#install">Install</a><a href="#">Menu</a>',
+        rootDir
+      )
+    ).toEqual([]);
+    expect(
+      localFragmentErrors(
+        playgroundFile,
+        '<a href="../#missing">Missing</a>',
+        rootDir
+      )
+    ).toEqual(["fragment target #missing is missing for ../#missing"]);
+
+    fs.writeFileSync(homeFile, '<section data-id="install"></section>');
+    expect(localFragmentError(playgroundFile, "../#install", rootDir)).toBe(
+      "fragment target #install is missing for ../#install"
+    );
+
+    fs.writeFileSync(
+      homeFile,
+      "<script>const sample = '<section id=\"install\"></section>';</script>"
+    );
+    expect(localFragmentError(playgroundFile, "../#install", rootDir)).toBe(
+      "fragment target #install is missing for ../#install"
+    );
+  } finally {
+    fs.rmSync(rootDir, { recursive: true, force: true });
+  }
 });
 
 test("Pages CI builds package outputs before running Jest", () => {

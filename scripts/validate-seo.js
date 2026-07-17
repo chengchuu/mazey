@@ -45,6 +45,20 @@ function visibleText(html) {
     .trim();
 }
 
+function elementIds(html) {
+  const markup = html
+    .replace(/<!--[\s\S]*?-->/g, "")
+    .replace(/<script\b[\s\S]*?<\/script>/gi, "")
+    .replace(/<style\b[\s\S]*?<\/style>/gi, "");
+
+  return matches(markup, /<[a-z][^>]*>/gi).flatMap((match) => {
+    const values = attributes(match[0]);
+    return Object.prototype.hasOwnProperty.call(values, "id")
+      ? [values.id]
+      : [];
+  });
+}
+
 function validateJsonLd(label, html, expectedUrl) {
   const blocks = matches(
     html,
@@ -111,6 +125,63 @@ function validateSocial(label, html, canonical, title, description) {
   }
 }
 
+function localFragmentError(sourceFile, href, outputRoot = docs) {
+  const hashIndex = href.indexOf("#");
+  if (hashIndex === -1) return null;
+
+  const pathPart = href.slice(0, hashIndex);
+  if (/^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(pathPart)) return null;
+
+  let fragment;
+  let targetPath;
+  try {
+    fragment = decodeURIComponent(href.slice(hashIndex + 1));
+    const decodedPath = decodeURIComponent(pathPart);
+    targetPath = decodedPath
+      ? path.resolve(path.dirname(sourceFile), decodedPath)
+      : sourceFile;
+  } catch {
+    return `invalid encoded fragment link ${href}`;
+  }
+
+  if (!fragment) return `empty fragment link ${href}`;
+  if (existsSync(targetPath) && statSync(targetPath).isDirectory()) {
+    targetPath = path.join(targetPath, "index.html");
+  }
+
+  const relativeTarget = path.relative(outputRoot, targetPath);
+  if (
+    relativeTarget === ".." ||
+    relativeTarget.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativeTarget)
+  ) {
+    return `fragment link leaves the Pages artifact: ${href}`;
+  }
+  if (!existsSync(targetPath)) {
+    return `fragment document is missing for ${href}`;
+  }
+
+  const targetHtml = readFileSync(targetPath, "utf8");
+  const ids = elementIds(targetHtml);
+  if (!ids.includes(fragment)) {
+    return `fragment target #${fragment} is missing for ${href}`;
+  }
+
+  return null;
+}
+
+function localFragmentErrors(sourceFile, html, outputRoot = docs) {
+  const hrefs = new Set(
+    matches(html, /<a\b[^>]*>/gi)
+      .map((match) => attributes(match[0]).href)
+      .filter((href) => href?.includes("#") && href !== "#")
+  );
+
+  return [...hrefs]
+    .map((href) => localFragmentError(sourceFile, href, outputRoot))
+    .filter(Boolean);
+}
+
 function validatePage({
   label,
   file,
@@ -151,8 +222,12 @@ function validatePage({
       fail(`${label}: script ${script} is missing`);
   }
   for (const link of requiredLinks) {
-    if (!attribute(html, "a", "href", link))
+    if (!attribute(html, "a", "href", link)) {
       fail(`${label}: link ${link} is missing`);
+    }
+  }
+  for (const fragmentError of localFragmentErrors(file, html)) {
+    fail(`${label}: ${fragmentError}`);
   }
   const h1s = matches(html, /<h1\b[^>]*>([\s\S]*?)<\/h1>/gi);
   if (h1s.length !== 1 || !visibleText(h1s[0][1])) {
@@ -321,6 +396,8 @@ function validateSite() {
     title: sitePages.home.title,
     description: sitePages.home.description,
     requiredLinks: [
+      "#install",
+      "#usage",
       "./playground/",
       "./api/",
       "./sitemap.xml",
@@ -342,7 +419,7 @@ function validateSite() {
     description: sitePages.playground.description,
     requiredLinks: [
       "../",
-      "../#installation",
+      "../#install",
       "../#usage",
       "../api/",
       projectConfig.urls.github,
@@ -374,4 +451,10 @@ if (require.main === module) {
   }
 }
 
-module.exports = { attribute, validateSite, visibleText };
+module.exports = {
+  attribute,
+  localFragmentError,
+  localFragmentErrors,
+  validateSite,
+  visibleText,
+};
