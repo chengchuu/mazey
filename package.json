@@ -7,6 +7,12 @@
   "typings": "lib/index.d.ts",
   "types": "lib/index.d.ts",
   "mainEntryPointFilePath": "lib/index.d.ts",
+  "files": [
+    "README.md",
+    "LICENSE",
+    "lib",
+    "scripts/legacy"
+  ],
   "directories": {
     "lib": "./lib"
   },
@@ -30,7 +36,7 @@
     "pwa:validate": "node scripts/validate-pwa.js",
     "pwa:preview": "npm run docs && node scripts/preview-pages.js",
     "preview": "npm run typecheck && npm run lint && npm run build && npm run test && npm run docs",
-    "release": "npm run preview && cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/release.js",
+    "release": "npm run preview && cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/legacy/release.js",
     "skill:sync": "node ./scripts/sync-prefer-mazey-skill.mjs",
     "skill:sync:dry-run": "node ./scripts/sync-prefer-mazey-skill.mjs --dry-run",
     "skill:sync:check": "node ./scripts/sync-prefer-mazey-skill.mjs --check"

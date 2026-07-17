@@ -4,12 +4,12 @@
 const execa = require("execa");
 
 /**
- * Release this project with version by `process.env.VERSION` or `package.json`.
+ * Release this project with an explicit version or `SCRIPTS_NPM_PACKAGE_VERSION`.
  *
  * Usage:
  *
  * ```javascript
- * const pkgVersion = process.env.VERSION || require("../package.json").version;
+ * const pkgVersion = process.env.VERSION;
  * release(pkgVersion);
  * ```
  *
@@ -20,7 +20,7 @@ const execa = require("execa");
  * npm i cross-env -D
  *
  * # scripts
- * cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/release.js
+ * cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/legacy/release.js
  * ```
  *
  * ```javascript
