@@ -22,7 +22,7 @@ Website: [chengchuu.github.io/mazey](https://chengchuu.github.io/mazey/)
 Use Mazey via [npm](https://www.npmjs.com/package/mazey).
 
 ```bash
-npm install mazey --save
+npm install mazey
 ```
 
 Use Mazey from CDN.
@@ -1138,52 +1138,15 @@ MazeyLog: I am object. {a: 123, b: 456}
 
 ### Scripts
 
-Install Dependencies:
-
-```bash
-npm i
-```
-
-Development:
-
-```bash
-npm run dev
-```
-
-Build:
-
-```bash
-npm run build
-```
-
-Test:
-
-```bash
-npm run test
-```
-
-Documentation:
-
-```bash
-npm run docs
-```
-
-The documentation command builds the production website, playground, and TypeDoc API into `docs`,
-then validates the final SEO and PWA metadata. Use the focused checks while developing:
-
-```bash
-npm run typecheck
-npm run lint
-npm run build:site
-npm run seo:validate
-npm run pwa:validate
-```
-
-Preview the production Pages artifact at `http://127.0.0.1:4173/mazey/`:
-
-```bash
-npm run pwa:preview
-```
+| Command               | Purpose                                                         |
+| --------------------- | --------------------------------------------------------------- |
+| `npm install`         | Install development dependencies.                               |
+| `npm run dev`         | Start the website and playground development server.            |
+| `npm run build`       | Build the publishable package files.                            |
+| `npm test`            | Run the Jest test suite.                                        |
+| `npm run docs`        | Build and validate the complete GitHub Pages artifact.          |
+| `npm run preview`     | Run the full type, lint, build, test, and documentation checks. |
+| `npm run pwa:preview` | Serve the production Pages artifact at the `/mazey/` base path. |
 
 ### Returns
 

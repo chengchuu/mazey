@@ -31,7 +31,6 @@
     "pwa:preview": "npm run docs && node scripts/preview-pages.js",
     "preview": "npm run typecheck && npm run lint && npm run build && npm run test && npm run docs",
     "release": "npm run preview && cross-env SCRIPTS_NPM_PACKAGE_VERSION=$npm_package_version node ./scripts/release.js",
-    "release:win": "bash scripts/shell/env-win.sh && npm i --registry=https://registry.npmmirror.com && npm run release",
     "skill:sync": "node ./scripts/sync-prefer-mazey-skill.mjs",
     "skill:sync:dry-run": "node ./scripts/sync-prefer-mazey-skill.mjs --dry-run",
     "skill:sync:check": "node ./scripts/sync-prefer-mazey-skill.mjs --check"
