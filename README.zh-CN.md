@@ -17,7 +17,7 @@ Mazey 是一个面向日常前端开发的函数工具库。前端生态已有�
 通过 [npm](https://www.npmjs.com/package/mazey) 安装 Mazey。
 
 ```bash
-npm install mazey --save
+npm install mazey
 ```
 
 通过内容分发网络 (Content Delivery Network，CDN) 使用 Mazey。
@@ -63,6 +63,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
 ### 目录
 
 <!-- toc - begin -->
+- [目录](#目录)
 - [加载资源](#加载资源)
   - [loadScript](#loadscript)
   - [loadScriptIfUndefined](#loadscriptifundefined)
@@ -112,6 +113,9 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [getPerformance](#getperformance)
 - [调试](#调试)
   - [genCustomConsole](#gencustomconsole)
+- [开发环境](#开发环境)
+- [脚本](#脚本)
+- [返回值](#返回值)
 <!-- toc - end -->
 
 ### 加载资源

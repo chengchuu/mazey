@@ -13,6 +13,7 @@ This repository is a browser-focused utility library named `mazey`, intended for
 - `site/`: landing page, shared Bootstrap/theme/navigation behavior, API enhancements, and website-only PWA source
 - `project.config.js`: package-derived repository, Pages, SEO, theme, asset, and PWA configuration
 - `scripts/`: Rollup, Webpack, release, and docs helpers
+- `scripts/legacy/`: historical release helpers kept separate from maintained project automation
 - `images/`: documentation assets
 - `.github/`: CI/workflows
 

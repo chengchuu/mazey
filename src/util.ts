@@ -1883,6 +1883,22 @@ export function isValidDate(value: unknown): boolean {
 /**
  * Return the formatted date string in the given format.
  *
+ * Supported format tokens:
+ *
+ * | Token  | Meaning                                | Range or example |
+ * | ------ | -------------------------------------- | ---------------- |
+ * | `yyyy` | Four-digit year                        | `2022`           |
+ * | `MM`   | Two-digit month                        | `01`–`12`        |
+ * | `dd`   | Two-digit day of the month             | `01`–`31`        |
+ * | `HH`   | Two-digit hour using the 24-hour clock | `00`–`23`        |
+ * | `hh`   | Two-digit hour using the 12-hour clock | `01`–`12`        |
+ * | `mm`   | Two-digit minute                       | `00`–`59`        |
+ * | `ss`   | Two-digit second                       | `00`–`59`        |
+ * | `a`    | Uppercase meridiem indicator           | `AM` or `PM`     |
+ *
+ * The function creates a native `Date` and reads its local date and time
+ * fields. Timestamp output can therefore differ between runtime time zones.
+ *
  * Usage:
  *
  * ```javascript
@@ -1907,9 +1923,9 @@ export function isValidDate(value: unknown): boolean {
  * Date formatDate value: 02/11/2014
  * ```
  *
- * @param {MazeyDate} dateIns Original Date
- * @param {string} format Format String
- * @returns {string} Return the formatted date string.
+ * @param {MazeyDate} dateIns Original date value. Defaults to the current date and time.
+ * @param {string} format Format string composed of supported format tokens. Defaults to `yyyy-MM-dd`.
+ * @returns {string} The formatted date string.
  * @throws {RangeError} If `dateIns` is not a valid date.
  * @category Util
  */

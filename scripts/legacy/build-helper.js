@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 /* eslint-disable no-undef */
 const path = require("path");
-const _resolve = (_path) => path.resolve(__dirname, _path);
+const scriptsDirectory = path.resolve(__dirname, "..");
+const _resolve = (_path) => path.resolve(scriptsDirectory, _path);
 const format = require("date-fns/format");
 const toc = require("markdown-toc");
 const fs = require("fs");
