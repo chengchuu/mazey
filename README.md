@@ -92,6 +92,7 @@ There are some examples maintained by hand below. For more information, please c
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToUnder](#convertcameltounder)
+  - [toJavaScriptGlobalName](#tojavascriptglobalname)
 - [URL](#url)
   - [getQueryParam](#getqueryparam)
   - [getUrlParam](#geturlparam)
@@ -100,6 +101,7 @@ There are some examples maintained by hand below. For more information, please c
   - [updateQueryParam](#updatequeryparam)
   - [isValidUrl](#isvalidurl)
   - [isValidHttpUrl](#isvalidhttpurl)
+  - [parseGitHubRepository](#parsegithubrepository)
 - [Store](#store)
   - [Cookie Helpers](#cookie-helpers)
   - [Storage Helpers](#storage-helpers)
@@ -115,6 +117,7 @@ There are some examples maintained by hand below. For more information, please c
 - [Browser Information](#browser-information)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
+  - [isStandalonePWA](#isstandalonepwa)
 - [Web Performance](#web-performance)
   - [getPerformance](#getperformance)
 - [Debug](#debug)
@@ -559,6 +562,23 @@ a_b_c
 a_b_c
 ```
 
+#### toJavaScriptGlobalName
+
+Convert text to a deterministic uppercase ASCII identifier suitable for an
+IIFE global name. Invalid identifier characters become underscores, and a
+leading digit is prefixed with an underscore.
+
+```javascript
+const globalName = toJavaScriptGlobalName("@scope/my-library");
+console.log(globalName);
+```
+
+Output:
+
+```text
+_SCOPE_MY_LIBRARY
+```
+
 ### URL
 
 #### getQueryParam
@@ -714,6 +734,22 @@ Output:
 
 ```text
 true true true true false
+```
+
+#### parseGitHubRepository
+
+Parse a GitHub repository shorthand, SCP form, or supported Git transport URL
+into canonical identity fields.
+
+```javascript
+const repository = parseGitHubRepository("git@github.com:acme/widget.git");
+console.log(JSON.stringify(repository));
+```
+
+Output:
+
+```text
+{"owner":"acme","name":"widget","slug":"acme/widget","url":"https://github.com/acme/widget"}
 ```
 
 ### Store
@@ -1038,8 +1074,10 @@ const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app
 
 Detect whether the current browser document provides the minimum prerequisites
 for PWA functionality that synchronous JavaScript can identify: a secure
-context, Service Worker API support, and a web app manifest link with a
-non-empty `href`.
+context, Service Worker API support, and, by default, a web app manifest link
+with a non-empty `href`. Pass `{ requireManifest: false }` when only secure
+Service Worker eligibility is needed, or `{ scope: "/app/" }` to require the
+current page to be inside a same-origin path scope.
 
 This check does not validate or request the manifest, verify service worker
 registration, determine whether the app is installed, or guarantee that an
@@ -1057,6 +1095,18 @@ Output:
 
 ```text
 true
+```
+
+#### isStandalonePWA
+
+Detect standard standalone display mode with the iOS Safari
+`navigator.standalone` fallback. This is a presentation hint, not proof that
+the app is installed or controlled by a service worker.
+
+```javascript
+if (isStandalonePWA()) {
+  document.querySelector("[data-install-help]")?.remove();
+}
 ```
 
 ### Web Performance

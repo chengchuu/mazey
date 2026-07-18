@@ -442,6 +442,41 @@ export function camelCase2Underscore(camelCase: string): string {
 }
 
 /**
+ * Convert text to a deterministic uppercase ASCII JavaScript identifier.
+ *
+ * Characters outside `A-Z`, `a-z`, `0-9`, `_`, and `$` become `_`. A result
+ * beginning with a digit is prefixed with `_`; an empty input therefore returns `_`.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { toJavaScriptGlobalName } from "mazey";
+ *
+ * const globalName = toJavaScriptGlobalName("@scope/my-library");
+ * console.log(globalName);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * _SCOPE_MY_LIBRARY
+ * ```
+ *
+ * @param value Text such as a package name or bundle filename.
+ * @returns An uppercase identifier suitable for an IIFE global name.
+ * @throws TypeError when `value` is not a string.
+ * @category Util
+ */
+export function toJavaScriptGlobalName(value: string): string {
+  if (typeof value !== "string") {
+    throw new TypeError("value must be a string");
+  }
+
+  const identifier = value.replace(/[^A-Za-z0-9_$]/g, "_").toUpperCase();
+  return /^[A-Za-z_$]/.test(identifier) ? identifier : `_${identifier}`;
+}
+
+/**
  * Remove leading and trailing whitespace or specified characters from string.
  *
  * Note: This method is used to replace the native `String.prototype.trim()`. But it is not necessary to use it in modern browsers.

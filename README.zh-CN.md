@@ -86,6 +86,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToUnder](#convertcameltounder)
+  - [toJavaScriptGlobalName](#tojavascriptglobalname)
 - [URL](#url)
   - [getQueryParam](#getqueryparam)
   - [getUrlParam](#geturlparam)
@@ -94,6 +95,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [updateQueryParam](#updatequeryparam)
   - [isValidUrl](#isvalidurl)
   - [isValidHttpUrl](#isvalidhttpurl)
+  - [parseGitHubRepository](#parsegithubrepository)
 - [存储](#存储)
   - [Cookie 工具](#cookie-工具)
   - [Storage 工具](#storage-工具)
@@ -109,6 +111,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
 - [浏览器信息](#浏览器信息)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
+  - [isStandalonePWA](#isstandalonepwa)
 - [Web 性能](#web-性能)
   - [getPerformance](#getperformance)
 - [调试](#调试)
@@ -583,6 +586,21 @@ a_b_c
 a_b_c
 ```
 
+#### toJavaScriptGlobalName
+
+将文本转换为确定的、全大写的 ASCII JavaScript 标识符。该标识符适合作为 IIFE 全局名称。函数会将无效字符替换为下划线。结果以数字开头时，函数会添加下划线前缀。
+
+```javascript
+const globalName = toJavaScriptGlobalName("@scope/my-library");
+console.log(globalName);
+```
+
+输出:
+
+```text
+_SCOPE_MY_LIBRARY
+```
+
 ### URL
 
 #### getQueryParam
@@ -737,6 +755,21 @@ console.log(ret1, ret2, ret3, ret4, ret5);
 
 ```text
 true true true true false
+```
+
+#### parseGitHubRepository
+
+解析 GitHub 仓库简写、SCP 格式或支持的 Git 传输 URL，并返回规范的仓库标识信息。
+
+```javascript
+const repository = parseGitHubRepository("git@github.com:acme/widget.git");
+console.log(JSON.stringify(repository));
+```
+
+输出:
+
+```text
+{"owner":"acme","name":"widget","slug":"acme/widget","url":"https://github.com/acme/widget"}
 ```
 
 ### 存储
@@ -1059,7 +1092,9 @@ const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app
 
 #### isSafePWAEnv
 
-检查当前浏览器文档是否满足 PWA (渐进式 Web 应用) 的最低前提条件。这里只检查同步 JavaScript 能够识别的条件。函数会检查安全上下文和 Service Worker API 支持。文档还必须包含 Web App Manifest (Web 应用清单) 链接，而且 `href` 不能为空。
+检查当前浏览器文档是否满足 PWA (渐进式 Web 应用) 的最低前提条件。这里只检查同步 JavaScript 能够识别的条件。函数会检查安全上下文和 Service Worker API 支持。默认情况下，文档还必须包含 Web App Manifest (Web 应用清单) 链接，而且 `href` 不能为空。
+
+只需检查安全的 Service Worker 环境时，可以传入 `{ requireManifest: false }`。传入 `{ scope: "/app/" }` 时，当前页面还必须位于同源路径范围内。
 
 该检查不会验证或请求 Manifest。它也不会验证 Service Worker 是否注册成功。该函数无法判断应用是否已经安装，也不保证浏览器会提供安装提示。不同浏览器还可能执行额外的安装策略。
 
@@ -1074,6 +1109,16 @@ console.log(ret);
 
 ```text
 true
+```
+
+#### isStandalonePWA
+
+检查当前页面是否以独立 PWA 模式显示。函数会检查标准的显示模式媒体查询，并兼容 iOS Safari 的 `navigator.standalone`。该结果只表示显示模式，不能证明应用已经安装或受 Service Worker 控制。
+
+```javascript
+if (isStandalonePWA()) {
+  document.querySelector("[data-install-help]")?.remove();
+}
 ```
 
 ### Web 性能
