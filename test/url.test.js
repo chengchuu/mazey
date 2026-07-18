@@ -6,7 +6,7 @@ import {
   isValidUrl, getUrlFileType, isValidHttpUrl, updateQueryParam, getUrlParam,
   getScriptQueryParam, convertObjectToQuery, convertHttpToHttps,
   getAllQueryParams, getQueryParam, getHashQueryParam,
-  getUrlHost, getUrlPath, onURLChange,
+  getUrlHost, getUrlPath, onURLChange, parseGitHubRepository,
 } from "../lib/index.esm";
 
 const validUrls = [
@@ -45,6 +45,82 @@ const invalidUrls = [
   "http://example.com/a/index.html?msg=<a href=\"https://b.example.com/t/i/y\" target=\"_blank\">xxx</a><br/>",
   "v=0618",
 ];
+
+describe("parseGitHubRepository", () => {
+  const expected = {
+    owner: "acme",
+    name: "widget",
+    slug: "acme/widget",
+    url: "https://github.com/acme/widget",
+  };
+
+  it.each([
+    "acme/widget",
+    "github:acme/widget.git",
+    "git@github.com:acme/widget.git",
+    "git@GITHUB.COM:acme/widget.git",
+    "git://github.com/acme/widget.git",
+    "ssh://git@github.com/acme/widget.git",
+    "git+ssh://git@github.com/acme/widget.git",
+    "http://github.com/acme/widget",
+    "https://www.github.com/acme/widget.git",
+    "git+https://GITHUB.COM/acme/widget.git",
+    "  acme/widget  ",
+  ])("normalizes %s", value => {
+    expect(parseGitHubRepository(value)).toEqual(expected);
+  });
+
+  it.each([
+    "",
+    "   ",
+    "acme",
+    "acme/widget/extra",
+    "https://github.com/acme//widget",
+    "https://example.com/acme/widget",
+    "https://github.com/acme/widget?tab=readme",
+    "https://github.com/acme/widget?",
+    "https://github.com/acme/widget#readme",
+    "https://github.com/acme/widget#",
+    "https://github.com:443/acme/widget",
+    "https://user@github.com/acme/widget",
+    "https://git:secret@github.com/acme/widget",
+    "GIT@github.com:acme/widget.git",
+    "https://github.com/acme/../widget",
+    "https://github.com/acme/%77idget",
+    "https://github.com/acme/%2Fwidget",
+    "https://github.com/acme/%00widget",
+    "工具/widget",
+    "acme/工具",
+    "acme--tools/widget",
+    `${"a".repeat(40)}/widget`,
+    `acme/${"a".repeat(101)}`,
+  ])("rejects unsupported input %p", value => {
+    expect(() => parseGitHubRepository(value)).toThrow(Error);
+  });
+
+  it("rejects non-string runtime input", () => {
+    expect(() => parseGitHubRepository({ url: "acme/widget" })).toThrow(TypeError);
+  });
+
+  it("returns equal but independently allocated results", () => {
+    const first = parseGitHubRepository("acme/widget");
+    const second = parseGitHubRepository("acme/widget");
+    expect(first).toEqual(second);
+    expect(first).not.toBe(second);
+  });
+
+  it("accepts GitHub's owner and repository length boundaries", () => {
+    const owner = "a".repeat(39);
+    const name = "b".repeat(100);
+
+    expect(parseGitHubRepository(`${owner}/${name}`)).toEqual({
+      owner,
+      name,
+      slug: `${owner}/${name}`,
+      url: `https://github.com/${owner}/${name}`,
+    });
+  });
+});
 
 test("isValidUrl", () => {
   validUrls.forEach(url => {
