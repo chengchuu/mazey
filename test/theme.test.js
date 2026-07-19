@@ -5,13 +5,18 @@ import { jest } from "@jest/globals";
 import projectConfig from "../project.config";
 import { initializeThemeControls } from "../site/theme";
 
-const { colorDark, colorLight, storageKey } = projectConfig.site.theme;
+const { colorPrimary, primary, storageKey } = projectConfig.site.theme;
+const darkThemeColor = primary.dark.base;
+
+afterEach(() => {
+  localStorage.clear();
+});
 
 function renderThemeControl() {
   document.documentElement.removeAttribute("data-theme-controls-ready");
   document.head.innerHTML = `
-    <meta name="theme-color" content="${colorLight}" data-theme-color
-      data-theme-color-light="${colorLight}" data-theme-color-dark="${colorDark}">
+    <meta name="theme-color" content="${colorPrimary}" data-theme-color
+      data-theme-color-light="${colorPrimary}" data-theme-color-dark="${darkThemeColor}">
   `;
   document.body.innerHTML = `
     <label>Theme
@@ -63,4 +68,27 @@ test("theme changes support legacy MediaQueryList listeners", () => {
   expect(media.addListener).toHaveBeenCalledTimes(1);
   cleanup();
   expect(media.removeListener).toHaveBeenCalledTimes(1);
+});
+
+test("theme changes keep browser chrome aligned with the primary palette", () => {
+  renderThemeControl();
+  localStorage.setItem(storageKey, "light");
+  const media = {
+    matches: false,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  };
+  const cleanup = initializeThemeControls(storageKey, document, {
+    localStorage,
+    matchMedia: () => media,
+  });
+  const meta = document.querySelector('meta[name="theme-color"]');
+
+  expect(meta.content).toBe(colorPrimary);
+  const select = document.querySelector("[data-theme-select]");
+  select.value = "dark";
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+  expect(meta.content).toBe(darkThemeColor);
+
+  cleanup();
 });
