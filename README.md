@@ -12,10 +12,9 @@ English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README.zh-
 
 Mazey is a functional library for daily frontend work. There are already many excellent libraries for frontend development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for frontend needs.
 
-Website: [chengchuu.github.io/mazey](https://chengchuu.github.io/mazey/)
-
-- [Interactive playground](https://chengchuu.github.io/mazey/playground/)
-- [TypeScript API documentation](https://chengchuu.github.io/mazey/api/)
+- [Project website](https://chengchuu.github.io/mazey/)
+- [Live playground](https://chengchuu.github.io/mazey/playground/)
+- [API documentation](https://chengchuu.github.io/mazey/api/)
 
 ## Install
 
