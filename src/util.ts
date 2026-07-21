@@ -505,11 +505,11 @@ export function toJavaScriptGlobalName(value: string): string {
  * @hidden
  */
 export function mTrim(str: string): string {
-  str = str.replace(/^\s+/, ""); // 去除头部空格
+  str = str.replace(/^\s+/, ""); // Remove leading whitespace.
   let end = str.length - 1;
   const ws = /\s/;
   while (ws.test(str.charAt(end))) {
-    end--; // 最后一个非空格字符的索引
+    end--; // Index of the last non-whitespace character.
   }
   return str.slice(0, end + 1);
 }
@@ -608,9 +608,8 @@ export function generateRndNum(n = 5): string {
 }
 
 /**
- * EN: Generate a unique identifier number based on time: `genUniqueNumString()` => `1538324722364123`
- *
- * ZH: 根据时间生成唯一标志的数字：`genUniqueNumString()` => `1538324722364123`。
+ * Generate a numeric identifier by combining the current timestamp with a
+ * random numeric suffix.
  *
  * Usage:
  *
@@ -630,7 +629,8 @@ export function generateRndNum(n = 5): string {
  * 1538324722364123
  * ```
  *
- * @param {number} n 随机数的长度
+ * @param {number} n Length of the random numeric suffix.
+ * @returns {string} A timestamp-based numeric identifier.
  * @category Util
  */
 export function genUniqueNumString(n = 3): string {
@@ -648,9 +648,7 @@ export function generateUniqueNum(n = 3): string {
 }
 
 /**
- * EN: Get timestamp.
- *
- * ZH: 获取时间戳。
+ * Get the current timestamp in milliseconds.
  *
  * Usage:
  *
@@ -667,6 +665,7 @@ export function generateUniqueNum(n = 3): string {
  * 1585325367122
  * ```
  *
+ * @returns {number} The current timestamp in milliseconds.
  * @category Util
  */
 export function mNow(): number {
@@ -680,9 +679,7 @@ export function mNow(): number {
 }
 
 /**
- * EN: Floating point number to percentage 0.2 => 20%
- *
- * ZH: 浮点数转为百分比 0.2 => 20%。
+ * Convert a floating-point ratio to a percentage string.
  *
  * Usage:
  *
@@ -702,8 +699,9 @@ export function mNow(): number {
  * 20.00%
  * ```
  *
- * @param {number} num 浮点数
- * @param {number} fixSize 保留几位浮点数
+ * @param {number} num Floating-point ratio to convert.
+ * @param {number} fixSize Number of decimal places in the percentage.
+ * @returns {string} The percentage string.
  * @category Util
  */
 export function floatToPercent(num: number, fixSize = 0): string {
@@ -717,9 +715,7 @@ export function floatToPercent(num: number, fixSize = 0): string {
 }
 
 /**
- * EN: Keep the specified number of decimal places for floating-point numbers.
- *
- * ZH: 浮点数保留指定位。
+ * Format a number with a fixed number of decimal places.
  *
  * Usage:
  *
@@ -739,6 +735,9 @@ export function floatToPercent(num: number, fixSize = 0): string {
  * 0.20
  * ```
  *
+ * @param num Number or numeric string to format.
+ * @param size Number of decimal places.
+ * @returns The fixed-point string.
  * @category Util
  */
 export function floatFixed(num: number | string, size = 0): string {
@@ -746,9 +745,7 @@ export function floatFixed(num: number | string, size = 0): string {
 }
 
 /**
- * EN: Throttle, used to limit the frequency of function execution over time.
- *
- * ZH: 节流，用于限制函数在一段时间内的执行频率。
+ * Limit how frequently a function can be invoked over time.
  *
  * Usage:
  *
@@ -762,6 +759,11 @@ export function floatFixed(num: number | string, size = 0): string {
  *
  * Reference: [Lodash](https://lodash.com/docs/4.17.15#throttle)
  *
+ * @param func Function to throttle.
+ * @param wait Minimum interval between invocations, in milliseconds.
+ * @param options.leading Whether to invoke on the leading edge.
+ * @param options.trailing Whether to invoke on the trailing edge.
+ * @returns The throttled function.
  * @category Util
  */
 export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(func: T, wait: number, options: { leading?: boolean; trailing?: boolean } = {}): ThrottleFunc<T> {
@@ -805,9 +807,8 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
 }
 
 /**
- * EN: Debounce, used to delay the execution of a function until a specified time has passed since the last invocation.
- *
- * ZH: 防抖，用于在最后一次调用后的指定时间内延迟函数的执行。
+ * Delay function execution until the specified time has passed since the last
+ * invocation.
  *
  * Usage:
  *
@@ -819,6 +820,10 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
  * }, 1000, true);
  * ```
  *
+ * @param func Function to debounce.
+ * @param wait Delay after the last invocation, in milliseconds.
+ * @param immediate Whether to invoke on the leading edge instead.
+ * @returns The debounced function.
  * @category Util
  */
 export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(func: T, wait: number, immediate?: boolean): DebounceFunc<T> {
@@ -1004,9 +1009,7 @@ export function formatDurationFromMs(durationMs: number): string {
 }
 
 /**
- * EN: Check whether it is a right number.
- *
- * ZH: 判断是否有效数字。
+ * Check whether a value is a number allowed by the supplied options.
  *
  * Usage:
  *
@@ -1029,9 +1032,9 @@ export function formatDurationFromMs(durationMs: number): string {
  * true false false true false true
  * ```
  *
- * @param {*} num 被判断的值
+ * @param {*} num Value to check.
  * @param options Controls whether `NaN`, `Infinity`, or other non-finite values count as numbers.
- * @returns {boolean} true 是数字
+ * @returns {boolean} Whether the value is an allowed number.
  * @category Util
  */
 export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
@@ -1053,9 +1056,7 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
 }
 
 /**
- * EN: Invoke effective function.
- *
- * ZH: 执行有效函数。
+ * Invoke a value only when it is a function.
  *
  * Usage:
  *
@@ -1067,7 +1068,9 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
  * });
  * ```
  *
- * @param {function} fn 等待被执行的未知是否有效的函数
+ * @param {function} fn Potential function to invoke.
+ * @param params Arguments passed to the function.
+ * @returns The function result, or `null` when `fn` is not callable.
  * @category Util
  */
 export function invokeFn(fn: MazeyFunction | null | undefined, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
@@ -1391,8 +1394,8 @@ export function newLine(str: string): string {
  * hello world
  * ```
  *
- * @param {string} str 带 HTML 标签的字符串
- * @returns {string} 字符串
+ * @param {string} str A string that may contain HTML tags.
+ * @returns {string} The string with HTML tags removed.
  * @category Util
  */
 export function removeHTML(str: string, options: { removeNewLine?: boolean } = {}): string {
@@ -1520,9 +1523,8 @@ export function unsanitize(str: string): string {
 }
 
 /**
- * EN: Truncate string, Chinese characters count as 2 bytes.
- *
- * ZH: 截取字符串，中文算 2 个字节。
+ * Truncate a string by weighted length, counting non-ASCII characters as two
+ * units.
  *
  * Usage:
  *
@@ -1539,11 +1541,11 @@ export function unsanitize(str: string): string {
  * hello
  * ```
  *
- * @param {string} str 要截取的字符串
- * @param {number} len
- * @param {boolean} options.hasDot
- * @param {string} options.dotText
- * @returns {string} 返回截取后的字符串
+ * @param {string} str String to truncate.
+ * @param {number} len Maximum weighted length.
+ * @param {boolean} options.hasDot Whether to append truncation text.
+ * @param {string} options.dotText Text appended when truncation occurs.
+ * @returns {string} The truncated string.
  * @category Util
  */
 export function cutZHString(str: string | null | undefined, len: number, options: { hasDot?: boolean, dotText?: string } = { hasDot: false, dotText: "..." }): string {
@@ -1593,11 +1595,12 @@ export function cutZHString(str: string | null | undefined, len: number, options
  *
  * ```text
  * hello
+ * ```
  *
- * @param {string} str 要截取的字符串
- * @param {number} len
- * @param {boolean} hasDot
- * @returns {string} 返回截取后的字符串
+ * @param {string} str String to truncate.
+ * @param {number} len Maximum weighted length.
+ * @param {boolean} hasDot Whether to append the default truncation text.
+ * @returns {string} The truncated string.
  * @hidden
  */
 export function truncateZHString(str: string | null | undefined, len: number, hasDot = false): string {
@@ -1703,9 +1706,7 @@ export function isValidData(data: MazeyObject, attributes: string[], validValue:
 }
 
 /**
- * EN: Semantic file size, convert bytes into a readable file size.
- *
- * ZH: 语义化文件大小，把字节转换成正常文件大小。
+ * Convert a byte count to a human-readable file size.
  *
  * Usage:
  *
@@ -1722,6 +1723,8 @@ export function isValidData(data: MazeyObject, attributes: string[], validValue:
  * 1 KB
  * ```
  *
+ * @param size File size in bytes.
+ * @returns A rounded file-size string, or an empty string for a non-positive or non-finite value.
  * @category Util
  */
 export function getFileSize(size: number): string {

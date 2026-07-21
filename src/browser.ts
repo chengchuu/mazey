@@ -162,9 +162,7 @@ export function isStandalonePWA(): boolean {
 }
 
 /**
- * EN: Provides detailed information about the browser.
- *
- * ZH: 返回有关浏览器的详细信息。
+ * Return detailed information about the current browser.
  *
  * Usage:
  *
@@ -435,9 +433,7 @@ export function getBrowserInfo(): BrowserInfo {
 }
 
 /**
- * EN: Generate browser attributes.
- *
- * ZH: 生成浏览器属性。
+ * Generate browser attributes from the detected browser information.
  *
  * Usage:
  *
