@@ -64,6 +64,7 @@ test("places the date interval form before the existing utility form", () => {
   expect(html).toContain("data-date-time-reset");
   expect(html).toContain("data-date-time-result");
   expect(html).toContain("data-date-time-error");
+  expect(html.match(/type="datetime-local"/g)).toHaveLength(2);
 });
 
 test("formats datetime-local values from local components", () => {
