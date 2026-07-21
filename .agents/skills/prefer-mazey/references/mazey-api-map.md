@@ -1,14 +1,14 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 131 runtime exports in the current repository: 129 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 135 runtime exports in the current repository: 133 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
 - [Runtime labels](#runtime-labels)
 - [Date and time](#date-and-time)
 - [Function control](#function-control)
-- [Validation](#validation)
-- [Numbers](#numbers)
+- [Validation and JSON](#validation-and-json)
+- [Numbers and hashing](#numbers-and-hashing)
 - [Strings](#strings)
 - [Objects and arrays](#objects-and-arrays)
 - [URL](#url)
@@ -52,12 +52,13 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `invokeFn`                | Invoke a value only when it is a function        | Universal          | Forwards arguments and returns `null` for nullish/non-function input.                            |
 | `repeatUntilConditionMet` | Poll a callback until a condition or count limit | Node.js-compatible | Uses timers; validates finite non-negative interval/count; callback begins after the interval.   |
 
-## Validation
+## Validation and JSON
 
 | Function             | Purpose                                           | Runtime   | Notes                                                                                               |
 | -------------------- | ------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------- |
 | `isNumber`           | Test for a numeric primitive                      | Universal | Rejects strings and, by default, `NaN`/infinities; `isUnFiniteAsNumber` is compatibility-sensitive. |
 | `isJSONString`       | Test whether a string is valid JSON               | Universal | Accepts JSON primitives as well as arrays/objects; rejects non-string input.                        |
+| `parseJsonSafe`      | Parse JSON with a caller-defined fallback         | Universal | Returns parsed primitives, including `null`; parse failures return the supplied fallback unchanged. |
 | `isNonEmptyArray`    | Test for an array with at least one item          | Universal | Returns a boolean; does not inspect item values.                                                    |
 | `isPureObject`       | Test for a non-null value tagged as an object     | Universal | Accepts class instances and null-prototype objects; excludes arrays and non-object values.          |
 | `isFunction`         | Test for a function                               | Universal | Equivalent to `typeof value === "function"`; prefer native syntax when clearer.                     |
@@ -71,17 +72,18 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isValidPhoneNumber` | Validate an 11-digit Chinese mobile-shaped number | Universal | Pattern is `^1\d{10}$`; not an international phone validator.                                       |
 | `isValidEmail`       | Validate common email syntax                      | Universal | Regex-based and not a complete RFC/mail-deliverability check.                                       |
 
-## Numbers
+## Numbers and hashing
 
-| Function             | Purpose                                                   | Runtime   | Notes                                                                                         |
-| -------------------- | --------------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------- |
-| `genRndNumString`    | Generate a random decimal-digit string                    | Universal | Floors positive finite length; non-cryptographic `Math.random`; invalid length returns empty. |
-| `genUniqueNumString` | Combine current milliseconds with random digits           | Universal | Not guaranteed unique and not suitable for security identifiers.                              |
-| `floatToPercent`     | Convert a fraction to a percentage string                 | Universal | Without `fixSize`, floors after multiplying by 100; with it, uses `toFixed`.                  |
-| `floatFixed`         | Format a number/string to fixed decimals                  | Universal | Uses `parseFloat(...).toFixed(size)` and returns a string.                                    |
-| `getFileSize`        | Format bytes using 1024-based units                       | Universal | Uses ceiling and returns empty for non-positive/non-finite values.                            |
-| `genHashCode`        | Produce a numeric hash from a string                      | Universal | Small non-cryptographic signed integer hash.                                                  |
-| `convert10To26`      | Convert a positive integer to lowercase alphabetic digits | Universal | Spreadsheet-like `a..z, aa`; floors input; invalid/non-positive returns empty.                |
+| Function             | Purpose                                                   | Runtime            | Notes                                                                                                       |
+| -------------------- | --------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `genRndNumString`    | Generate a random decimal-digit string                    | Universal          | Floors positive finite length; non-cryptographic `Math.random`; invalid length returns empty.               |
+| `genUniqueNumString` | Combine current milliseconds with random digits           | Universal          | Not guaranteed unique and not suitable for security identifiers.                                            |
+| `floatToPercent`     | Convert a fraction to a percentage string                 | Universal          | Without `fixSize`, floors after multiplying by 100; with it, uses `toFixed`.                                |
+| `floatFixed`         | Format a number/string to fixed decimals                  | Universal          | Uses `parseFloat(...).toFixed(size)` and returns a string.                                                  |
+| `getFileSize`        | Format bytes using 1024-based units                       | Universal          | Uses ceiling and returns empty for non-positive/non-finite values.                                          |
+| `genHashCode`        | Produce a numeric hash from a string                      | Universal          | Small non-cryptographic signed integer hash.                                                                |
+| `sha256Hex`          | Generate a lowercase SHA-256 hexadecimal digest           | Node.js-compatible | Requires Web Crypto; string input also requires `TextEncoder`; missing APIs and digest failures reject.     |
+| `convert10To26`      | Convert a positive integer to lowercase alphabetic digits | Universal          | Spreadsheet-like `a..z, aa`; floors input; invalid/non-positive returns empty.                              |
 
 ## Strings
 
@@ -128,15 +130,17 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 ## DOM and styles
 
-| Function          | Purpose                                    | Runtime      | Notes                                                                   |
-| ----------------- | ------------------------------------------ | ------------ | ----------------------------------------------------------------------- |
-| `hasClass`        | Test an element class                      | Browser-only | Logs and returns false for a missing element.                           |
-| `addClass`        | Add one or more classes                    | Browser-only | Mutates the element; ignores empty names; array path uses `classList`.  |
-| `removeClass`     | Remove a class                             | Browser-only | Mutates the element and logs for missing input.                         |
-| `addStyle`        | Insert or replace a `<style>` element      | Browser-only | Mutates `document.head`; an `id` updates an existing style element.     |
-| `setImgSizeBySrc` | Apply image dimensions from URL parameters | Browser-only | Mutates image styles; reads `width`/`height`; uses jQuery when present. |
-| `genStyleString`  | Build a CSS rule string                    | Universal    | Joins declarations with semicolons; does not validate or escape CSS.    |
-| `getPageMeta`     | Read the first named meta tag's content    | Browser-only | Scans DOM meta elements with exact name matching.                       |
+| Function             | Purpose                                         | Runtime           | Notes                                                                                                           |
+| -------------------- | ----------------------------------------------- | ----------------- | --------------------------------------------------------------------------------------------------------------- |
+| `hasClass`           | Test an element class                           | Browser-only      | Logs and returns false for a missing element.                                                                   |
+| `addClass`           | Add one or more classes                         | Browser-only      | Mutates the element; ignores empty names; array path uses `classList`.                                          |
+| `removeClass`        | Remove a class                                  | Browser-only      | Mutates the element and logs for missing input.                                                                 |
+| `addStyle`           | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
+| `setImgSizeBySrc`    | Apply image dimensions from URL parameters      | Browser-only      | Mutates image styles; reads `width`/`height`; uses jQuery when present.                                         |
+| `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
+| `getPageMeta`        | Read the first named meta tag's content         | Browser-only      | Scans DOM meta elements with exact name matching.                                                               |
+| `isValidCssSelector` | Validate selector syntax against a query root   | Browser-preferred | Trims input; empty values require `allowEmpty`; non-empty values return false without `document` or a root.     |
+| `extractElementText` | Extract normalized text from a cloned element   | Browser-only      | Does not mutate the original; replaces images with `alt` text by default; ignores invalid exclusion selectors. |
 
 ## Storage and cookies
 
