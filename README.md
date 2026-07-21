@@ -79,6 +79,8 @@ There are some examples maintained by hand below. For more information, please c
 - [Util](#util)
   - [isNumber](#isnumber)
   - [isJSONString](#isjsonstring)
+  - [parseJsonSafe](#parsejsonsafe)
+  - [sha256Hex](#sha256hex)
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
@@ -106,6 +108,8 @@ There are some examples maintained by hand below. For more information, please c
   - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
+  - [isValidCssSelector](#isvalidcssselector)
+  - [extractElementText](#extractelementtext)
   - [addStyle](#addstyle)
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
@@ -295,6 +299,33 @@ Output:
 ```text
 false
 true
+```
+
+#### parseJsonSafe
+
+Parse JSON and return a caller-defined fallback instead of throwing when the
+input is malformed.
+
+```javascript
+const data = parseJsonSafe('{"enabled":true}');
+const fallback = parseJsonSafe("invalid", {});
+console.log(data, fallback);
+```
+
+#### sha256Hex
+
+Generate a lowercase SHA-256 hexadecimal digest with the Web Crypto API.
+String input also requires `TextEncoder`.
+
+```javascript
+const digest = await sha256Hex("hello world");
+console.log(digest);
+```
+
+Output:
+
+```text
+b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
 ```
 
 #### isValidData
@@ -818,6 +849,30 @@ hasClass(dom, "test");
 addClass(dom, "test");
 // Remove `class`
 removeClass(dom, "test");
+```
+
+#### isValidCssSelector
+
+Check whether a value is a CSS selector supported by the supplied query root.
+Invalid selector syntax returns `false` instead of throwing.
+
+```javascript
+isValidCssSelector(".message > img"); // true
+isValidCssSelector("["); // false
+isValidCssSelector("", { allowEmpty: true }); // true
+```
+
+#### extractElementText
+
+Extract normalized text from a cloned element without modifying the original
+DOM. Images can contribute their `alt` text, and matching descendants can be
+excluded.
+
+```javascript
+const message = document.querySelector(".message");
+const text = extractElementText(message, {
+  excludeSelector: ".message-actions",
+});
 ```
 
 #### addStyle

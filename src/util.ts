@@ -562,6 +562,34 @@ export function isJsonString(str: string): boolean {
 }
 
 /**
+ * Parse a JSON string and return a caller-defined fallback when parsing fails.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { parseJsonSafe } from "mazey";
+ *
+ * const data = parseJsonSafe('{"enabled":true}');
+ * const fallback = parseJsonSafe("invalid", {});
+ * ```
+ *
+ * @param value JSON string to parse.
+ * @param fallback Value returned when parsing fails. Defaults to `null`.
+ * @returns The parsed JSON value or the supplied fallback.
+ * @category Util
+ */
+export function parseJsonSafe<T, F = null>(
+  value: string,
+  fallback: F = null as F
+): T | F {
+  try {
+    return JSON.parse(value) as T;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+/**
  * Generate a random string of number, `genRndNumString(7)` => "7658495".
  *
  * Usage:
@@ -1778,6 +1806,54 @@ export function genHashCode(str: string): number {
     hash |= 0;
   }
   return hash;
+}
+
+/**
+ * Generate a lowercase SHA-256 hexadecimal digest with the Web Crypto API.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { sha256Hex } from "mazey";
+ *
+ * const digest = await sha256Hex("hello world");
+ * console.log(digest);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
+ * ```
+ *
+ * @remarks Requires Web Crypto. String input also requires `TextEncoder`.
+ * @param input Text or binary data to hash.
+ * @returns A promise that resolves to the lowercase hexadecimal digest.
+ * @throws When the required platform API is unavailable. Digest failures are propagated.
+ * @category Util
+ */
+export async function sha256Hex(input: string | BufferSource): Promise<string> {
+  const cryptoApi = typeof crypto === "undefined" ? null : crypto;
+  if (!cryptoApi?.subtle || typeof cryptoApi.subtle.digest !== "function") {
+    throw new Error("Web Crypto API is not available.");
+  }
+
+  let data: BufferSource = input as BufferSource;
+  if (typeof input === "string") {
+    if (typeof TextEncoder === "undefined") {
+      throw new Error("TextEncoder is not available.");
+    }
+    data = new TextEncoder().encode(input);
+  }
+
+  const hashBuffer = await cryptoApi.subtle.digest("SHA-256", data);
+  let digest = "";
+  const bytes = new Uint8Array(hashBuffer);
+  for (let index = 0; index < bytes.length; index++) {
+    const hexByte = bytes[index].toString(16);
+    digest += hexByte.length === 1 ? `0${hexByte}` : hexByte;
+  }
+  return digest;
 }
 
 const localDateStringPattern = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/;

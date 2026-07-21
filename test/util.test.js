@@ -7,15 +7,17 @@ import {
   deepCopy, deepCopyObject, deepFreeze, repeatUntilConditionMet,
   formatDate, generateCalendarVersion, isValidDate, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
+  parseJsonSafe,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
   getDateDifference, getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
-  genUniqueNumString, generateRndNum, genHashCode,
+  genUniqueNumString, generateRndNum, genHashCode, sha256Hex,
   floatToPercent, floatFixed, throttle, debounce,
   doFn, mTrim, removeHtml, truncateZHString,
   convertKebabToCamel, convert10To26, zAxiosIsValidRes,
   unsanitize, sanitizeInput, unsanitizeInput,
   isFunction, isString, isBoolean, isUdfOrNul, toJavaScriptGlobalName,
 } from "../lib/index.esm";
+import { webcrypto } from "node:crypto";
 import { runInNewContext } from "vm";
 
 test("isNumber: Is -1/123/Infinity/NaN Number?", () => {
@@ -1152,6 +1154,82 @@ describe("genHashCode", () => {
     const actualHash = genHashCode(str);
 
     expect(actualHash).toBe(expectedHash);
+  });
+});
+
+describe("parseJsonSafe", () => {
+  it("returns parsed JSON values", () => {
+    expect(parseJsonSafe("{\"enabled\":true}")).toEqual({ enabled: true });
+    expect(parseJsonSafe("null", { fallback: true })).toBeNull();
+  });
+
+  it("returns the supplied fallback without cloning it", () => {
+    const fallback = { enabled: false };
+
+    expect(parseJsonSafe("invalid", fallback)).toBe(fallback);
+    expect(parseJsonSafe("invalid")).toBeNull();
+  });
+});
+
+describe("sha256Hex", () => {
+  const originalCryptoDescriptor = Object.getOwnPropertyDescriptor(
+    globalThis,
+    "crypto"
+  );
+
+  beforeAll(() => {
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: webcrypto,
+    });
+  });
+
+  afterAll(() => {
+    if (originalCryptoDescriptor) {
+      Object.defineProperty(
+        globalThis,
+        "crypto",
+        originalCryptoDescriptor
+      );
+    } else {
+      delete globalThis.crypto;
+    }
+  });
+
+  it("hashes strings and binary input to lowercase hexadecimal", async () => {
+    const expected =
+      "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
+    const bytes = new Uint8Array([
+      104, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100,
+    ]);
+
+    await expect(sha256Hex("hello world")).resolves.toBe(expected);
+    await expect(sha256Hex(bytes)).resolves.toBe(expected);
+  });
+
+  it("propagates digest failures", async () => {
+    const digest = jest
+      .spyOn(webcrypto.subtle, "digest")
+      .mockRejectedValueOnce(new Error("digest failed"));
+
+    await expect(sha256Hex("hello world")).rejects.toThrow("digest failed");
+    digest.mockRestore();
+  });
+
+  it("rejects when Web Crypto is unavailable", async () => {
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: undefined,
+    });
+
+    await expect(sha256Hex("hello world")).rejects.toThrow(
+      "Web Crypto API is not available."
+    );
+
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      value: webcrypto,
+    });
   });
 });
 
