@@ -125,6 +125,7 @@ There are some examples maintained by hand below. For more information, please c
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
   - [resolveThemePreference](#resolvethemepreference)
+  - [setThemePreference](#setthemepreference)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -1185,6 +1186,21 @@ Output:
 `resolvedTheme` is always the effective `light` or `dark` theme. The resolver
 is safe during SSR, tolerates unavailable browser storage and media queries,
 and does not mutate the DOM or write to storage.
+
+#### setThemePreference
+
+Persist an exact `system`, `light`, or `dark` preference under a
+project-specific storage key. The function returns `false` when storage is
+unavailable or rejects the write; it does not apply the theme to the page.
+
+```javascript
+const stored = setThemePreference({
+  storageKey: "MY_WEBSITE_THEME",
+  preference: "dark",
+});
+```
+
+Output: `true`
 
 #### getBrowserInfo
 

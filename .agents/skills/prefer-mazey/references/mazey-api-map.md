@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 142 runtime exports in the current repository: 140 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 143 runtime exports in the current repository: 141 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -177,6 +177,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isSafePWAEnv`           | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.                              |
 | `isStandalonePWA`        | Detect standalone PWA presentation                          | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                             |
 | `resolveThemePreference` | Resolve a selected and effective website theme             | Browser-preferred | SSR-safe query > storage > system > fallback resolution; returns preference/theme/display/source; reads but never writes storage and never mutates DOM. |
+| `setThemePreference`     | Persist a supported website theme preference                | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                         |
 | `getBrowserInfo`         | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                    |
 | `genBrowserAttrs`        | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                |
 | `isSupportWebp`          | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                        |

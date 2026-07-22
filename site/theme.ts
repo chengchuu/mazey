@@ -1,4 +1,4 @@
-import { resolveThemePreference } from "../src/theme";
+import { resolveThemePreference, setThemePreference } from "../src/theme";
 import type {
   ResolvedTheme,
   ThemePreference,
@@ -112,8 +112,17 @@ export function initializeThemeControls(
           : themeColor.dataset.themeColorLight ?? themeColor.content;
     }
 
+    if (persist) {
+      setThemePreference({
+        storageKey,
+        preference: selected,
+        storage: {
+          setItem: (key: string, value: string) =>
+            windowRef.localStorage.setItem(key, value),
+        },
+      });
+    }
     try {
-      if (persist) windowRef.localStorage.setItem(storageKey, selected);
       windowRef.localStorage.setItem(
         "tsd-theme",
         selected === "system" ? "os" : selected
