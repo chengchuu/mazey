@@ -5,8 +5,8 @@ import { jest } from "@jest/globals";
 import projectConfig from "../project.config";
 import { initializeThemeControls } from "../site/theme";
 
-const { colorPrimary, primary, storageKey } = projectConfig.site.theme;
-const darkThemeColor = primary.dark.base;
+const { colorPrimary, colorLight, colorDark, storageKey } =
+  projectConfig.site.theme;
 
 afterEach(() => {
   localStorage.clear();
@@ -16,7 +16,7 @@ function renderThemeControl() {
   document.documentElement.removeAttribute("data-theme-controls-ready");
   document.head.innerHTML = `
     <meta name="theme-color" content="${colorPrimary}" data-theme-color
-      data-theme-color-light="${colorPrimary}" data-theme-color-dark="${darkThemeColor}">
+      data-theme-color-light="${colorLight}" data-theme-color-dark="${colorDark}">
   `;
   document.body.innerHTML = `
     <label>Theme
@@ -70,7 +70,7 @@ test("theme changes support legacy MediaQueryList listeners", () => {
   expect(media.removeListener).toHaveBeenCalledTimes(1);
 });
 
-test("theme changes keep browser chrome aligned with the primary palette", () => {
+test("theme changes keep browser chrome aligned with navbar backgrounds", () => {
   renderThemeControl();
   localStorage.setItem(storageKey, "light");
   const media = {
@@ -84,11 +84,11 @@ test("theme changes keep browser chrome aligned with the primary palette", () =>
   });
   const meta = document.querySelector('meta[name="theme-color"]');
 
-  expect(meta.content).toBe(colorPrimary);
+  expect(meta.content).toBe(colorLight);
   const select = document.querySelector("[data-theme-select]");
   select.value = "dark";
   select.dispatchEvent(new Event("change", { bubbles: true }));
-  expect(meta.content).toBe(darkThemeColor);
+  expect(meta.content).toBe(colorDark);
 
   cleanup();
 });

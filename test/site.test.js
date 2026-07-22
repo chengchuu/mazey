@@ -178,9 +178,20 @@ test("API transformation is complete, idempotent, and promotes a page h1", () =>
   expect(transformed).toContain('href="../assets/api.css"');
   expect(transformed).toContain('src="../assets/api.js"');
   expect(transformed).toContain(
-    `<meta name="theme-color" content="${theme.colorPrimary}" data-theme-color data-theme-color-light="${theme.colorPrimary}" data-theme-color-dark="${theme.primary.dark.base}"/>`
+    `<meta name="theme-color" content="${theme.colorPrimary}" data-theme-color data-theme-color-light="${theme.colorLight}" data-theme-color-dark="${theme.colorDark}"/>`
   );
   expect(transformed.match(/<h1\b/g)).toHaveLength(1);
+});
+
+test("site navbar uses the same mode background as browser chrome", () => {
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(siteCss).toMatch(
+    /\.site-header\s*{[^}]*background:\s*var\(--mz-bg\);[^}]*}/
+  );
 });
 
 test("API toolbar preserves TypeDoc's search dialog", () => {
@@ -239,8 +250,8 @@ test("API theme bootstrap rejects corrupted stored preferences", () => {
   const meta = {
     content: theme.colorPrimary,
     dataset: {
-      themeColorDark: theme.primary.dark.base,
-      themeColorLight: theme.colorPrimary,
+      themeColorDark: theme.colorDark,
+      themeColorLight: theme.colorLight,
     },
   };
   const documentElement = { dataset: {}, style: {} };
@@ -271,8 +282,8 @@ test("API theme bootstrap applies a valid URL override before rendering", () => 
   const meta = {
     content: theme.colorPrimary,
     dataset: {
-      themeColorDark: theme.primary.dark.base,
-      themeColorLight: theme.colorPrimary,
+      themeColorDark: theme.colorDark,
+      themeColorLight: theme.colorLight,
     },
   };
   const documentElement = { dataset: {}, style: {} };
@@ -294,7 +305,7 @@ test("API theme bootstrap applies a valid URL override before rendering", () => 
   });
 
   expect(documentElement.dataset.bsTheme).toBe("dark");
-  expect(meta.content).toBe(theme.primary.dark.base);
+  expect(meta.content).toBe(theme.colorDark);
   expect(values.get("tsd-theme")).toBe("dark");
 });
 

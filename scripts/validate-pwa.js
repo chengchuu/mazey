@@ -163,16 +163,17 @@ function validatePwa({ rootDir = path.resolve(__dirname, "..") } = {}) {
     if (!themeColor || !Object.hasOwn(themeColor, "data-theme-color")) {
       failures.push(`${label} is missing dynamic theme-color metadata`);
     } else {
-      const lightThemeColor = projectConfig.site.theme.colorPrimary;
-      const darkThemeColor = projectConfig.site.theme.primary.dark.base;
-      if (
-        themeColor.content !== lightThemeColor ||
-        themeColor["data-theme-color-light"] !== lightThemeColor
-      ) {
-        failures.push(`${label} must use the light primary theme color`);
+      const defaultThemeColor = projectConfig.site.theme.colorPrimary;
+      const lightThemeColor = projectConfig.site.theme.colorLight;
+      const darkThemeColor = projectConfig.site.theme.colorDark;
+      if (themeColor.content !== defaultThemeColor) {
+        failures.push(`${label} must use the default primary theme color`);
+      }
+      if (themeColor["data-theme-color-light"] !== lightThemeColor) {
+        failures.push(`${label} must use the light navbar background color`);
       }
       if (themeColor["data-theme-color-dark"] !== darkThemeColor) {
-        failures.push(`${label} must use the dark primary theme color`);
+        failures.push(`${label} must use the dark navbar background color`);
       }
     }
     if (installButton && !/<button\b[^>]*data-pwa-install/.test(html)) {
