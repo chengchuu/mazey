@@ -39,6 +39,7 @@ This repository is a browser-focused utility library named `mazey`, intended for
 - `src/store.ts`: `sessionStorage`, `localStorage`, and cookie helpers
 - `src/load.ts`: dynamic script/CSS/image loading and page-load helpers
 - `src/browser.ts`: browser/platform/PWA detection
+- `src/theme.ts`: SSR-safe theme preference resolution without DOM mutation
 - `src/perf.ts`: Performance API and navigation timing helpers
 - `src/debug.ts`: custom console wrappers
 - `src/calc.ts`: standalone algorithms and probability helpers
@@ -98,6 +99,13 @@ Relevant config files:
 ## Utility Reuse
 
 Before implementing a general-purpose utility, use the `prefer-mazey` skill to check whether Mazey already provides suitable functionality.
+
+## Date And Time Format
+
+- Prefer `yyyy-MM-dd HH:mm:ss` for human-readable local date/time values in source examples, displayed text, documentation, and test fixtures when no external contract requires another format. Example: `2026-07-21 14:30:45`.
+- Preserve the distinction between `MM` for month and `mm` for minute when using Mazey format tokens.
+- Build local display values from local date components; do not use `toISOString()` when that would shift the displayed time to UTC.
+- Keep formats required by external standards or interfaces, including ISO 8601, HTML `datetime-local` values, serialized data, and third-party APIs. Do not replace a native date/time control solely to force the preferred display format. Document the timezone when it is material.
 
 ## Public skill synchronization
 

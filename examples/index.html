@@ -14,8 +14,8 @@
       name="theme-color"
       content="<%= THEME_COLOR_PRIMARY %>"
       data-theme-color
-      data-theme-color-light="<%= THEME_COLOR_PRIMARY %>"
-      data-theme-color-dark="<%= THEME_PRIMARY_DARK %>"
+      data-theme-color-light="<%= THEME_COLOR_LIGHT %>"
+      data-theme-color-dark="<%= THEME_COLOR_DARK %>"
     />
     <style>
       :root {
@@ -58,8 +58,16 @@
       (() => {
         try {
           const key = <%= THEME_STORAGE_KEY_JSON %>;
-          const stored = localStorage.getItem(key);
-          const value = stored === "light" || stored === "dark" ? stored : "system";
+          const query = new URL(location.href).searchParams.get("theme");
+          let stored = null;
+          if (query !== "light" && query !== "dark") {
+            try { stored = localStorage.getItem(key); } catch {}
+          }
+          const value = query === "light" || query === "dark"
+            ? query
+            : stored === "system" || stored === "light" || stored === "dark"
+              ? stored
+              : "system";
           const resolved = value === "system"
             ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
             : value;

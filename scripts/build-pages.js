@@ -117,7 +117,7 @@ function transformApiHtml(html, relativeFile) {
   );
   const themeInitializer = `(()=>{try{const k=${JSON.stringify(
     theme.storageKey
-  )},s=localStorage.getItem(k),v=s==="light"||s==="dark"?s:"system",t=v==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):v,r=t==="dark"?"dark":"light",m=document.querySelector('meta[name="theme-color"][data-theme-color]');document.documentElement.dataset.bsTheme=r;document.documentElement.dataset.theme=r;document.documentElement.style.colorScheme=r;if(m)m.content=r==="dark"?m.dataset.themeColorDark:m.dataset.themeColorLight;localStorage.setItem("tsd-theme",v==="system"?"os":v)}catch{}})();`;
+  )},q=typeof location==="undefined"?null:new URL(location.href).searchParams.get("theme"),s=q==="light"||q==="dark"?null:(()=>{try{return localStorage.getItem(k)}catch{return null}})(),v=q==="light"||q==="dark"?q:s==="system"||s==="light"||s==="dark"?s:"system",t=v==="system"?(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"):v,r=t==="dark"?"dark":"light",m=document.querySelector('meta[name="theme-color"][data-theme-color]');document.documentElement.dataset.bsTheme=r;document.documentElement.dataset.theme=r;document.documentElement.style.colorScheme=r;if(m)m.content=r==="dark"?m.dataset.themeColorDark:m.dataset.themeColorLight;localStorage.setItem("tsd-theme",v==="system"?"os":v)}catch{}})();`;
   const structuredData = JSON.stringify({
     "@context": "https://schema.org",
     "@type": "TechArticle",
@@ -137,7 +137,7 @@ function transformApiHtml(html, relativeFile) {
     `<link rel="canonical" href="${url}"/>`,
     `<link rel="icon" href="${projectConfig.assets.faviconUrl}" type="image/png"/>`,
     `<link rel="manifest" href="${projectConfig.pwa.manifestUrl}"/>`,
-    `<meta name="theme-color" content="${theme.colorPrimary}" data-theme-color data-theme-color-light="${theme.colorPrimary}" data-theme-color-dark="${theme.primary.dark.base}"/>`,
+    `<meta name="theme-color" content="${theme.colorPrimary}" data-theme-color data-theme-color-light="${theme.colorLight}" data-theme-color-dark="${theme.colorDark}"/>`,
     `<style>:root{--project-theme-primary:${theme.colorPrimary};--project-theme-primary-hover:${theme.primary.light.hover};--project-theme-primary-active:${theme.primary.light.active};--project-theme-primary-soft:${theme.primary.light.soft};--project-theme-primary-rgb:${theme.primary.light.rgb};--project-theme-primary-hover-rgb:${theme.primary.light.hoverRgb};--project-theme-primary-dark:${theme.primary.dark.base};--project-theme-primary-dark-hover:${theme.primary.dark.hover};--project-theme-primary-dark-active:${theme.primary.dark.active};--project-theme-primary-dark-soft:${theme.primary.dark.soft};--project-theme-primary-dark-rgb:${theme.primary.dark.rgb};--project-theme-primary-dark-hover-rgb:${theme.primary.dark.hoverRgb};--project-theme-light:${theme.colorLight};--project-theme-dark:${theme.colorDark}}</style>`,
     `<link rel="stylesheet" href="${assetPrefix}assets/api.css"/>`,
     '<meta property="og:type" content="website"/>',

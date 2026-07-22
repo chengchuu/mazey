@@ -5,7 +5,9 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopy, deepCopyObject, deepFreeze, repeatUntilConditionMet,
-  formatDate, generateCalendarVersion, isValidDate, isBrowser, waitTime, isArray,
+  formatDate, generateCalendarVersion, isValidDate,
+  isToday, isThisYear, isThisMonth, isThisWeek, isThisHour,
+  formatDistanceToNow, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   parseJsonSafe,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
@@ -483,6 +485,205 @@ describe("isValidDate", () => {
   ])("rejects the unsupported value %s", value => {
     expect(isValidDate(value)).toBe(false);
   });
+});
+
+describe("current local date comparison utilities", () => {
+  const now = new Date(2026, 6, 22, 14, 30, 20, 500);
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  describe("isToday", () => {
+    test.each([
+      [ new Date(2026, 6, 22, 14, 30, 20, 500), true ],
+      [ new Date(2026, 6, 22, 0, 0, 0, 0), true ],
+      [ new Date(2026, 6, 22, 23, 59, 59, 999), true ],
+      [ new Date(2026, 6, 21, 23, 59, 59, 999), false ],
+      [ new Date(2026, 6, 23, 0, 0, 0, 0), false ],
+      [ new Date(2026, 6, 22, 12).getTime(), true ],
+      [ "2026-07-22 11:22:33", true ],
+      [ new Date("invalid"), false ],
+      [ "invalid", false ],
+    ])("returns %s for %s", (value, expected) => {
+      expect(isToday(value)).toBe(expected);
+    });
+
+    test("does not mutate Date inputs", () => {
+      const value = new Date(2026, 6, 22, 1, 2, 3, 4);
+      const originalTime = value.getTime();
+
+      expect(isToday(value)).toBe(true);
+      expect(value.getTime()).toBe(originalTime);
+    });
+  });
+
+  describe("isThisYear", () => {
+    test.each([
+      [ new Date(2026, 0, 1), true ],
+      [ new Date(2026, 11, 31, 23, 59, 59), true ],
+      [ new Date(2025, 11, 31, 23, 59, 59), false ],
+      [ new Date(2027, 0, 1), false ],
+      [ "invalid", false ],
+    ])("returns %s for %s", (value, expected) => {
+      expect(isThisYear(value)).toBe(expected);
+    });
+  });
+
+  describe("isThisMonth", () => {
+    test.each([
+      [ new Date(2026, 6, 1), true ],
+      [ new Date(2026, 6, 31, 23, 59, 59), true ],
+      [ new Date(2025, 6, 22), false ],
+      [ new Date(2026, 5, 30), false ],
+      [ new Date(2026, 7, 1), false ],
+      [ "invalid", false ],
+    ])("returns %s for %s", (value, expected) => {
+      expect(isThisMonth(value)).toBe(expected);
+    });
+
+    test("handles January and December year boundaries", () => {
+      jest.setSystemTime(new Date(2027, 0, 1, 12));
+
+      expect(isThisMonth(new Date(2027, 0, 31))).toBe(true);
+      expect(isThisMonth(new Date(2026, 0, 15))).toBe(false);
+      expect(isThisMonth(new Date(2026, 11, 31))).toBe(false);
+    });
+  });
+
+  describe("isThisWeek", () => {
+    test.each([
+      [ new Date(2026, 6, 20, 0, 0, 0, 0), true ],
+      [ new Date(2026, 6, 21, 12), true ],
+      [ new Date(2026, 6, 22, 12), true ],
+      [ new Date(2026, 6, 23, 12), true ],
+      [ new Date(2026, 6, 24, 12), true ],
+      [ new Date(2026, 6, 25, 12), true ],
+      [ new Date(2026, 6, 26, 23, 59, 59, 999), true ],
+      [ new Date(2026, 6, 19, 23, 59, 59, 999), false ],
+      [ new Date(2026, 6, 27, 0, 0, 0, 0), false ],
+      [ "invalid", false ],
+    ])("returns %s for %s", (value, expected) => {
+      expect(isThisWeek(value)).toBe(expected);
+    });
+
+    test("handles a Monday-first week spanning two months", () => {
+      jest.setSystemTime(new Date(2026, 6, 1, 12));
+
+      expect(isThisWeek(new Date(2026, 5, 29, 0))).toBe(true);
+      expect(isThisWeek(new Date(2026, 6, 5, 23, 59, 59, 999))).toBe(true);
+      expect(isThisWeek(new Date(2026, 5, 28, 23, 59, 59, 999))).toBe(false);
+      expect(isThisWeek(new Date(2026, 6, 6, 0))).toBe(false);
+    });
+
+    test("handles a Monday-first week spanning two years", () => {
+      jest.setSystemTime(new Date(2027, 0, 1, 12));
+
+      expect(isThisWeek(new Date(2026, 11, 28, 0))).toBe(true);
+      expect(isThisWeek(new Date(2027, 0, 3, 23, 59, 59, 999))).toBe(true);
+      expect(isThisWeek(new Date(2026, 11, 27, 23, 59, 59, 999))).toBe(false);
+      expect(isThisWeek(new Date(2027, 0, 4, 0))).toBe(false);
+    });
+  });
+
+  describe("isThisHour", () => {
+    test.each([
+      [ new Date(2026, 6, 22, 14, 30, 20, 500), true ],
+      [ new Date(2026, 6, 22, 14, 0, 0, 0), true ],
+      [ new Date(2026, 6, 22, 14, 59, 59, 999), true ],
+      [ new Date(2026, 6, 22, 13, 59, 59, 999), false ],
+      [ new Date(2026, 6, 22, 15, 0, 0, 0), false ],
+      [ new Date(2026, 6, 21, 14, 30), false ],
+      [ "invalid", false ],
+    ])("returns %s for %s", (value, expected) => {
+      expect(isThisHour(value)).toBe(expected);
+    });
+  });
+});
+
+describe("formatDistanceToNow", () => {
+  const now = new Date(2026, 6, 22, 14, 30, 20, 500);
+  const secondMs = 1000;
+  const minuteMs = 60 * secondMs;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.setSystemTime(now);
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  test.each([
+    [ 0, "less than a minute" ],
+    [ 29 * secondMs, "less than a minute" ],
+    [ 30 * secondMs - 1, "less than a minute" ],
+    [ 30 * secondMs, "about 1 minute" ],
+    [ 30 * secondMs + 1, "about 1 minute" ],
+    [ 89 * secondMs, "about 1 minute" ],
+    [ 90 * secondMs - 1, "about 1 minute" ],
+    [ 90 * secondMs, "about 2 minutes" ],
+    [ 90 * secondMs + 1, "about 2 minutes" ],
+    [ 44 * minuteMs, "about 44 minutes" ],
+    [ 45 * minuteMs - 1, "about 45 minutes" ],
+    [ 45 * minuteMs, "about 1 hour" ],
+    [ 45 * minuteMs + 1, "about 1 hour" ],
+    [ 89 * minuteMs, "about 1 hour" ],
+    [ 90 * minuteMs - 1, "about 1 hour" ],
+    [ 90 * minuteMs, "about 2 hours" ],
+    [ 90 * minuteMs + 1, "about 2 hours" ],
+    [ 24 * hourMs - 1, "about 24 hours" ],
+    [ 24 * hourMs, "about 1 day" ],
+    [ 24 * hourMs + 1, "about 1 day" ],
+    [ 42 * hourMs - 1, "about 1 day" ],
+    [ 42 * hourMs, "about 2 days" ],
+    [ 42 * hourMs + 1, "about 2 days" ],
+    [ 30 * dayMs - 1, "about 30 days" ],
+    [ 30 * dayMs, "about 1 month" ],
+    [ 30 * dayMs + 1, "about 1 month" ],
+    [ 45 * dayMs - 1, "about 1 month" ],
+    [ 45 * dayMs, "about 2 months" ],
+    [ 45 * dayMs + 1, "about 2 months" ],
+    [ 60 * dayMs, "about 2 months" ],
+    [ 365 * dayMs - 1, "about 12 months" ],
+    [ 365 * dayMs, "about 1 year" ],
+    [ 365 * dayMs + 1, "about 1 year" ],
+    [ 545 * dayMs - 1, "about 1 year" ],
+    [ 545 * dayMs, "about 1 year" ],
+    [ 545 * dayMs + 1, "about 1 year" ],
+    [ 730 * dayMs, "about 2 years" ],
+  ])("formats a distance of %s milliseconds", (distance, expected) => {
+    expect(formatDistanceToNow(now.getTime() - distance)).toBe(expected);
+  });
+
+  test("uses the same wording for past and future dates", () => {
+    expect(formatDistanceToNow(now.getTime() - 2 * hourMs)).toBe("about 2 hours");
+    expect(formatDistanceToNow(now.getTime() + 2 * hourMs)).toBe("about 2 hours");
+  });
+
+  test("supports timestamps, local strings, and zoned ISO strings", () => {
+    expect(formatDistanceToNow(now.getTime() - 30 * secondMs)).toBe("about 1 minute");
+    expect(formatDistanceToNow("2026-07-22 14:30:20")).toBe("less than a minute");
+    expect(formatDistanceToNow(now.toISOString())).toBe("less than a minute");
+    expect(
+      formatDistanceToNow(now.toISOString().replace("Z", "+00:00"))
+    ).toBe("less than a minute");
+  });
+
+  test.each([ new Date("invalid"), "invalid", "2026-02-30" ])(
+    "returns an empty string for invalid input %s",
+    value => {
+      expect(formatDistanceToNow(value)).toBe("");
+    }
+  );
 });
 
 describe("generateCalendarVersion", () => {
