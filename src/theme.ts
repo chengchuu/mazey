@@ -47,6 +47,20 @@ export interface ResolveThemePreferenceOptions {
 }
 
 /**
+ * Options for {@link setThemePreference}.
+ *
+ * @category Browser Information
+ */
+export interface SetThemePreferenceOptions {
+  /** Project-specific local-storage key, such as `MAZEY_THEME`. */
+  storageKey: string;
+  /** Supported preference to persist. */
+  preference: ThemePreference;
+  /** Storage used to persist the preference. Defaults to `window.localStorage` when available. */
+  storage?: Pick<Storage, "setItem"> | null;
+}
+
+/**
  * Result returned by {@link resolveThemePreference}.
  *
  * @category Browser Information
@@ -78,6 +92,12 @@ function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || isResolvedTheme(value);
 }
 
+function validateStorageKey(storageKey: unknown): asserts storageKey is string {
+  if (typeof storageKey !== "string" || storageKey.trim() === "") {
+    throw new TypeError("storageKey must be a non-empty string.");
+  }
+}
+
 function createThemeResult(
   preference: ThemePreference,
   resolvedTheme: ResolvedTheme,
@@ -99,12 +119,7 @@ function validateOptions(options: ResolveThemePreferenceOptions): {
   if (!options || typeof options !== "object" || Array.isArray(options)) {
     throw new TypeError("Theme options must be an object.");
   }
-  if (
-    typeof options.storageKey !== "string" ||
-    options.storageKey.trim() === ""
-  ) {
-    throw new TypeError("storageKey must be a non-empty string.");
-  }
+  validateStorageKey(options.storageKey);
   if (
     options.queryParam !== undefined &&
     (typeof options.queryParam !== "string" || options.queryParam.trim() === "")
@@ -165,6 +180,16 @@ function getDefaultStorage(): Pick<Storage, "getItem"> | null {
   try {
     const storage = window.localStorage;
     return storage && typeof storage.getItem === "function" ? storage : null;
+  } catch (error) {
+    return null;
+  }
+}
+
+function getDefaultWritableStorage(): Pick<Storage, "setItem"> | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const storage = window.localStorage;
+    return storage && typeof storage.setItem === "function" ? storage : null;
   } catch (error) {
     return null;
   }
@@ -289,4 +314,70 @@ export function resolveThemePreference(
     return createThemeResult("system", systemTheme, "system");
   }
   return createThemeResult(fallback, fallback, "fallback");
+}
+
+/**
+ * Persist a supported website theme preference.
+ *
+ * The preference is written as the exact lowercase value `system`, `light`,
+ * or `dark` under a project-specific storage key. The function returns
+ * `false` instead of throwing when storage is unavailable, including during
+ * SSR and in privacy-restricted browser environments. It does not resolve or
+ * apply the theme and does not mutate the DOM.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { setThemePreference } from "mazey";
+ *
+ * const stored = setThemePreference({
+ *   storageKey: "MY_WEBSITE_THEME",
+ *   preference: "dark",
+ * });
+ * console.log(stored);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * ```
+ *
+ * @param options Project storage key, supported preference, and optional storage implementation.
+ * @returns `true` when the preference was written, or `false` when storage is unavailable or rejects the write.
+ * @throws {TypeError} If the options, storage key, preference, or explicitly supplied storage implementation is invalid.
+ * @remarks This function writes only the selected preference. Applying a resolved theme and updating controls remain the consuming project's responsibility.
+ * @category Browser Information
+ */
+export function setThemePreference(
+  options: SetThemePreferenceOptions
+): boolean {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError("Theme options must be an object.");
+  }
+  validateStorageKey(options.storageKey);
+  if (!isThemePreference(options.preference)) {
+    throw new TypeError("preference must be \"system\", \"light\", or \"dark\".");
+  }
+  if (
+    options.storage !== undefined &&
+    options.storage !== null &&
+    (typeof options.storage !== "object" ||
+      typeof options.storage.setItem !== "function")
+  ) {
+    throw new TypeError("storage must provide a setItem function.");
+  }
+
+  const storage =
+    options.storage === undefined
+      ? getDefaultWritableStorage()
+      : options.storage;
+  if (!storage) return false;
+
+  try {
+    storage.setItem(options.storageKey, options.preference);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }

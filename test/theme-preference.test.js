@@ -1,7 +1,10 @@
 /** @jest-environment node */
 /* eslint-env jest, node */
 
-import { resolveThemePreference } from "../lib/index.esm";
+import {
+  resolveThemePreference,
+  setThemePreference,
+} from "../lib/index.esm";
 
 const noQueryUrl = "https://example.com/";
 
@@ -324,4 +327,85 @@ test("returns the exact display-name mapping", () => {
       matchMedia: createMatchMedia(false),
     }).displayName
   ).toBe("System");
+});
+
+describe("setThemePreference", () => {
+  test.each([ "system", "light", "dark" ])(
+    "writes the exact %s preference",
+    (preference) => {
+      const storage = { setItem: jest.fn() };
+
+      expect(
+        setThemePreference({
+          storageKey: "PROJECT_THEME",
+          preference,
+          storage,
+        })
+      ).toBe(true);
+      expect(storage.setItem).toHaveBeenCalledWith(
+        "PROJECT_THEME",
+        preference
+      );
+    }
+  );
+
+  test("returns false when storage is unavailable during SSR", () => {
+    expect(
+      setThemePreference({
+        storageKey: "PROJECT_THEME",
+        preference: "dark",
+      })
+    ).toBe(false);
+  });
+
+  test("returns false when storage rejects the write", () => {
+    const storage = {
+      setItem: jest.fn(() => {
+        throw new Error("Storage unavailable");
+      }),
+    };
+
+    expect(
+      setThemePreference({
+        storageKey: "PROJECT_THEME",
+        preference: "dark",
+        storage,
+      })
+    ).toBe(false);
+  });
+
+  test.each([ "", "   " ])("rejects storage key %p", (storageKey) => {
+    expect(() =>
+      setThemePreference({ storageKey, preference: "dark" })
+    ).toThrow(TypeError);
+  });
+
+  test("rejects unsupported preferences", () => {
+    expect(() =>
+      setThemePreference({
+        storageKey: "PROJECT_THEME",
+        preference: "blue",
+      })
+    ).toThrow(TypeError);
+  });
+
+  test("rejects an invalid injected storage implementation", () => {
+    expect(() =>
+      setThemePreference({
+        storageKey: "PROJECT_THEME",
+        preference: "dark",
+        storage: {},
+      })
+    ).toThrow(TypeError);
+  });
+
+  test("accepts explicit unavailable storage", () => {
+    expect(
+      setThemePreference({
+        storageKey: "PROJECT_THEME",
+        preference: "dark",
+        storage: null,
+      })
+    ).toBe(false);
+  });
 });
