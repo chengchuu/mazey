@@ -1,3 +1,11 @@
+import {
+  getDefaultReadableStorage,
+  getDefaultWritableStorage,
+  getPreferenceUrl,
+  validatePreferenceUrl,
+  validateStorageKey,
+} from "./preference";
+
 /**
  * A user-selectable color-theme preference.
  *
@@ -92,12 +100,6 @@ function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || isResolvedTheme(value);
 }
 
-function validateStorageKey(storageKey: unknown): asserts storageKey is string {
-  if (typeof storageKey !== "string" || storageKey.trim() === "") {
-    throw new TypeError("storageKey must be a non-empty string.");
-  }
-}
-
 function createThemeResult(
   preference: ThemePreference,
   resolvedTheme: ResolvedTheme,
@@ -143,56 +145,13 @@ function validateOptions(options: ResolveThemePreferenceOptions): {
   ) {
     throw new TypeError("matchMedia must be a function.");
   }
-  if (
-    options.url !== undefined &&
-    typeof options.url !== "string" &&
-    !(typeof URL !== "undefined" && options.url instanceof URL)
-  ) {
-    throw new TypeError("url must be a valid string or URL.");
-  }
+  validatePreferenceUrl(options.url);
 
   return {
     storageKey: options.storageKey,
     queryParam: options.queryParam ?? "theme",
     fallback: options.fallback ?? "light",
   };
-}
-
-function getExplicitUrl(url: string | URL): URL {
-  try {
-    return new URL(url.toString());
-  } catch (error) {
-    throw new TypeError("url must be a valid string or URL.");
-  }
-}
-
-function getDefaultUrl(): URL | null {
-  if (typeof window === "undefined") return null;
-  try {
-    return new URL(window.location.href);
-  } catch (error) {
-    return null;
-  }
-}
-
-function getDefaultStorage(): Pick<Storage, "getItem"> | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const storage = window.localStorage;
-    return storage && typeof storage.getItem === "function" ? storage : null;
-  } catch (error) {
-    return null;
-  }
-}
-
-function getDefaultWritableStorage(): Pick<Storage, "setItem"> | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const storage = window.localStorage;
-    return storage && typeof storage.setItem === "function" ? storage : null;
-  } catch (error) {
-    return null;
-  }
 }
 
 function getDefaultMatchMedia():
@@ -278,10 +237,11 @@ export function resolveThemePreference(
   options: ResolveThemePreferenceOptions
 ): ThemePreferenceResult {
   const { storageKey, queryParam, fallback } = validateOptions(options);
-  const url =
-    options.url === undefined ? getDefaultUrl() : getExplicitUrl(options.url);
+  const url = getPreferenceUrl(options.url);
   const storage =
-    options.storage === undefined ? getDefaultStorage() : options.storage;
+    options.storage === undefined
+      ? getDefaultReadableStorage()
+      : options.storage;
   const matchMedia =
     options.matchMedia === undefined
       ? getDefaultMatchMedia()

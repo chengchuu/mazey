@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 143 runtime exports in the current repository: 141 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 145 runtime exports in the current repository: 143 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -178,6 +178,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isStandalonePWA`        | Detect standalone PWA presentation                          | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                             |
 | `resolveThemePreference` | Resolve a selected and effective website theme             | Browser-preferred | SSR-safe query > storage > system > fallback resolution; returns preference/theme/display/source; reads but never writes storage and never mutates DOM. |
 | `setThemePreference`     | Persist a supported website theme preference                | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                         |
+| `resolveLanguagePreference` | Resolve a configured website UI language                 | Browser-preferred | Requires canonical values, labels, and fallback; SSR-safe query > storage > browser > fallback resolution; returns selected/resolved values, labels, and source; normalized exact/alias matching plus explicit base-language matching; never writes storage or mutates DOM. |
+| `setLanguagePreference`  | Persist a configured website language preference            | Browser-preferred | Writes exact `system` or a configured canonical value; aliases are rejected; returns false when storage is unavailable or throws; never mutates DOM or loads translations. |
 | `getBrowserInfo`         | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                    |
 | `genBrowserAttrs`        | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                |
 | `isSupportWebp`          | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                        |

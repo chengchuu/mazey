@@ -126,6 +126,8 @@ There are some examples maintained by hand below. For more information, please c
 - [Browser Information](#browser-information)
   - [resolveThemePreference](#resolvethemepreference)
   - [setThemePreference](#setthemepreference)
+  - [resolveLanguagePreference](#resolvelanguagepreference)
+  - [setLanguagePreference](#setlanguagepreference)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -1197,6 +1199,62 @@ unavailable or rejects the write; it does not apply the theme to the page.
 const stored = setThemePreference({
   storageKey: "MY_WEBSITE_THEME",
   preference: "dark",
+});
+```
+
+Output: `true`
+
+#### resolveLanguagePreference
+
+Resolve a project-configured UI language without applying translations or
+changing the document. Resolution checks the `lang` URL query, exact persisted
+canonical values, browser languages, and the configured fallback, in that
+order.
+
+```javascript
+const languages = [
+  { value: "en", label: "English", aliases: ["en-US", "en-GB"] },
+  { value: "zh-CN", label: "简体中文", aliases: ["zh-Hans"] },
+  { value: "ja", label: "日本語", aliases: ["ja-JP"] },
+];
+
+const language = resolveLanguagePreference({
+  storageKey: "MY_WEBSITE_LANGUAGE",
+  languages,
+  fallback: "en",
+});
+```
+
+Possible result:
+
+```text
+{
+  preference: "system",
+  resolvedLanguage: "ja",
+  displayName: "System",
+  resolvedDisplayName: "日本語",
+  source: "system"
+}
+```
+
+The result separates the selected `preference`, which may be `system`, from
+the concrete `resolvedLanguage`. Matching is case-insensitive, treats `_` as
+`-`, supports explicit aliases, and maps regional browser locales to a base
+language only when that base language is configured explicitly. It does not
+infer sibling regional variants. The resolver is SSR-safe and never writes
+storage or mutates the DOM.
+
+#### setLanguagePreference
+
+Persist `system` or an exact configured canonical language. Aliases are not
+accepted for writes, and the function returns `false` when storage is
+unavailable or rejects the write.
+
+```javascript
+const stored = setLanguagePreference({
+  storageKey: "MY_WEBSITE_LANGUAGE",
+  languages,
+  preference: "ja",
 });
 ```
 

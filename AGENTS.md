@@ -40,6 +40,8 @@ This repository is a browser-focused utility library named `mazey`, intended for
 - `src/load.ts`: dynamic script/CSS/image loading and page-load helpers
 - `src/browser.ts`: browser/platform/PWA detection
 - `src/theme.ts`: SSR-safe theme preference resolution and persistence without DOM mutation
+- `src/language.ts`: configurable SSR-safe language preference resolution and persistence
+- `src/preference.ts`: internal storage, URL, and validation helpers shared by preference modules
 - `src/perf.ts`: Performance API and navigation timing helpers
 - `src/debug.ts`: custom console wrappers
 - `src/calc.ts`: standalone algorithms and probability helpers
