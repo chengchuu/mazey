@@ -1,31 +1,81 @@
-export type ThemePreference = "system" | "light" | "dark";
+import { resolveThemePreference } from "../src/theme";
+import type {
+  ResolvedTheme,
+  ThemePreference,
+  ThemePreferenceResult,
+} from "../src/theme";
 
-const preferences = new Set<ThemePreference>(["system", "light", "dark"]);
+type ThemeMediaQuery = Pick<MediaQueryList, "matches"> &
+  Partial<
+    Pick<
+      MediaQueryList,
+      | "addEventListener"
+      | "removeEventListener"
+      | "addListener"
+      | "removeListener"
+    >
+  >;
 
-function readPreference(
-  windowRef: Window,
-  storageKey: string
-): ThemePreference {
+function isThemePreference(value: unknown): value is ThemePreference {
+  return value === "system" || value === "light" || value === "dark";
+}
+
+function getThemeMedia(windowRef: Window): ThemeMediaQuery {
   try {
-    const value = windowRef.localStorage.getItem(
-      storageKey
-    ) as ThemePreference | null;
-    return value && preferences.has(value) ? value : "system";
+    const matchMedia = windowRef.matchMedia;
+    return typeof matchMedia === "function"
+      ? matchMedia.call(windowRef, "(prefers-color-scheme: dark)")
+      : { matches: false };
   } catch {
-    return "system";
+    return { matches: false };
   }
 }
 
 function listenForMediaChanges(
-  media: MediaQueryList,
+  media: ThemeMediaQuery,
   listener: () => void
 ): () => void {
-  if (media.addEventListener) {
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
+  const addEventListener = media.addEventListener;
+  const removeEventListener = media.removeEventListener;
+  if (
+    typeof addEventListener === "function" &&
+    typeof removeEventListener === "function"
+  ) {
+    addEventListener.call(media, "change", listener);
+    return () => removeEventListener.call(media, "change", listener);
   }
-  media.addListener(listener);
-  return () => media.removeListener(listener);
+  const addListener = media.addListener;
+  const removeListener = media.removeListener;
+  if (
+    typeof addListener === "function" &&
+    typeof removeListener === "function"
+  ) {
+    addListener.call(media, listener);
+    return () => removeListener.call(media, listener);
+  }
+  return () => undefined;
+}
+
+function resolveCurrentTheme(
+  windowRef: Window,
+  storageKey: string,
+  media: ThemeMediaQuery
+): ThemePreferenceResult {
+  let url: string | undefined;
+  try {
+    url = windowRef.location?.href;
+  } catch {
+    // The resolver can continue without a URL in restricted environments.
+  }
+
+  return resolveThemePreference({
+    storageKey,
+    ...(url ? { url } : {}),
+    storage: {
+      getItem: (key: string) => windowRef.localStorage.getItem(key),
+    },
+    matchMedia: () => media,
+  });
 }
 
 export function initializeThemeControls(
@@ -36,11 +86,18 @@ export function initializeThemeControls(
   const root = documentRef.documentElement;
   if (root.dataset.themeControlsReady === "true") return () => undefined;
 
-  const media = windowRef.matchMedia("(prefers-color-scheme: dark)");
-  const apply = (value: ThemePreference, persist: boolean) => {
-    const selected = preferences.has(value) ? value : "system";
+  const media = getThemeMedia(windowRef);
+  let currentPreference: ThemePreference = "system";
+  const apply = (
+    value: ThemePreference,
+    persist: boolean,
+    resolvedTheme?: ResolvedTheme
+  ) => {
+    const selected = isThemePreference(value) ? value : "system";
+    currentPreference = selected;
     const resolved =
-      selected === "system" ? (media.matches ? "dark" : "light") : selected;
+      resolvedTheme ??
+      (selected === "system" ? (media.matches ? "dark" : "light") : selected);
 
     root.dataset.bsTheme = resolved;
     root.dataset.theme = resolved;
@@ -79,13 +136,14 @@ export function initializeThemeControls(
     apply(control.value as ThemePreference, true);
   };
   const handleSystemTheme = () => {
-    if (readPreference(windowRef, storageKey) === "system") {
-      apply("system", false);
+    if (currentPreference === "system") {
+      apply("system", false, media.matches ? "dark" : "light");
     }
   };
 
   root.dataset.themeControlsReady = "true";
-  apply(readPreference(windowRef, storageKey), false);
+  const initialTheme = resolveCurrentTheme(windowRef, storageKey, media);
+  apply(initialTheme.preference, false, initialTheme.resolvedTheme);
   documentRef.addEventListener("change", handleChange);
   const removeMediaListener = listenForMediaChanges(media, handleSystemTheme);
 

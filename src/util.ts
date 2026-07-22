@@ -1895,6 +1895,134 @@ function hasMatchingDateComponents(
     && date.getMilliseconds() === millisecond;
 }
 
+function createLocalDate(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number
+): Date {
+  const date = new Date(0);
+  date.setFullYear(year, month - 1, day);
+  date.setHours(hour, minute, second, 0);
+  return date;
+}
+
+function createZonedDate(
+  year: number,
+  month: number,
+  day: number,
+  hour: number,
+  minute: number,
+  second: number,
+  millisecond: number,
+  timezone: string
+): Date {
+  const date = new Date(0);
+  date.setUTCFullYear(year, month - 1, day);
+  date.setUTCHours(hour, minute, second, millisecond);
+  if (timezone === "Z") {
+    return date;
+  }
+
+  const direction = timezone[0] === "+" ? 1 : -1;
+  const offsetMinutes =
+    Number(timezone.slice(1, 3)) * 60 + Number(timezone.slice(4, 6));
+  return new Date(date.getTime() - direction * offsetMinutes * 60 * 1000);
+}
+
+function toValidDate(value: unknown): Date | null {
+  if (typeof value === "number") {
+    const date = new Date(value);
+    return Number.isFinite(value) && Number.isFinite(date.getTime())
+      ? date
+      : null;
+  }
+
+  if (typeof value === "object" && value !== null) {
+    const dateTime = getDateTime(value);
+    return dateTime !== null && Number.isFinite(dateTime)
+      ? new Date(dateTime)
+      : null;
+  }
+
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmedValue = value.trim();
+  if (!trimmedValue) {
+    return null;
+  }
+
+  const localMatch = localDateStringPattern.exec(trimmedValue);
+  if (localMatch) {
+    const [ year, month, day, hour = "0", minute = "0", second = "0" ] =
+      localMatch.slice(1);
+    const [ numericYear, numericMonth, numericDay, numericHour, numericMinute, numericSecond ] =
+      [ year, month, day, hour, minute, second ].map(Number);
+    if (!hasMatchingDateComponents(
+      numericYear,
+      numericMonth,
+      numericDay,
+      numericHour,
+      numericMinute,
+      numericSecond
+    )) {
+      return null;
+    }
+    return createLocalDate(
+      numericYear,
+      numericMonth,
+      numericDay,
+      numericHour,
+      numericMinute,
+      numericSecond
+    );
+  }
+
+  const zonedMatch = zonedDateStringPattern.exec(trimmedValue);
+  if (!zonedMatch) {
+    return null;
+  }
+
+  const [ year, month, day, hour, minute, second = "0", fraction = "", timezone ] =
+    zonedMatch.slice(1);
+  const millisecond = Number(`${fraction}00`.slice(0, 3));
+  if (!hasMatchingDateComponents(
+    Number(year),
+    Number(month),
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+    millisecond,
+    true
+  )) {
+    return null;
+  }
+
+  if (timezone !== "Z") {
+    const offsetHour = Number(timezone.slice(1, 3));
+    const offsetMinute = Number(timezone.slice(4, 6));
+    if (offsetHour > 23 || offsetMinute > 59) {
+      return null;
+    }
+  }
+
+  return createZonedDate(
+    Number(year),
+    Number(month),
+    Number(day),
+    Number(hour),
+    Number(minute),
+    Number(second),
+    millisecond,
+    timezone
+  );
+}
+
 /**
  * Check whether an unknown value represents a valid date.
  *
@@ -1931,67 +2059,228 @@ function hasMatchingDateComponents(
  * @category Util
  */
 export function isValidDate(value: unknown): boolean {
-  if (typeof value === "number") {
-    return Number.isFinite(value) && Number.isFinite(new Date(value).getTime());
-  }
+  return toValidDate(value) !== null;
+}
 
-  if (typeof value === "object" && value !== null) {
-    try {
-      return Number.isFinite(Date.prototype.getTime.call(value as Date));
-    } catch (error) {
-      return false;
-    }
-  }
+/**
+ * Check whether a date is today in the runtime's local timezone.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { isToday } from "mazey";
+ *
+ * const ret = isToday(new Date());
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * ```
+ *
+ * @param date A `Date`, millisecond timestamp, or string accepted by `isValidDate`.
+ * @returns Whether the value has the current local year, month, and day. Invalid input returns `false`.
+ * @remarks Hours, minutes, seconds, and milliseconds are ignored. Results depend on the runtime's local timezone.
+ * @category Util
+ */
+export function isToday(date: MazeyDate): boolean {
+  const target = toValidDate(date);
+  if (!target) return false;
+  const now = new Date();
+  return target.getFullYear() === now.getFullYear()
+    && target.getMonth() === now.getMonth()
+    && target.getDate() === now.getDate();
+}
 
-  if (typeof value !== "string") {
-    return false;
-  }
+/**
+ * Check whether a date is in the current local calendar year.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { isThisYear } from "mazey";
+ *
+ * const ret = isThisYear(new Date());
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * ```
+ *
+ * @param date A `Date`, millisecond timestamp, or string accepted by `isValidDate`.
+ * @returns Whether the value has the current local year. Invalid input returns `false`.
+ * @remarks Results depend on the runtime's local timezone.
+ * @category Util
+ */
+export function isThisYear(date: MazeyDate): boolean {
+  const target = toValidDate(date);
+  return target !== null && target.getFullYear() === new Date().getFullYear();
+}
 
-  const trimmedValue = value.trim();
-  if (!trimmedValue) {
-    return false;
-  }
+/**
+ * Check whether a date is in the current local calendar month and year.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { isThisMonth } from "mazey";
+ *
+ * const ret = isThisMonth(new Date());
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * ```
+ *
+ * @param date A `Date`, millisecond timestamp, or string accepted by `isValidDate`.
+ * @returns Whether the value has the current local year and month. Invalid input returns `false`.
+ * @remarks Results depend on the runtime's local timezone.
+ * @category Util
+ */
+export function isThisMonth(date: MazeyDate): boolean {
+  const target = toValidDate(date);
+  if (!target) return false;
+  const now = new Date();
+  return target.getFullYear() === now.getFullYear()
+    && target.getMonth() === now.getMonth();
+}
 
-  const localMatch = localDateStringPattern.exec(trimmedValue);
-  if (localMatch) {
-    const [ year, month, day, hour = "0", minute = "0", second = "0" ] = localMatch.slice(1);
-    return hasMatchingDateComponents(
-      Number(year),
-      Number(month),
-      Number(day),
-      Number(hour),
-      Number(minute),
-      Number(second)
-    );
-  }
+/**
+ * Check whether a date is in the current Monday-first local calendar week.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { isThisWeek } from "mazey";
+ *
+ * const ret = isThisWeek(new Date());
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * ```
+ *
+ * @param date A `Date`, millisecond timestamp, or string accepted by `isValidDate`.
+ * @returns Whether the value is in the current local week. Invalid input returns `false`.
+ * @remarks The week begins on Monday and ends before the following Monday. Boundaries use local time and a half-open range.
+ * @category Util
+ */
+export function isThisWeek(date: MazeyDate): boolean {
+  const target = toValidDate(date);
+  if (!target) return false;
 
-  const zonedMatch = zonedDateStringPattern.exec(trimmedValue);
-  if (!zonedMatch) {
-    return false;
-  }
+  const startOfWeek = new Date();
+  const daysSinceMonday = (startOfWeek.getDay() + 6) % 7;
+  startOfWeek.setHours(0, 0, 0, 0);
+  startOfWeek.setDate(startOfWeek.getDate() - daysSinceMonday);
+  const startOfNextWeek = new Date(startOfWeek.getTime());
+  startOfNextWeek.setDate(startOfNextWeek.getDate() + 7);
+  const targetTime = target.getTime();
+  return targetTime >= startOfWeek.getTime()
+    && targetTime < startOfNextWeek.getTime();
+}
 
-  const [ year, month, day, hour, minute, second = "0", fraction = "", timezone ] = zonedMatch.slice(1);
-  const millisecond = Number(`${fraction}00`.slice(0, 3));
-  if (!hasMatchingDateComponents(
-    Number(year),
-    Number(month),
-    Number(day),
-    Number(hour),
-    Number(minute),
-    Number(second),
-    millisecond,
-    true
-  )) {
-    return false;
-  }
+/**
+ * Check whether a date is within the current local clock hour.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { isThisHour } from "mazey";
+ *
+ * const ret = isThisHour(new Date());
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * ```
+ *
+ * @param date A `Date`, millisecond timestamp, or string accepted by `isValidDate`.
+ * @returns Whether the value has the current local year, month, day, and hour. Invalid input returns `false`.
+ * @remarks Minutes, seconds, and milliseconds are ignored. Results depend on the runtime's local timezone.
+ * @category Util
+ */
+export function isThisHour(date: MazeyDate): boolean {
+  const target = toValidDate(date);
+  if (!target) return false;
+  const now = new Date();
+  return target.getFullYear() === now.getFullYear()
+    && target.getMonth() === now.getMonth()
+    && target.getDate() === now.getDate()
+    && target.getHours() === now.getHours();
+}
 
-  if (timezone === "Z") {
-    return true;
-  }
+function formatApproximateDistance(value: number, unit: string): string {
+  const roundedValue = Math.max(1, Math.round(value));
+  return `about ${roundedValue} ${unit}${roundedValue === 1 ? "" : "s"}`;
+}
 
-  const offsetHour = Number(timezone.slice(1, 3));
-  const offsetMinute = Number(timezone.slice(4, 6));
-  return offsetHour <= 23 && offsetMinute <= 59;
+/**
+ * Format the absolute distance from a date to now in concise English words.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { formatDistanceToNow } from "mazey";
+ *
+ * const ret = formatDistanceToNow(new Date(Date.now() - 60 * 60 * 1000));
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * about 1 hour
+ * ```
+ *
+ * @param date A `Date`, millisecond timestamp, or string accepted by `isValidDate`.
+ * @returns The absolute approximate distance phrase, or an empty string for invalid input.
+ * @remarks Past and future dates use the same wording without `ago` or `in`. Months and years use fixed approximate durations of 30 and 365 days.
+ * @category Util
+ */
+export function formatDistanceToNow(date: MazeyDate): string {
+  const target = toValidDate(date);
+  if (!target) return "";
+
+  const secondMs = 1000;
+  const minuteMs = 60 * secondMs;
+  const hourMs = 60 * minuteMs;
+  const dayMs = 24 * hourMs;
+  const distanceMs = Math.abs(target.getTime() - Date.now());
+
+  if (distanceMs < 30 * secondMs) return "less than a minute";
+  if (distanceMs < 90 * secondMs) return "about 1 minute";
+  if (distanceMs < 45 * minuteMs) {
+    return formatApproximateDistance(distanceMs / minuteMs, "minute");
+  }
+  if (distanceMs < 90 * minuteMs) return "about 1 hour";
+  if (distanceMs < 24 * hourMs) {
+    return formatApproximateDistance(distanceMs / hourMs, "hour");
+  }
+  if (distanceMs < 42 * hourMs) return "about 1 day";
+  if (distanceMs < 30 * dayMs) {
+    return formatApproximateDistance(distanceMs / dayMs, "day");
+  }
+  if (distanceMs < 45 * dayMs) return "about 1 month";
+  if (distanceMs < 365 * dayMs) {
+    return formatApproximateDistance(distanceMs / (30 * dayMs), "month");
+  }
+  if (distanceMs < 545 * dayMs) return "about 1 year";
+  return formatApproximateDistance(distanceMs / (365 * dayMs), "year");
 }
 
 /**

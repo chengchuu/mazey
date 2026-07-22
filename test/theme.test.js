@@ -92,3 +92,72 @@ test("theme changes keep browser chrome aligned with the primary palette", () =>
 
   cleanup();
 });
+
+test("theme initialization honors a URL override", () => {
+  renderThemeControl();
+  localStorage.setItem(storageKey, "light");
+  const media = {
+    matches: false,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  };
+  const cleanup = initializeThemeControls(storageKey, document, {
+    location: { href: "https://example.com/?theme=dark" },
+    localStorage,
+    matchMedia: () => media,
+  });
+
+  expect(document.documentElement.dataset.bsTheme).toBe("dark");
+  expect(document.querySelector("[data-theme-select]").value).toBe("dark");
+  expect(localStorage.getItem(storageKey)).toBe("light");
+
+  cleanup();
+});
+
+test("stored system preference keeps its selection and resolves through media", () => {
+  renderThemeControl();
+  localStorage.setItem(storageKey, "system");
+  const media = {
+    matches: true,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  };
+  const cleanup = initializeThemeControls(storageKey, document, {
+    location: { href: "https://example.com/" },
+    localStorage,
+    matchMedia: () => media,
+  });
+
+  expect(document.documentElement.dataset.bsTheme).toBe("dark");
+  expect(document.querySelector("[data-theme-select]").value).toBe("system");
+
+  cleanup();
+});
+
+test("system changes keep working after replacing a URL override", () => {
+  renderThemeControl();
+  localStorage.setItem(storageKey, "light");
+  const media = {
+    matches: false,
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+  };
+  const cleanup = initializeThemeControls(storageKey, document, {
+    location: { href: "https://example.com/?theme=dark" },
+    localStorage,
+    matchMedia: () => media,
+  });
+  const select = document.querySelector("[data-theme-select]");
+
+  select.value = "system";
+  select.dispatchEvent(new Event("change", { bubbles: true }));
+  expect(document.documentElement.dataset.bsTheme).toBe("light");
+
+  media.matches = true;
+  media.addEventListener.mock.calls[0][1]();
+  expect(document.documentElement.dataset.bsTheme).toBe("dark");
+  expect(select.value).toBe("system");
+  expect(localStorage.getItem(storageKey)).toBe("system");
+
+  cleanup();
+});

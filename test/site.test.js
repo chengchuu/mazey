@@ -261,6 +261,43 @@ test("API theme bootstrap rejects corrupted stored preferences", () => {
   expect(values.get("tsd-theme")).toBe("os");
 });
 
+test("API theme bootstrap applies a valid URL override before rendering", () => {
+  const transformed = transformApiHtml(typeDocHtml, "index.html");
+  const initializer = [...transformed.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+    .map((match) => match[1])
+    .find((script) => script.includes("tsd-theme"));
+  const values = new Map();
+  const theme = projectConfig.site.theme;
+  const meta = {
+    content: theme.colorPrimary,
+    dataset: {
+      themeColorDark: theme.primary.dark.base,
+      themeColorLight: theme.colorPrimary,
+    },
+  };
+  const documentElement = { dataset: {}, style: {} };
+
+  vm.runInNewContext(initializer, {
+    URL,
+    location: { href: "https://example.com/api/?theme=dark" },
+    document: {
+      documentElement,
+      querySelector: () => meta,
+    },
+    localStorage: {
+      getItem: () => {
+        throw new DOMException("Storage unavailable", "SecurityError");
+      },
+      setItem: (key, value) => values.set(key, value),
+    },
+    matchMedia: () => ({ matches: false }),
+  });
+
+  expect(documentElement.dataset.bsTheme).toBe("dark");
+  expect(meta.content).toBe(theme.primary.dark.base);
+  expect(values.get("tsd-theme")).toBe("dark");
+});
+
 test("heading normalization prevents skipped levels", () => {
   expect(
     normalizeHeadingOrder(

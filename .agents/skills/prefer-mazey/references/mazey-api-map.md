@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 135 runtime exports in the current repository: 133 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 142 runtime exports in the current repository: 140 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -33,15 +33,21 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 ## Date and time
 
-| Function                  | Purpose                                                   | Runtime            | Notes                                                                                                    |
-| ------------------------- | --------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------------------------------- |
-| `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Uses `Date.now()` with an older fallback.                                                                |
-| `getDateDifference`      | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` omits zero-valued units; negative or invalid intervals return empty. |
-| `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                   |
-| `isValidDate`             | Validate date objects, timestamps, and structured strings | Universal          | Numbers are milliseconds; local and zoned ISO-style strings are parsed strictly; locale date strings are rejected. |
-| `formatDate`              | Format a date with Mazey tokens                           | Universal          | Local time; supports `yyyy MM dd HH hh mm ss a`; invalid dates throw `RangeError`.                       |
-| `generateCalendarVersion` | Generate `YEAR.MONTHDAY.TIME` calendar versions           | Universal          | Local time, strips segment-leading zeroes, and can decrease after clock or DST rollback.                 |
-| `waitTime`                | Resolve with the supplied millisecond value after a delay | Node.js-compatible | Uses `setTimeout`; does not validate or cancel the delay.                                                |
+| Function                  | Purpose                                                   | Runtime            | Notes                                                                                                                                          |
+| ------------------------- | --------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Uses `Date.now()` with an older fallback.                                                                                                      |
+| `getDateDifference`       | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` omits zero-valued units; negative or invalid intervals return empty.                              |
+| `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                                                         |
+| `isValidDate`             | Validate date objects, timestamps, and structured strings | Universal          | Numbers are milliseconds; local and zoned ISO-style strings are parsed strictly; locale date strings are rejected.                            |
+| `isToday`                 | Test whether a date is today                              | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares local year/month/day; invalid input returns false.                     |
+| `isThisYear`              | Test whether a date is in the current year                | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares the local year; invalid input returns false.                           |
+| `isThisMonth`             | Test whether a date is in the current month               | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares local year and month; invalid input returns false.                     |
+| `isThisWeek`              | Test whether a date is in the current week                | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; local week is Monday through before next Monday; invalid input returns false.   |
+| `isThisHour`              | Test whether a date is in the current hour                | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares local year/month/day/hour; invalid input returns false.                |
+| `formatDistanceToNow`     | Format the absolute approximate distance to now           | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; no suffix; invalid input returns empty; months/years use fixed 30/365-day units. |
+| `formatDate`              | Format a date with Mazey tokens                           | Universal          | Local time; supports `yyyy MM dd HH hh mm ss a`; invalid dates throw `RangeError`.                                                             |
+| `generateCalendarVersion` | Generate `YEAR.MONTHDAY.TIME` calendar versions           | Universal          | Local time, strips segment-leading zeroes, and can decrease after clock or DST rollback.                                                       |
+| `waitTime`                | Resolve with the supplied millisecond value after a delay | Node.js-compatible | Uses `setTimeout`; does not validate or cancel the delay.                                                                                      |
 
 ## Function control
 
@@ -166,14 +172,15 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 ## Browser and PWA
 
-| Function          | Purpose                                                    | Runtime           | Notes                                                                                                                         |
-| ----------------- | ---------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `isSafePWAEnv`    | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.   |
-| `isStandalonePWA` | Detect standalone PWA presentation                          | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                  |
-| `getBrowserInfo`  | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                         |
-| `genBrowserAttrs` | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                     |
-| `isSupportWebp`   | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                             |
-| `isBrowser`       | Detect the presence of a browser-like `window` global      | Universal         | Safe in Node.js; only a `true` browser result is cached, while `false` is re-evaluated.                                       |
+| Function                 | Purpose                                                    | Runtime           | Notes                                                                                                                                                    |
+| ------------------------ | ---------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isSafePWAEnv`           | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.                              |
+| `isStandalonePWA`        | Detect standalone PWA presentation                          | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                             |
+| `resolveThemePreference` | Resolve a selected and effective website theme             | Browser-preferred | SSR-safe query > storage > system > fallback resolution; returns preference/theme/display/source; reads but never writes storage and never mutates DOM. |
+| `getBrowserInfo`         | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                    |
+| `genBrowserAttrs`        | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                |
+| `isSupportWebp`          | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                        |
+| `isBrowser`              | Detect the presence of a browser-like `window` global      | Universal         | Safe in Node.js; only a `true` browser result is cached, while `false` is re-evaluated.                                                                  |
 
 ## Events
 

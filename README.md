@@ -85,6 +85,12 @@ There are some examples maintained by hand below. For more information, please c
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
   - [isValidDate](#isvaliddate)
+  - [isToday](#istoday)
+  - [isThisYear](#isthisyear)
+  - [isThisMonth](#isthismonth)
+  - [isThisWeek](#isthisweek)
+  - [isThisHour](#isthishour)
+  - [formatDistanceToNow](#formatdistancetonow)
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
@@ -118,6 +124,7 @@ There are some examples maintained by hand below. For more information, please c
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
+  - [resolveThemePreference](#resolvethemepreference)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -433,6 +440,68 @@ Output:
 ```text
 true true false false
 ```
+
+#### isToday
+
+Check whether a date has the current local year, month, and day.
+
+```javascript
+isToday(new Date());
+```
+
+Output: `true`
+
+#### isThisYear
+
+Check whether a date is in the current local calendar year.
+
+```javascript
+isThisYear(new Date());
+```
+
+Output: `true`
+
+#### isThisMonth
+
+Check whether a date is in the current local calendar month and year.
+
+```javascript
+isThisMonth(new Date());
+```
+
+Output: `true`
+
+#### isThisWeek
+
+Check whether a date is in the current local Monday-first week. The week ends
+before the following Monday.
+
+```javascript
+isThisWeek(new Date());
+```
+
+Output: `true`
+
+#### isThisHour
+
+Check whether a date has the current local year, month, day, and hour.
+
+```javascript
+isThisHour(new Date());
+```
+
+Output: `true`
+
+#### formatDistanceToNow
+
+Format the absolute distance from a date to now without adding `ago` or `in`.
+Past and future dates use the same approximate English wording.
+
+```javascript
+formatDistanceToNow(new Date(Date.now() - 60 * 60 * 1000));
+```
+
+Output: `about 1 hour`
 
 #### generateCalendarVersion
 
@@ -1084,6 +1153,38 @@ Output:
 ```
 
 ### Browser Information
+
+#### resolveThemePreference
+
+Resolve a project-specific website theme preference without applying it to the
+page. Resolution checks a `light` or `dark` URL query override, persisted
+`system`/`light`/`dark` storage, the current system color scheme, and finally a
+`light` fallback, in that order.
+
+```javascript
+const theme = resolveThemePreference({
+  storageKey: "MY_WEBSITE_THEME",
+  url: "https://example.com/?theme=dark",
+});
+
+console.log(theme);
+```
+
+Output:
+
+```text
+{
+  preference: "dark",
+  resolvedTheme: "dark",
+  displayName: "Dark",
+  source: "query"
+}
+```
+
+`preference` is the selected `system`, `light`, or `dark` value, while
+`resolvedTheme` is always the effective `light` or `dark` theme. The resolver
+is safe during SSR, tolerates unavailable browser storage and media queries,
+and does not mutate the DOM or write to storage.
 
 #### getBrowserInfo
 
