@@ -1206,17 +1206,11 @@ Output: `true`
 
 #### resolveLanguagePreference
 
-Resolve a project-configured UI language without applying translations or
-changing the document. Resolution checks the `lang` URL query, exact persisted
-canonical values, browser languages, and the configured fallback, in that
-order.
+Return a supported UI language. Resolution checks the `lang` URL query, local
+storage, `navigator.language`, and the configured fallback, in that order.
 
 ```javascript
-const languages = [
-  { value: "en", label: "English", aliases: ["en-US", "en-GB"] },
-  { value: "zh-CN", label: "简体中文", aliases: ["zh-Hans"] },
-  { value: "ja", label: "日本語", aliases: ["ja-JP"] },
-];
+const languages = ["en", "zh-CN", "ja"];
 
 const language = resolveLanguagePreference({
   storageKey: "MY_WEBSITE_LANGUAGE",
@@ -1228,37 +1222,56 @@ const language = resolveLanguagePreference({
 Possible result:
 
 ```text
-{
-  preference: "system",
-  resolvedLanguage: "ja",
-  displayName: "System",
-  resolvedDisplayName: "日本語",
-  source: "system"
-}
+ja
 ```
 
-The result separates the selected `preference`, which may be `system`, from
-the concrete `resolvedLanguage`. Matching is case-insensitive, treats `_` as
-`-`, supports explicit aliases, and maps regional browser locales to a base
-language only when that base language is configured explicitly. It does not
-infer sibling regional variants. The resolver is SSR-safe and never writes
-storage or mutates the DOM.
+Matching is case-insensitive and treats `_` as `-`. A regional value can match
+an explicitly supported base language, such as `en-US` to `en`, but it never
+selects a different regional variant. The resolver is SSR-safe and never
+writes storage or mutates the DOM.
 
 #### setLanguagePreference
 
-Persist `system` or an exact configured canonical language. Aliases are not
-accepted for writes, and the function returns `false` when storage is
-unavailable or rejects the write.
+Persist the supported language selected by the user. The function returns
+`false` when storage is unavailable or rejects the write.
 
 ```javascript
 const stored = setLanguagePreference({
   storageKey: "MY_WEBSITE_LANGUAGE",
   languages,
-  preference: "ja",
+  language: "ja",
 });
 ```
 
 Output: `true`
+
+With a native selector:
+
+```html
+<select id="language" aria-label="Language">
+  <option value="en">English</option>
+  <option value="zh-CN">简体中文</option>
+  <option value="ja">日本語</option>
+</select>
+```
+
+```javascript
+const select = document.querySelector("#language");
+
+select.value = resolveLanguagePreference({
+  storageKey: "MY_WEBSITE_LANGUAGE",
+  languages,
+  fallback: "en",
+});
+
+select.addEventListener("change", () => {
+  setLanguagePreference({
+    storageKey: "MY_WEBSITE_LANGUAGE",
+    languages,
+    language: select.value,
+  });
+});
+```
 
 #### getBrowserInfo
 

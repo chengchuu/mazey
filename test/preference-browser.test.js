@@ -21,20 +21,13 @@ test("language preference accepts a URL created in another realm", () => {
   expect(
     resolveLanguagePreference({
       storageKey: "PROJECT_LANGUAGE",
-      languages: [
-        { value: "en", label: "English" },
-        { value: "ja", label: "日本語" },
-      ],
+      languages: [ "en", "ja" ],
       fallback: "en",
       url,
       storage: null,
-      navigatorLanguages: [],
+      navigatorLanguage: null,
     })
-  ).toMatchObject({
-    preference: "ja",
-    resolvedLanguage: "ja",
-    source: "query",
-  });
+  ).toBe("ja");
 });
 
 test("theme preference accepts a URL created in another realm", () => {

@@ -6,30 +6,11 @@ import {
   setLanguagePreference,
 } from "../lib/index.esm";
 
-const languages = [
-  { value: "en", label: "English", aliases: [ "en-US", "en-GB" ] },
-  {
-    value: "zh-CN",
-    label: "简体中文",
-    aliases: [ "zh-Hans", "zh-Hans-CN" ],
-  },
-  { value: "ja", label: "日本語", aliases: [ "ja-JP" ] },
-];
+const languages = [ "en", "zh-CN", "ja" ];
 const noQueryUrl = "https://example.com/";
 
 function createReadableStorage(value) {
   return { getItem: jest.fn(() => value) };
-}
-
-function expectLanguageResult(result, expected) {
-  expect(result).toEqual(expected);
-  expect(Object.keys(result).sort()).toEqual([
-    "displayName",
-    "preference",
-    "resolvedDisplayName",
-    "resolvedLanguage",
-    "source",
-  ]);
 }
 
 function resolve(overrides = {}) {
@@ -39,29 +20,22 @@ function resolve(overrides = {}) {
     fallback: "en",
     url: noQueryUrl,
     storage: null,
-    navigatorLanguages: [],
+    navigatorLanguage: null,
     ...overrides,
   });
 }
 
 describe("resolveLanguagePreference URL priority", () => {
-  test("a supported query overrides storage and browser languages", () => {
+  test("URL language overrides storage and navigator.language", () => {
     const storage = createReadableStorage("en");
 
-    expectLanguageResult(
+    expect(
       resolve({
         url: `${noQueryUrl}?lang=ja`,
         storage,
-        navigatorLanguages: [ "zh-Hans" ],
-      }),
-      {
-        preference: "ja",
-        resolvedLanguage: "ja",
-        displayName: "日本語",
-        resolvedDisplayName: "日本語",
-        source: "query",
-      }
-    );
+        navigatorLanguage: "zh-CN",
+      })
+    ).toBe("ja");
     expect(storage.getItem).not.toHaveBeenCalled();
   });
 
@@ -69,116 +43,58 @@ describe("resolveLanguagePreference URL priority", () => {
     [ "zh-CN", "zh-CN" ],
     [ "ZH-cn", "zh-CN" ],
     [ "zh_CN", "zh-CN" ],
-    [ "zh-Hans", "zh-CN" ],
-  ])("query %s resolves to canonical %s", (query, expected) => {
-    expect(resolve({ url: `${noQueryUrl}?lang=${query}` })).toMatchObject({
-      preference: expected,
-      resolvedLanguage: expected,
-      source: "query",
-    });
+    [ "en-US", "en" ],
+  ])("normalizes URL language %s to %s", (value, expected) => {
+    expect(resolve({ url: `${noQueryUrl}?lang=${value}` })).toBe(expected);
   });
-
-  test.each([ "unsupported", "", "system" ])(
-    "query %p falls through to storage",
-    (query) => {
-      expect(
-        resolve({
-          url: `${noQueryUrl}?lang=${query}`,
-          storage: createReadableStorage("ja"),
-        })
-      ).toMatchObject({ preference: "ja", source: "storage" });
-    }
-  );
 
   test("supports a custom query parameter", () => {
     expect(
       resolve({
         queryParam: "locale",
-        url: `${noQueryUrl}?locale=ja-JP`,
+        url: `${noQueryUrl}?locale=ja`,
       })
-    ).toMatchObject({ preference: "ja", source: "query" });
+    ).toBe("ja");
   });
 
   test("uses only the first duplicate query value", () => {
     expect(
       resolve({
         url: `${noQueryUrl}?lang=unsupported&lang=ja`,
-        storage: createReadableStorage("en"),
+        storage: createReadableStorage("zh-CN"),
       })
-    ).toMatchObject({ preference: "en", source: "storage" });
+    ).toBe("zh-CN");
   });
+
+  test.each([ "", "unsupported", "system" ])(
+    "unsupported URL value %p falls through to storage",
+    (value) => {
+      expect(
+        resolve({
+          url: `${noQueryUrl}?lang=${value}`,
+          storage: createReadableStorage("ja"),
+        })
+      ).toBe("ja");
+    }
+  );
 });
 
 describe("resolveLanguagePreference storage priority", () => {
   test.each([
-    [ "en", "English" ],
-    [ "zh-CN", "简体中文" ],
-    [ "ja", "日本語" ],
-  ])("resolves stored canonical %s", (stored, label) => {
-    expectLanguageResult(
-      resolve({ storage: createReadableStorage(stored) }),
-      {
-        preference: stored,
-        resolvedLanguage: stored,
-        displayName: label,
-        resolvedDisplayName: label,
-        source: "storage",
-      }
-    );
+    [ "en", "en" ],
+    [ "ZH_cn", "zh-CN" ],
+    [ "ja-JP", "ja" ],
+  ])("resolves stored language %s to %s", (stored, expected) => {
+    expect(resolve({ storage: createReadableStorage(stored) })).toBe(expected);
   });
 
-  test("stored system retains its preference and source", () => {
-    expectLanguageResult(
-      resolve({
-        storage: createReadableStorage("system"),
-        navigatorLanguages: [ "zh-Hans" ],
-      }),
-      {
-        preference: "system",
-        resolvedLanguage: "zh-CN",
-        displayName: "System",
-        resolvedDisplayName: "简体中文",
-        source: "storage",
-      }
-    );
-  });
-
-  test("stored system uses the fallback without changing its source", () => {
-    expectLanguageResult(
-      resolve({
-        storage: createReadableStorage("system"),
-        navigatorLanguages: [ "unsupported" ],
-      }),
-      {
-        preference: "system",
-        resolvedLanguage: "en",
-        displayName: "System",
-        resolvedDisplayName: "English",
-        source: "storage",
-      }
-    );
-  });
-
-  test.each([ "invalid", "", "ja-JP" ])(
-    "stored value %p is ignored",
-    (stored) => {
-      expect(
-        resolve({
-          storage: createReadableStorage(stored),
-          navigatorLanguages: [ "en-US" ],
-        })
-      ).toMatchObject({
-        preference: "system",
-        resolvedLanguage: "en",
-        source: "system",
-      });
-    }
-  );
-
-  test("continues when storage is unavailable", () => {
+  test("invalid storage falls through to navigator.language", () => {
     expect(
-      resolve({ storage: null, navigatorLanguages: [ "ja-JP" ] })
-    ).toMatchObject({ resolvedLanguage: "ja", source: "system" });
+      resolve({
+        storage: createReadableStorage("unsupported"),
+        navigatorLanguage: "ja-JP",
+      })
+    ).toBe("ja");
   });
 
   test("continues when storage access throws", () => {
@@ -188,9 +104,7 @@ describe("resolveLanguagePreference storage priority", () => {
       }),
     };
 
-    expect(
-      resolve({ storage, navigatorLanguages: [ "ja-JP" ] })
-    ).toMatchObject({ resolvedLanguage: "ja", source: "system" });
+    expect(resolve({ storage, navigatorLanguage: "ja-JP" })).toBe("ja");
   });
 
   test("continues when the storage method cannot be accessed", () => {
@@ -201,130 +115,49 @@ describe("resolveLanguagePreference storage priority", () => {
       },
     });
 
-    expect(
-      resolve({ storage, navigatorLanguages: [ "ja-JP" ] })
-    ).toMatchObject({ resolvedLanguage: "ja", source: "system" });
+    expect(resolve({ storage, navigatorLanguage: "ja-JP" })).toBe("ja");
   });
 });
 
-describe("resolveLanguagePreference browser matching", () => {
+describe("resolveLanguagePreference navigator.language and fallback", () => {
   test.each([
-    [ [ "zh-CN" ], "zh-CN" ],
-    [ [ "zh-Hans" ], "zh-CN" ],
-    [ [ "en-AU" ], "en" ],
-    [ [ "unsupported", "ja-JP" ], "ja" ],
-    [ [ "EN_us", "en-US" ], "en" ],
-  ])("resolves %p to %s", (navigatorLanguages, expected) => {
-    expect(resolve({ navigatorLanguages })).toMatchObject({
-      preference: "system",
-      resolvedLanguage: expected,
-      source: "system",
-    });
+    [ "ja", "ja" ],
+    [ "JA", "ja" ],
+    [ "zh_CN", "zh-CN" ],
+    [ "en-US", "en" ],
+  ])("resolves navigator language %s to %s", (value, expected) => {
+    expect(resolve({ navigatorLanguage: value })).toBe(expected);
   });
 
-  test("preserves browser language order", () => {
-    expect(
-      resolve({ navigatorLanguages: [ "ja-JP", "en-US" ] })
-    ).toMatchObject({ resolvedLanguage: "ja" });
-  });
-
-  test("prefers an explicit base language over a regional sibling", () => {
+  test("does not infer a different regional language", () => {
     expect(
       resolveLanguagePreference({
         storageKey: "PROJECT_LANGUAGE",
-        languages: [
-          { value: "en", label: "English" },
-          { value: "en-GB", label: "English (UK)" },
-        ],
-        fallback: "en-GB",
-        url: noQueryUrl,
-        storage: null,
-        navigatorLanguages: [ "en-US" ],
-      })
-    ).toMatchObject({ resolvedLanguage: "en", source: "system" });
-  });
-
-  test("does not infer sibling regional languages", () => {
-    const regionalLanguages = [
-      { value: "zh-CN", label: "简体中文" },
-      { value: "pt-PT", label: "Português" },
-      { value: "en-GB", label: "English (UK)" },
-      { value: "ja", label: "日本語" },
-    ];
-
-    for (const browserLanguage of [ "zh-TW", "pt-BR", "en-US" ]) {
-      expect(
-        resolveLanguagePreference({
-          storageKey: "PROJECT_LANGUAGE",
-          languages: regionalLanguages,
-          fallback: "ja",
-          url: noQueryUrl,
-          storage: null,
-          navigatorLanguages: [ browserLanguage ],
-        })
-      ).toMatchObject({ resolvedLanguage: "ja", source: "fallback" });
-    }
-  });
-
-  test("does not choose between regional variants from a base language", () => {
-    expect(
-      resolveLanguagePreference({
-        storageKey: "PROJECT_LANGUAGE",
-        languages: [
-          { value: "en-US", label: "English (US)" },
-          { value: "en-GB", label: "English (UK)" },
-          { value: "ja", label: "日本語" },
-        ],
+        languages: [ "en-GB", "ja" ],
         fallback: "ja",
         url: noQueryUrl,
         storage: null,
-        navigatorLanguages: [ "en" ],
+        navigatorLanguage: "en-US",
       })
-    ).toMatchObject({ resolvedLanguage: "ja", source: "fallback" });
+    ).toBe("ja");
   });
-});
 
-describe("resolveLanguagePreference fallback and SSR behavior", () => {
-  test("uses the exact configured fallback and display name", () => {
-    expectLanguageResult(resolve(), {
-      preference: "en",
-      resolvedLanguage: "en",
-      displayName: "English",
-      resolvedDisplayName: "English",
-      source: "fallback",
-    });
+  test("uses fallback for an unsupported or unavailable browser language", () => {
+    expect(resolve({ navigatorLanguage: "fr-FR" })).toBe("en");
+    expect(resolve({ navigatorLanguage: null })).toBe("en");
   });
 
   test("uses fallback during SSR instead of the Node.js navigator locale", () => {
-    expectLanguageResult(
+    expect(
       resolveLanguagePreference({
         storageKey: "PROJECT_LANGUAGE",
         languages,
         fallback: "ja",
-      }),
-      {
-        preference: "ja",
-        resolvedLanguage: "ja",
-        displayName: "日本語",
-        resolvedDisplayName: "日本語",
-        source: "fallback",
-      }
-    );
-  });
-
-  test("supports a custom system display name", () => {
-    expect(
-      resolve({
-        navigatorLanguages: [ "ja" ],
-        systemDisplayName: "Automatic",
       })
-    ).toMatchObject({
-      displayName: "Automatic",
-      resolvedDisplayName: "日本語",
-    });
+    ).toBe("ja");
   });
 
-  test("uses default browser languages in deterministic priority order", () => {
+  test("reads navigator.language in a browser", () => {
     const navigatorDescriptor = Object.getOwnPropertyDescriptor(
       global,
       "navigator"
@@ -342,7 +175,7 @@ describe("resolveLanguagePreference fallback and SSR behavior", () => {
     });
     Object.defineProperty(global, "navigator", {
       configurable: true,
-      value: { languages: [ "unsupported" ], language: "ja-JP" },
+      value: { language: "ja-JP" },
     });
 
     try {
@@ -352,7 +185,7 @@ describe("resolveLanguagePreference fallback and SSR behavior", () => {
           languages,
           fallback: "en",
         })
-      ).toMatchObject({ resolvedLanguage: "ja", source: "system" });
+      ).toBe("ja");
     } finally {
       if (navigatorDescriptor) {
         Object.defineProperty(global, "navigator", navigatorDescriptor);
@@ -367,7 +200,7 @@ describe("resolveLanguagePreference fallback and SSR behavior", () => {
     }
   });
 
-  test("uses fallback when browser language properties are inaccessible", () => {
+  test("uses fallback when navigator.language is inaccessible", () => {
     const navigatorDescriptor = Object.getOwnPropertyDescriptor(
       global,
       "navigator"
@@ -383,9 +216,6 @@ describe("resolveLanguagePreference fallback and SSR behavior", () => {
     Object.defineProperty(global, "navigator", {
       configurable: true,
       value: {
-        get languages() {
-          throw new Error("Languages unavailable");
-        },
         get language() {
           throw new Error("Language unavailable");
         },
@@ -400,7 +230,7 @@ describe("resolveLanguagePreference fallback and SSR behavior", () => {
           fallback: "en",
           storage: null,
         })
-      ).toMatchObject({ resolvedLanguage: "en", source: "fallback" });
+      ).toBe("en");
     } finally {
       if (navigatorDescriptor) {
         Object.defineProperty(global, "navigator", navigatorDescriptor);
@@ -417,56 +247,43 @@ describe("resolveLanguagePreference fallback and SSR behavior", () => {
 });
 
 describe("setLanguagePreference", () => {
-  test.each([ "system", "en", "zh-CN", "ja" ])(
-    "persists the exact %s preference",
-    (preference) => {
-      const storage = { setItem: jest.fn() };
+  test.each(languages)("persists the exact %s language", (language) => {
+    const storage = { setItem: jest.fn() };
 
-      expect(
-        setLanguagePreference({
-          storageKey: "PROJECT_LANGUAGE",
-          languages,
-          preference,
-          storage,
-        })
-      ).toBe(true);
-      expect(storage.setItem).toHaveBeenCalledWith(
-        "PROJECT_LANGUAGE",
-        preference
-      );
-    }
-  );
+    expect(
+      setLanguagePreference({
+        storageKey: "PROJECT_LANGUAGE",
+        languages,
+        language,
+        storage,
+      })
+    ).toBe(true);
+    expect(storage.setItem).toHaveBeenCalledWith(
+      "PROJECT_LANGUAGE",
+      language
+    );
+  });
 
-  test.each([ "unsupported", "ja-JP", "JA" ])(
-    "rejects unsupported or non-canonical preference %p",
-    (preference) => {
+  test.each([ "unsupported", "ja-JP", "system" ])(
+    "rejects unsupported language %p",
+    (language) => {
       expect(() =>
         setLanguagePreference({
           storageKey: "PROJECT_LANGUAGE",
           languages,
-          preference,
+          language,
           storage: { setItem: jest.fn() },
         })
       ).toThrow(TypeError);
     }
   );
 
-  test("returns false when default storage is unavailable during SSR", () => {
+  test("returns false when storage is unavailable or rejects the write", () => {
     expect(
       setLanguagePreference({
         storageKey: "PROJECT_LANGUAGE",
         languages,
-        preference: "ja",
-      })
-    ).toBe(false);
-  });
-
-  test("returns false for explicitly unavailable or throwing storage", () => {
-    expect(
-      setLanguagePreference({
-        storageKey: "PROJECT_LANGUAGE",
-        languages,
-        preference: "ja",
+        language: "ja",
         storage: null,
       })
     ).toBe(false);
@@ -474,7 +291,7 @@ describe("setLanguagePreference", () => {
       setLanguagePreference({
         storageKey: "PROJECT_LANGUAGE",
         languages,
-        preference: "ja",
+        language: "ja",
         storage: {
           setItem: jest.fn(() => {
             throw new Error("Storage unavailable");
@@ -496,7 +313,7 @@ describe("setLanguagePreference", () => {
       setLanguagePreference({
         storageKey: "PROJECT_LANGUAGE",
         languages,
-        preference: "ja",
+        language: "ja",
         storage,
       })
     ).toBe(false);
@@ -510,7 +327,7 @@ describe("language preference validation", () => {
     fallback: "en",
     url: noQueryUrl,
     storage: null,
-    navigatorLanguages: [],
+    navigatorLanguage: null,
   };
 
   test("requires an options object", () => {
@@ -526,73 +343,37 @@ describe("language preference validation", () => {
       setLanguagePreference({
         storageKey,
         languages,
-        preference: "en",
+        language: "en",
         storage: null,
       })
     ).toThrow(TypeError);
   });
 
-  test("rejects an empty language list", () => {
-    expect(() =>
-      resolveLanguagePreference({ ...baseOptions, languages: [] })
-    ).toThrow(TypeError);
-  });
-
   test.each([
-    [
-      [
-        { value: "en-US", label: "English" },
-        { value: "EN_us", label: "Duplicate" },
-      ],
-      "en-US",
-    ],
-    [ [ { value: "system", label: "System language" } ], "system" ],
-    [ [ { value: "en", label: "" } ], "en" ],
-    [ [ { value: "en", label: "English", aliases: [ "" ] } ], "en" ],
-    [ [ { value: "en", label: "English", aliases: [ 1 ] } ], "en" ],
-  ])("rejects invalid language configuration %#", (invalid, fallback) => {
+    [ [] ],
+    [ [ "" ] ],
+    [ [ "en-US", "EN_us" ] ],
+    [ [ "en", 1 ] ],
+  ])("rejects invalid languages %p", (invalidLanguages) => {
     expect(() =>
       resolveLanguagePreference({
         ...baseOptions,
-        languages: invalid,
-        fallback,
+        languages: invalidLanguages,
       })
     ).toThrow(TypeError);
   });
 
-  test("rejects ambiguous aliases and aliases colliding with canonical values", () => {
-    for (const invalid of [
-      [
-        { value: "en", label: "English", aliases: [ "shared" ] },
-        { value: "ja", label: "日本語", aliases: [ "shared" ] },
-      ],
-      [
-        { value: "en", label: "English", aliases: [ "ja" ] },
-        { value: "ja", label: "日本語" },
-      ],
-    ]) {
-      expect(() =>
-        resolveLanguagePreference({
-          ...baseOptions,
-          languages: invalid,
-          fallback: "en",
-        })
-      ).toThrow(TypeError);
-    }
-  });
-
-  test("rejects a fallback that is not an exact canonical value", () => {
+  test("rejects an unsupported fallback", () => {
     expect(() =>
-      resolveLanguagePreference({ ...baseOptions, fallback: "en-US" })
+      resolveLanguagePreference({ ...baseOptions, fallback: "fr" })
     ).toThrow(TypeError);
   });
 
   test.each([
     [ "queryParam", "" ],
-    [ "systemDisplayName", "" ],
     [ "url", "not a url" ],
     [ "storage", {} ],
-    [ "navigatorLanguages", [ "en", 1 ] ],
+    [ "navigatorLanguage", [] ],
   ])("rejects invalid %s", (key, value) => {
     expect(() =>
       resolveLanguagePreference({ ...baseOptions, [key]: value })
@@ -619,7 +400,7 @@ describe("language preference validation", () => {
       setLanguagePreference({
         storageKey: "PROJECT_LANGUAGE",
         languages,
-        preference: "en",
+        language: "en",
         storage: {},
       })
     ).toThrow(TypeError);
@@ -627,7 +408,7 @@ describe("language preference validation", () => {
       setLanguagePreference({
         storageKey: "PROJECT_LANGUAGE",
         languages: [],
-        preference: "en",
+        language: "en",
       })
     ).toThrow(TypeError);
   });
