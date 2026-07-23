@@ -1,9 +1,4 @@
-import { resolveThemePreference, setThemePreference } from "../src/theme";
-import type {
-  ResolvedTheme,
-  ThemePreference,
-  ThemePreferenceResult,
-} from "../src/theme";
+import type { ResolvedTheme, ThemePreference } from "../src/theme";
 
 type ThemeMediaQuery = Pick<MediaQueryList, "matches"> &
   Partial<
@@ -60,22 +55,38 @@ function resolveCurrentTheme(
   windowRef: Window,
   storageKey: string,
   media: ThemeMediaQuery
-): ThemePreferenceResult {
-  let url: string | undefined;
+): { preference: ThemePreference; resolvedTheme: ResolvedTheme } {
+  let queryPreference: ThemePreference | null = null;
   try {
-    url = windowRef.location?.href;
+    const value = new URL(windowRef.location.href).searchParams.get("theme");
+    queryPreference = value === "light" || value === "dark" ? value : null;
   } catch {
-    // The resolver can continue without a URL in restricted environments.
+    // Continue to storage when the location is inaccessible.
+  }
+  if (queryPreference) {
+    return {
+      preference: queryPreference,
+      resolvedTheme: queryPreference,
+    };
   }
 
-  return resolveThemePreference({
-    storageKey,
-    ...(url ? { url } : {}),
-    storage: {
-      getItem: (key: string) => windowRef.localStorage.getItem(key),
-    },
-    matchMedia: () => media,
-  });
+  let storedPreference: ThemePreference | null = null;
+  try {
+    const value = windowRef.localStorage.getItem(storageKey);
+    storedPreference = isThemePreference(value) ? value : null;
+  } catch {
+    // Continue to the system preference when storage is inaccessible.
+  }
+  if (storedPreference === "light" || storedPreference === "dark") {
+    return {
+      preference: storedPreference,
+      resolvedTheme: storedPreference,
+    };
+  }
+  return {
+    preference: "system",
+    resolvedTheme: media.matches ? "dark" : "light",
+  };
 }
 
 export function initializeThemeControls(
@@ -113,14 +124,11 @@ export function initializeThemeControls(
     }
 
     if (persist) {
-      setThemePreference({
-        storageKey,
-        preference: selected,
-        storage: {
-          setItem: (key: string, value: string) =>
-            windowRef.localStorage.setItem(key, value),
-        },
-      });
+      try {
+        windowRef.localStorage.setItem(storageKey, selected);
+      } catch {
+        // Storage may be unavailable in privacy-restricted contexts.
+      }
     }
     try {
       windowRef.localStorage.setItem(

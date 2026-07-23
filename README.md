@@ -126,6 +126,8 @@ There are some examples maintained by hand below. For more information, please c
 - [Browser Information](#browser-information)
   - [resolveThemePreference](#resolvethemepreference)
   - [setThemePreference](#setthemepreference)
+  - [resolveLanguagePreference](#resolvelanguagepreference)
+  - [setLanguagePreference](#setlanguagepreference)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -1157,16 +1159,14 @@ Output:
 
 #### resolveThemePreference
 
-Resolve a project-specific website theme preference without applying it to the
-page. Resolution checks a `light` or `dark` URL query override, persisted
-`system`/`light`/`dark` storage, the current system color scheme, and finally a
-`light` fallback, in that order.
+Resolve a project-specific website theme without applying it to the page.
+Resolution checks the fixed `theme` URL query, the supplied local-storage key,
+the current system color scheme, and finally the fixed `light` fallback.
 
 ```javascript
-const theme = resolveThemePreference({
-  storageKey: "MY_WEBSITE_THEME",
-  url: "https://example.com/?theme=dark",
-});
+const theme = resolveThemePreference(
+  "MY_WEBSITE_THEME"
+);
 
 console.log(theme);
 ```
@@ -1175,17 +1175,16 @@ Output:
 
 ```text
 {
-  preference: "dark",
-  resolvedTheme: "dark",
-  displayName: "Dark",
-  source: "query"
+  value: "dark",
+  label: "System"
 }
 ```
 
-`preference` is the selected `system`, `light`, or `dark` value, while
-`resolvedTheme` is always the effective `light` or `dark` theme. The resolver
-is safe during SSR, tolerates unavailable browser storage and media queries,
-and does not mutate the DOM or write to storage.
+`value` is always the concrete `light` or `dark` theme. `label` identifies the
+preference that selected it: `System`, `Light`, or `Dark`. Only `light` and
+`dark` are accepted from `?theme=`; stored values may also be `system`. The
+resolver is safe during SSR, tolerates unavailable browser storage and media
+queries, and does not mutate the DOM or write to storage.
 
 #### setThemePreference
 
@@ -1194,10 +1193,55 @@ project-specific storage key. The function returns `false` when storage is
 unavailable or rejects the write; it does not apply the theme to the page.
 
 ```javascript
-const stored = setThemePreference({
-  storageKey: "MY_WEBSITE_THEME",
-  preference: "dark",
-});
+const stored = setThemePreference(
+  "MY_WEBSITE_THEME",
+  "dark"
+);
+```
+
+Output: `true`
+
+#### resolveLanguagePreference
+
+Resolve one current UI language without applying it to the page. Resolution
+checks the fixed `lang` URL query, the supplied local-storage key,
+`navigator.language`, and finally the fixed `en` fallback.
+
+```javascript
+const language =
+  resolveLanguagePreference(
+    "MY_WEBSITE_LANGUAGE"
+  );
+
+console.log(language);
+```
+
+Possible output:
+
+```text
+{
+  value: "ja-JP",
+  label: "日本語（日本）"
+}
+```
+
+Language tags are trimmed, treat `_` as `-`, and are canonicalized. The label
+is generated with `Intl.DisplayNames` when available, so its exact wording may
+vary by runtime; otherwise the canonical language tag is used. Only the
+browser's single `navigator.language` value is read—`navigator.languages` is
+ignored. The resolver is SSR-safe and never writes storage, applies a language,
+loads translations, or mutates the DOM.
+
+#### setLanguagePreference
+
+Canonicalize and persist the language selected by the user. The function
+returns `false` when storage is unavailable or rejects the write.
+
+```javascript
+const stored = setLanguagePreference(
+  "MY_WEBSITE_LANGUAGE",
+  "ja-JP"
+);
 ```
 
 Output: `true`
