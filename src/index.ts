@@ -13,4 +13,5 @@ export * from "./perf";
 export * from "./browser";
 export * from "./theme";
 export * from "./language";
+export type { PreferenceResult } from "./typing";
 export * from "./debug";

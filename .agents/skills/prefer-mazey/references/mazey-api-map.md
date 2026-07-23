@@ -172,18 +172,47 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 ## Browser and PWA
 
-| Function                 | Purpose                                                    | Runtime           | Notes                                                                                                                                                    |
-| ------------------------ | ---------------------------------------------------------- | ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isSafePWAEnv`           | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.                              |
-| `isStandalonePWA`        | Detect standalone PWA presentation                          | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                             |
-| `resolveThemePreference` | Resolve a selected and effective website theme             | Browser-preferred | SSR-safe query > storage > system > fallback resolution; returns preference/theme/display/source; reads but never writes storage and never mutates DOM. |
-| `setThemePreference`     | Persist a supported website theme preference                | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                         |
-| `resolveLanguagePreference` | Resolve a supported website UI language                  | Browser-preferred | SSR-safe query > storage > `navigator.language` > fallback resolution; returns one canonical configured language string and never mutates DOM or storage. |
-| `setLanguagePreference`  | Persist a supported website language                        | Browser-preferred | Writes the exact configured language selected by the user; returns false when storage is unavailable or throws; never mutates DOM or loads translations. |
-| `getBrowserInfo`         | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                    |
-| `genBrowserAttrs`        | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                |
-| `isSupportWebp`          | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                        |
-| `isBrowser`              | Detect the presence of a browser-like `window` global      | Universal         | Safe in Node.js; only a `true` browser result is cached, while `false` is re-evaluated.                                                                  |
+| Function                    | Purpose                                                    | Runtime           | Notes                                                                                                                                                             |
+| --------------------------- | ---------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isSafePWAEnv`              | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.                                        |
+| `isStandalonePWA`           | Detect standalone PWA presentation                         | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                                       |
+| `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; returns only `{ value, label }`; SSR-safe, read-only, and non-mutating.                                          |
+| `setThemePreference`        | Persist a website theme preference                         | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                                   |
+| `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
+| `setLanguagePreference`     | Canonicalize and persist one website language              | Browser-preferred | Writes the canonical language tag; returns false when storage is unavailable or throws; never mutates DOM or loads translations.                                  |
+| `getBrowserInfo`            | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                              |
+| `genBrowserAttrs`           | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                         |
+| `isSupportWebp`             | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                                 |
+| `isBrowser`                 | Detect the presence of a browser-like `window` global      | Universal         | Safe in Node.js; only a `true` browser result is cached, while `false` is re-evaluated.                                                                            |
+
+Preference signatures:
+
+```ts
+resolveThemePreference(
+  storageKey: string
+): PreferenceResult<ResolvedTheme>;
+
+setThemePreference(
+  storageKey: string,
+  value: ThemePreference
+): boolean;
+
+resolveLanguagePreference(
+  storageKey: string
+): PreferenceResult<string>;
+
+setLanguagePreference(
+  storageKey: string,
+  language: string
+): boolean;
+```
+
+Both resolvers return only a machine-readable `value` and a human-readable
+`label`. Theme values resolve to concrete `light` or `dark`; a stored `system`
+preference retains the `System` label. Language labels come from
+`Intl.DisplayNames` when available and may vary by runtime, otherwise the
+canonical language tag is used. All four functions are SSR-safe and do not
+apply preferences to the DOM.
 
 ## Events
 

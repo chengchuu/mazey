@@ -1,10 +1,10 @@
 import {
-  getDefaultReadableStorage,
-  getDefaultWritableStorage,
-  getPreferenceUrl,
-  validatePreferenceUrl,
+  getUrlQueryValue,
+  readLocalStorage,
   validateStorageKey,
+  writeLocalStorage,
 } from "./preference";
+import type { PreferenceResult } from "./typing";
 
 /**
  * A user-selectable color-theme preference.
@@ -20,73 +20,7 @@ export type ThemePreference = "system" | "light" | "dark";
  */
 export type ResolvedTheme = "light" | "dark";
 
-/**
- * Human-readable names for supported theme preferences.
- *
- * @category Browser Information
- */
-export type ThemePreferenceDisplayName = "System" | "Light" | "Dark";
-
-/**
- * The highest-priority source that selected a theme preference.
- *
- * @category Browser Information
- */
-export type ThemePreferenceSource = "query" | "storage" | "system" | "fallback";
-
-/**
- * Options for {@link resolveThemePreference}.
- *
- * @category Browser Information
- */
-export interface ResolveThemePreferenceOptions {
-  /** Project-specific local-storage key, such as `MAZEY_THEME`. */
-  storageKey: string;
-  /** URL query parameter name. Defaults to `theme`. */
-  queryParam?: string;
-  /** URL inspected for a query override. Defaults to `window.location.href` when available. */
-  url?: string | URL;
-  /** Storage used to read a persisted preference. Defaults to `window.localStorage` when available. */
-  storage?: Pick<Storage, "getItem"> | null;
-  /** Media-query implementation. Defaults to `window.matchMedia` when available. */
-  matchMedia?: (query: string) => Pick<MediaQueryList, "matches">;
-  /** Theme used when the system preference is unavailable. Defaults to `light`. */
-  fallback?: ResolvedTheme;
-}
-
-/**
- * Options for {@link setThemePreference}.
- *
- * @category Browser Information
- */
-export interface SetThemePreferenceOptions {
-  /** Project-specific local-storage key, such as `MAZEY_THEME`. */
-  storageKey: string;
-  /** Supported preference to persist. */
-  preference: ThemePreference;
-  /** Storage used to persist the preference. Defaults to `window.localStorage` when available. */
-  storage?: Pick<Storage, "setItem"> | null;
-}
-
-/**
- * Result returned by {@link resolveThemePreference}.
- *
- * @category Browser Information
- */
-export interface ThemePreferenceResult {
-  /** Selected user-facing preference. */
-  preference: ThemePreference;
-  /** Effective light or dark theme. */
-  resolvedTheme: ResolvedTheme;
-  /** Human-readable name of the selected preference. */
-  displayName: ThemePreferenceDisplayName;
-  /** Highest-priority source that supplied the selected preference. */
-  source: ThemePreferenceSource;
-}
-
-const themePreferenceDisplayNames: Readonly<
-  Record<ThemePreference, ThemePreferenceDisplayName>
-> = Object.freeze({
+const themeLabels: Readonly<Record<ThemePreference, string>> = Object.freeze({
   system: "System",
   light: "Light",
   dark: "Dark",
@@ -100,80 +34,12 @@ function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || isResolvedTheme(value);
 }
 
-function createThemeResult(
-  preference: ThemePreference,
-  resolvedTheme: ResolvedTheme,
-  source: ThemePreferenceSource
-): ThemePreferenceResult {
-  return {
-    preference,
-    resolvedTheme,
-    displayName: themePreferenceDisplayNames[preference],
-    source,
-  };
-}
-
-function validateOptions(options: ResolveThemePreferenceOptions): {
-  storageKey: string;
-  queryParam: string;
-  fallback: ResolvedTheme;
-} {
-  if (!options || typeof options !== "object" || Array.isArray(options)) {
-    throw new TypeError("Theme options must be an object.");
-  }
-  validateStorageKey(options.storageKey);
-  if (
-    options.queryParam !== undefined &&
-    (typeof options.queryParam !== "string" || options.queryParam.trim() === "")
-  ) {
-    throw new TypeError("queryParam must be a non-empty string.");
-  }
-  if (options.fallback !== undefined && !isResolvedTheme(options.fallback)) {
-    throw new TypeError("fallback must be \"light\" or \"dark\".");
-  }
-  if (
-    options.storage !== undefined &&
-    options.storage !== null &&
-    (typeof options.storage !== "object" ||
-      typeof options.storage.getItem !== "function")
-  ) {
-    throw new TypeError("storage must provide a getItem function.");
-  }
-  if (
-    options.matchMedia !== undefined &&
-    typeof options.matchMedia !== "function"
-  ) {
-    throw new TypeError("matchMedia must be a function.");
-  }
-  validatePreferenceUrl(options.url);
-
-  return {
-    storageKey: options.storageKey,
-    queryParam: options.queryParam ?? "theme",
-    fallback: options.fallback ?? "light",
-  };
-}
-
-function getDefaultMatchMedia():
-  | ((query: string) => Pick<MediaQueryList, "matches">)
-  | null {
+function getSystemTheme(): ResolvedTheme | null {
   if (typeof window === "undefined") return null;
   try {
-    const mediaQuery = window.matchMedia;
-    return typeof mediaQuery === "function"
-      ? (query: string) => mediaQuery.call(window, query)
-      : null;
-  } catch (error) {
-    return null;
-  }
-}
-
-function resolveSystemTheme(
-  matchMedia: ((query: string) => Pick<MediaQueryList, "matches">) | null
-): ResolvedTheme | null {
-  if (!matchMedia) return null;
-  try {
-    return matchMedia("(prefers-color-scheme: dark)").matches
+    const matchMedia = window.matchMedia;
+    if (typeof matchMedia !== "function") return null;
+    return matchMedia.call(window, "(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
   } catch (error) {
@@ -181,163 +47,133 @@ function resolveSystemTheme(
   }
 }
 
+function createThemeResult(
+  value: ResolvedTheme,
+  label: ThemePreference
+): PreferenceResult<ResolvedTheme> {
+  return { value, label: themeLabels[label] };
+}
+
 /**
- * Resolve a website theme preference without mutating the DOM or storage.
+ * Resolve the current website theme.
  *
- * Resolution uses four priority levels: a `light` or `dark` URL query
- * override, a stored `system`/`light`/`dark` preference, the current system
- * color scheme, and finally a configured `light` or `dark` fallback. The
- * default query parameter is `theme`, and the storage key must be supplied by
- * the consuming project. Query `system` and all unsupported values are ignored.
+ * Resolution checks the fixed `theme` URL query, the supplied local-storage
+ * key, the current `prefers-color-scheme` media query, and finally the fixed
+ * `light` fallback. Query values accept only `light` and `dark`. Storage also
+ * accepts `system`, which resolves to a concrete value while retaining the
+ * `System` label.
  *
- * The result separates the selected preference from the effective theme and
- * includes its display name (`System`, `Light`, or `Dark`) and source. A stored
- * `system` preference retains `source: "storage"` while its effective theme is
- * resolved from the current media query or fallback.
+ * Resolution matrix:
+ *
+ * | Query   | Storage  | System dark | Result                                |
+ * | ------- | -------- | ----------: | ------------------------------------- |
+ * | `dark`  | `light`  |       false | `{ value: "dark", label: "Dark" }`    |
+ * | `light` | `dark`   |        true | `{ value: "light", label: "Light" }`  |
+ * | invalid | `dark`   |       false | `{ value: "dark", label: "Dark" }`    |
+ * | missing | `light`  |        true | `{ value: "light", label: "Light" }`  |
+ * | missing | `system` |        true | `{ value: "dark", label: "System" }`  |
+ * | missing | `system` |       false | `{ value: "light", label: "System" }` |
+ * | missing | invalid  |        true | `{ value: "dark", label: "System" }`  |
+ * | missing | missing  |       false | `{ value: "light", label: "System" }` |
+ * | missing | missing  | unavailable | `{ value: "light", label: "Light" }`  |
  *
  * Usage:
  *
- * ```javascript
- * import { resolveThemePreference } from "mazey";
+ * ```ts
+ * import {
+ *   resolveThemePreference,
+ *   setThemePreference,
+ * } from "mazey";
  *
- * const theme = resolveThemePreference({
- *   storageKey: "MY_WEBSITE_THEME",
- * });
- * console.log(theme.preference);
- * console.log(theme.resolvedTheme);
- * console.log(theme.displayName);
- * console.log(theme.source);
+ * const theme = resolveThemePreference(
+ *   "MY_WEBSITE_THEME"
+ * );
+ *
+ * console.log(theme);
+ *
+ * setThemePreference(
+ *   "MY_WEBSITE_THEME",
+ *   "system"
+ * );
  * ```
  *
  * Possible output:
  *
  * ```text
- * system
- * dark
- * System
- * system
+ * {
+ *   value: "dark",
+ *   label: "System"
+ * }
  * ```
  *
- * URL override:
- *
- * ```javascript
- * const theme = resolveThemePreference({
- *   storageKey: "MY_WEBSITE_THEME",
- *   url: "https://example.com/?theme=light",
- * });
- * ```
- *
- * @param options Project storage key and optional URL, storage, media-query, and fallback inputs.
- * @returns The selected preference, effective theme, display name, and preference source.
- * @throws {TypeError} If required options or explicitly supplied option values are invalid.
- * @remarks Safe during SSR and resilient to unavailable or throwing browser APIs. This function does not write storage, mutate the DOM, or add listeners. System resolution reads the current media-query result rather than cached browser information.
+ * @param storageKey Project-specific local-storage key.
+ * @returns The concrete `light` or `dark` value and the label of the preference that selected it.
+ * @throws {TypeError} If `storageKey` is not a non-empty string.
+ * @remarks Safe during SSR and resilient to unavailable or throwing browser APIs. This function reads preferences only and never writes storage, mutates the DOM, or adds listeners.
  * @category Browser Information
  */
 export function resolveThemePreference(
-  options: ResolveThemePreferenceOptions
-): ThemePreferenceResult {
-  const { storageKey, queryParam, fallback } = validateOptions(options);
-  const url = getPreferenceUrl(options.url);
-  const storage =
-    options.storage === undefined
-      ? getDefaultReadableStorage()
-      : options.storage;
-  const matchMedia =
-    options.matchMedia === undefined
-      ? getDefaultMatchMedia()
-      : options.matchMedia;
+  storageKey: string
+): PreferenceResult<ResolvedTheme> {
+  validateStorageKey(storageKey);
 
-  const queryPreference = url?.searchParams.get(queryParam);
+  const queryPreference = getUrlQueryValue("theme");
   if (isResolvedTheme(queryPreference)) {
-    return createThemeResult(queryPreference, queryPreference, "query");
+    return createThemeResult(queryPreference, queryPreference);
   }
 
-  let storedPreference: ThemePreference | null = null;
-  if (storage) {
-    try {
-      const value = storage.getItem(storageKey);
-      storedPreference = isThemePreference(value) ? value : null;
-    } catch (error) {
-      storedPreference = null;
-    }
+  const storedPreference = readLocalStorage(storageKey);
+  if (isResolvedTheme(storedPreference)) {
+    return createThemeResult(storedPreference, storedPreference);
   }
 
-  if (storedPreference && storedPreference !== "system") {
-    return createThemeResult(storedPreference, storedPreference, "storage");
+  const systemTheme = getSystemTheme();
+  if (storedPreference === "system" && systemTheme) {
+    return createThemeResult(systemTheme, "system");
   }
-
-  const systemTheme = resolveSystemTheme(matchMedia);
-  if (storedPreference === "system") {
-    return createThemeResult("system", systemTheme ?? fallback, "storage");
-  }
-  if (systemTheme) {
-    return createThemeResult("system", systemTheme, "system");
-  }
-  return createThemeResult(fallback, fallback, "fallback");
+  if (systemTheme) return createThemeResult(systemTheme, "system");
+  return createThemeResult("light", "light");
 }
 
 /**
- * Persist a supported website theme preference.
+ * Persist a website theme preference.
  *
- * The preference is written as the exact lowercase value `system`, `light`,
- * or `dark` under a project-specific storage key. The function returns
- * `false` instead of throwing when storage is unavailable, including during
- * SSR and in privacy-restricted browser environments. It does not resolve or
- * apply the theme and does not mutate the DOM.
+ * The exact lowercase value `system`, `light`, or `dark` is written under the
+ * project-specific key. The function does not resolve or apply the theme.
  *
  * Usage:
  *
- * ```javascript
+ * ```ts
  * import { setThemePreference } from "mazey";
  *
- * const stored = setThemePreference({
- *   storageKey: "MY_WEBSITE_THEME",
- *   preference: "dark",
- * });
+ * const stored = setThemePreference(
+ *   "MY_WEBSITE_THEME",
+ *   "dark"
+ * );
+ *
  * console.log(stored);
  * ```
  *
- * Output:
+ * Output when browser storage is available:
  *
  * ```text
  * true
  * ```
  *
- * @param options Project storage key, supported preference, and optional storage implementation.
- * @returns `true` when the preference was written, or `false` when storage is unavailable or rejects the write.
- * @throws {TypeError} If the options, storage key, preference, or explicitly supplied storage implementation is invalid.
- * @remarks This function writes only the selected preference. Applying a resolved theme and updating controls remain the consuming project's responsibility.
+ * @param storageKey Project-specific local-storage key.
+ * @param value Theme preference to persist.
+ * @returns `true` when storage succeeds, or `false` when storage is unavailable or rejects the write.
+ * @throws {TypeError} If `storageKey` is empty or `value` is not `system`, `light`, or `dark`.
+ * @remarks Safe during SSR. This function writes only the preference and never mutates the DOM, applies a theme, or adds listeners.
  * @category Browser Information
  */
 export function setThemePreference(
-  options: SetThemePreferenceOptions
+  storageKey: string,
+  value: ThemePreference
 ): boolean {
-  if (!options || typeof options !== "object" || Array.isArray(options)) {
-    throw new TypeError("Theme options must be an object.");
+  validateStorageKey(storageKey);
+  if (!isThemePreference(value)) {
+    throw new TypeError("value must be \"system\", \"light\", or \"dark\".");
   }
-  validateStorageKey(options.storageKey);
-  if (!isThemePreference(options.preference)) {
-    throw new TypeError("preference must be \"system\", \"light\", or \"dark\".");
-  }
-  if (
-    options.storage !== undefined &&
-    options.storage !== null &&
-    (typeof options.storage !== "object" ||
-      typeof options.storage.setItem !== "function")
-  ) {
-    throw new TypeError("storage must provide a setItem function.");
-  }
-
-  const storage =
-    options.storage === undefined
-      ? getDefaultWritableStorage()
-      : options.storage;
-  if (!storage) return false;
-
-  try {
-    storage.setItem(options.storageKey, options.preference);
-    return true;
-  } catch (error) {
-    return false;
-  }
+  return writeLocalStorage(storageKey, value);
 }

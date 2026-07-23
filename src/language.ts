@@ -1,148 +1,103 @@
 import {
-  getDefaultReadableStorage,
-  getDefaultWritableStorage,
-  getPreferenceUrl,
-  validatePreferenceUrl,
+  getUrlQueryValue,
+  readLocalStorage,
   validateStorageKey,
+  writeLocalStorage,
 } from "./preference";
+import type { PreferenceResult } from "./typing";
 
-/**
- * Options for {@link resolveLanguagePreference}.
- *
- * @category Browser Information
- */
-export interface ResolveLanguagePreferenceOptions<
-  T extends string = string
-> {
-  /** Project-specific local-storage key, such as `MAZEY_LANGUAGE`. */
-  storageKey: string;
-  /** Language codes supported by the website, in canonical project form. */
-  languages: readonly T[];
-  /** Supported language returned when no preference can be resolved. */
-  fallback: T;
-  /** URL query parameter name. Defaults to `lang`. */
-  queryParam?: string;
-  /** URL inspected for a language override. Defaults to `window.location.href`. */
-  url?: string | URL;
-  /** Storage used to read the saved language. Defaults to `window.localStorage`. */
-  storage?: Pick<Storage, "getItem"> | null;
-  /** Browser language. Defaults to `navigator.language`; use `null` to skip it. */
-  navigatorLanguage?: string | null;
+const fallbackLanguage = "en";
+
+interface IntlLanguageApi {
+  getCanonicalLocales?: (locales: string | readonly string[]) => string[];
+  DisplayNames?: new (
+    locales: readonly string[],
+    options: { type: "language" }
+  ) => {
+    of(code: string): string | undefined;
+  };
 }
 
-/**
- * Options for {@link setLanguagePreference}.
- *
- * @category Browser Information
- */
-export interface SetLanguagePreferenceOptions<T extends string = string> {
-  /** Project-specific local-storage key. */
-  storageKey: string;
-  /** Language codes supported by the website, in canonical project form. */
-  languages: readonly T[];
-  /** Supported language selected by the user. */
-  language: T;
-  /** Storage used to save the language. Defaults to `window.localStorage`. */
-  storage?: Pick<Storage, "setItem"> | null;
-}
+function canonicalizeLanguageFallback(value: string): string | null {
+  const parts = value.split("-");
+  if (!/^[a-z]{2,8}$/i.test(parts[0])) return null;
 
-interface LanguageConfiguration<T extends string> {
-  values: readonly T[];
-  byNormalizedValue: Map<string, T>;
-}
-
-function normalizeLanguage(value: string): string {
-  return value.trim().replace(/_/g, "-").toLowerCase();
-}
-
-function validateLanguages<T extends string>(
-  languages: readonly T[]
-): LanguageConfiguration<T> {
-  if (!Array.isArray(languages) || languages.length === 0) {
-    throw new TypeError("languages must be a non-empty array.");
+  const canonical = [ parts[0].toLowerCase() ];
+  let index = 1;
+  if (index < parts.length && /^[a-z]{4}$/i.test(parts[index])) {
+    const script = parts[index].toLowerCase();
+    canonical.push(`${script[0].toUpperCase()}${script.slice(1)}`);
+    index++;
   }
-
-  const byNormalizedValue = new Map<string, T>();
-  languages.forEach((language) => {
-    if (typeof language !== "string" || language.trim() === "") {
-      throw new TypeError("languages must contain non-empty strings.");
+  if (
+    index < parts.length &&
+    (/^[a-z]{2}$/i.test(parts[index]) || /^\d{3}$/.test(parts[index]))
+  ) {
+    canonical.push(
+      /^[a-z]{2}$/i.test(parts[index])
+        ? parts[index].toUpperCase()
+        : parts[index]
+    );
+    index++;
+  }
+  for (; index < parts.length; index++) {
+    const variant = parts[index];
+    if (!/^(?:[a-z0-9]{5,8}|\d[a-z0-9]{3})$/i.test(variant)) {
+      return null;
     }
-    const normalizedLanguage = normalizeLanguage(language);
-    if (byNormalizedValue.has(normalizedLanguage)) {
-      throw new TypeError(
-        "languages must be unique after case and separator normalization."
-      );
+    canonical.push(variant.toLowerCase());
+  }
+  return canonical.join("-");
+}
+
+function canonicalizeLanguage(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().replace(/_/g, "-");
+  if (!normalized) return null;
+
+  if (typeof Intl !== "undefined") {
+    try {
+      const intlApi = Intl as unknown as IntlLanguageApi;
+      const getCanonicalLocales = intlApi.getCanonicalLocales;
+      if (typeof getCanonicalLocales === "function") {
+        const canonical = getCanonicalLocales.call(intlApi, normalized)[0];
+        return typeof canonical === "string" && canonical ? canonical : null;
+      }
+    } catch (error) {
+      if (
+        error instanceof RangeError ||
+        (typeof error === "object" &&
+          error !== null &&
+          "name" in error &&
+          error.name === "RangeError")
+      ) {
+        return null;
+      }
+      return canonicalizeLanguageFallback(normalized);
     }
-    byNormalizedValue.set(normalizedLanguage, language as T);
-  });
-
-  return { values: languages, byNormalizedValue };
-}
-
-function findExactLanguage<T extends string>(
-  configuration: LanguageConfiguration<T>,
-  value: unknown
-): T | null {
-  if (typeof value !== "string") return null;
-  return configuration.values.find((language) => language === value) ?? null;
-}
-
-function matchLanguage<T extends string>(
-  configuration: LanguageConfiguration<T>,
-  value: unknown
-): T | null {
-  if (typeof value !== "string") return null;
-  const normalizedValue = normalizeLanguage(value);
-  if (!normalizedValue) return null;
-
-  const exact = configuration.byNormalizedValue.get(normalizedValue);
-  if (exact) return exact;
-
-  const separatorIndex = normalizedValue.indexOf("-");
-  if (separatorIndex === -1) return null;
-  const base = normalizedValue.slice(0, separatorIndex);
-  return configuration.byNormalizedValue.get(base) ?? null;
-}
-
-function validateReadableStorage(
-  storage: ResolveLanguagePreferenceOptions<string>["storage"]
-): ResolveLanguagePreferenceOptions<string>["storage"] {
-  if (storage === undefined || storage === null) return storage;
-  if (typeof storage !== "object") {
-    throw new TypeError("storage must provide a getItem function.");
   }
-  let getItem: unknown;
+  return canonicalizeLanguageFallback(normalized);
+}
+
+function getLanguageLabel(language: string): string {
+  if (typeof Intl === "undefined") return language;
   try {
-    getItem = storage.getItem;
+    const DisplayNames = (Intl as unknown as IntlLanguageApi).DisplayNames;
+    if (typeof DisplayNames !== "function") return language;
+    const label = new DisplayNames([ language ], { type: "language" }).of(
+      language
+    );
+    return typeof label === "string" && label.trim() ? label : language;
   } catch (error) {
-    return null;
+    return language;
   }
-  if (typeof getItem !== "function") {
-    throw new TypeError("storage must provide a getItem function.");
-  }
-  return storage;
 }
 
-function validateWritableStorage(
-  storage: SetLanguagePreferenceOptions<string>["storage"]
-): SetLanguagePreferenceOptions<string>["storage"] {
-  if (storage === undefined || storage === null) return storage;
-  if (typeof storage !== "object") {
-    throw new TypeError("storage must provide a setItem function.");
-  }
-  let setItem: unknown;
-  try {
-    setItem = storage.setItem;
-  } catch (error) {
-    return null;
-  }
-  if (typeof setItem !== "function") {
-    throw new TypeError("storage must provide a setItem function.");
-  }
-  return storage;
+function createLanguageResult(language: string): PreferenceResult<string> {
+  return { value: language, label: getLanguageLabel(language) };
 }
 
-function getDefaultNavigatorLanguage(): string | null {
+function getNavigatorLanguage(): string | null {
   if (typeof window === "undefined" || typeof navigator === "undefined") {
     return null;
   }
@@ -156,133 +111,80 @@ function getDefaultNavigatorLanguage(): string | null {
 }
 
 /**
- * Return the supported language a website should use.
+ * Resolve the current website language.
  *
- * Basic usage:
+ * Resolution checks the fixed `lang` URL query, the supplied local-storage
+ * key, `navigator.language`, and finally the fixed `en` fallback. Each value
+ * is trimmed, treats `_` as `-`, and is canonicalized as a language tag.
+ * `navigator.languages` is intentionally ignored.
+ *
+ * The label is generated at runtime with `Intl.DisplayNames` in the resolved
+ * language when available. Runtime wording may vary; the canonical language
+ * value is used as the label when display-name generation is unavailable.
+ *
+ * Usage:
  *
  * ```ts
- * import { resolveLanguagePreference } from "mazey";
+ * import {
+ *   resolveLanguagePreference,
+ *   setLanguagePreference,
+ * } from "mazey";
  *
- * const language = resolveLanguagePreference({
- *   storageKey: "MY_WEBSITE_LANGUAGE",
- *   languages: ["en", "zh-CN", "ja"],
- *   fallback: "en",
- *   url: "https://example.com/?lang=ja",
- * });
+ * const language =
+ *   resolveLanguagePreference(
+ *     "MY_WEBSITE_LANGUAGE"
+ *   );
  *
  * console.log(language);
+ *
+ * setLanguagePreference(
+ *   "MY_WEBSITE_LANGUAGE",
+ *   "ja-JP"
+ * );
  * ```
  *
- * Output:
+ * Possible output:
  *
  * ```text
- * ja
- * ```
- *
- * Use the returned value with a native language selector:
- *
- * ```html
- * <select id="language" aria-label="Language">
- *   <option value="en">English</option>
- *   <option value="zh-CN">简体中文</option>
- *   <option value="ja">日本語</option>
- * </select>
- * ```
- *
- * ```ts
- * const select = document.querySelector<HTMLSelectElement>("#language");
- *
- * if (select) {
- *   select.value = resolveLanguagePreference({
- *     storageKey: "MY_WEBSITE_LANGUAGE",
- *     languages: ["en", "zh-CN", "ja"],
- *     fallback: "en",
- *   });
+ * {
+ *   value: "ja-JP",
+ *   label: "日本語（日本）"
  * }
  * ```
  *
- * The resolution order is the URL query, local storage, `navigator.language`,
- * and the fallback. Matching is case-insensitive and treats `_` as `-`.
- * A regional value can match an explicitly supported base language, such as
- * `en-US` to `en`, but never a different regional variant.
- *
- * @param options Supported languages, fallback, storage key, and optional browser inputs.
- * @returns The canonical supported language selected by the resolution order.
- * @throws {TypeError} If the options, languages, fallback, URL, or injected storage are invalid.
- * @remarks Safe during SSR. This function reads preferences only; it does not mutate the DOM, write storage, load translations, redirect, or add listeners.
+ * @param storageKey Project-specific local-storage key.
+ * @returns The canonical current language and a runtime-generated display label.
+ * @throws {TypeError} If `storageKey` is not a non-empty string.
+ * @remarks Safe during SSR and resilient to unavailable or throwing browser and `Intl` APIs. This function reads preferences only and never writes storage, mutates the DOM, loads translations, redirects, or adds listeners.
  * @category Browser Information
  */
-export function resolveLanguagePreference<T extends string>(
-  options: ResolveLanguagePreferenceOptions<T>
-): T {
-  if (!options || typeof options !== "object" || Array.isArray(options)) {
-    throw new TypeError("Language options must be an object.");
-  }
-  validateStorageKey(options.storageKey);
-  const configuration = validateLanguages(options.languages);
-  const fallback = findExactLanguage(configuration, options.fallback);
-  if (!fallback) {
-    throw new TypeError("fallback must be a configured language.");
-  }
-  if (
-    options.queryParam !== undefined &&
-    (typeof options.queryParam !== "string" || options.queryParam.trim() === "")
-  ) {
-    throw new TypeError("queryParam must be a non-empty string.");
-  }
-  validatePreferenceUrl(options.url);
-  const suppliedStorage = validateReadableStorage(options.storage);
-  if (
-    options.navigatorLanguage !== undefined &&
-    options.navigatorLanguage !== null &&
-    typeof options.navigatorLanguage !== "string"
-  ) {
-    throw new TypeError("navigatorLanguage must be a string or null.");
-  }
+export function resolveLanguagePreference(
+  storageKey: string
+): PreferenceResult<string> {
+  validateStorageKey(storageKey);
 
-  const url = getPreferenceUrl(options.url);
-  const queryLanguage = matchLanguage(
-    configuration,
-    url?.searchParams.get(options.queryParam ?? "lang")
-  );
-  if (queryLanguage) return queryLanguage;
+  const queryLanguage = canonicalizeLanguage(getUrlQueryValue("lang"));
+  if (queryLanguage) return createLanguageResult(queryLanguage);
 
-  const storage =
-    options.storage === undefined
-      ? getDefaultReadableStorage()
-      : suppliedStorage;
-  if (storage) {
-    try {
-      const storedLanguage = matchLanguage(
-        configuration,
-        storage.getItem(options.storageKey)
-      );
-      if (storedLanguage) return storedLanguage;
-    } catch (error) {
-      // Continue to the browser language when storage is inaccessible.
-    }
-  }
+  const storedLanguage = canonicalizeLanguage(readLocalStorage(storageKey));
+  if (storedLanguage) return createLanguageResult(storedLanguage);
 
-  const navigatorLanguage =
-    options.navigatorLanguage === undefined
-      ? getDefaultNavigatorLanguage()
-      : options.navigatorLanguage;
-  return matchLanguage(configuration, navigatorLanguage) ?? fallback;
+  const browserLanguage = canonicalizeLanguage(getNavigatorLanguage());
+  return createLanguageResult(browserLanguage ?? fallbackLanguage);
 }
 
 /**
- * Save a supported language selected by the user.
+ * Canonicalize and persist a website language.
  *
- * Basic usage:
+ * Usage:
  *
  * ```ts
  * import { setLanguagePreference } from "mazey";
  *
- * const stored = setLanguagePreference({
- *   storageKey: "MY_WEBSITE_LANGUAGE",
- *   languages: ["en", "zh-CN", "ja"],
- *   language: "ja",
- * });
+ * const stored = setLanguagePreference(
+ *   "MY_WEBSITE_LANGUAGE",
+ *   "ZH_cn"
+ * );
  *
  * console.log(stored);
  * ```
@@ -293,49 +195,27 @@ export function resolveLanguagePreference<T extends string>(
  * true
  * ```
  *
- * Persist changes from a native language selector:
+ * The stored value is canonicalized to:
  *
- * ```ts
- * const select = document.querySelector<HTMLSelectElement>("#language");
- *
- * select?.addEventListener("change", () => {
- *   setLanguagePreference({
- *     storageKey: "MY_WEBSITE_LANGUAGE",
- *     languages: ["en", "zh-CN", "ja"],
- *     language: select.value,
- *   });
- * });
+ * ```text
+ * zh-CN
  * ```
  *
- * @param options Storage key, supported languages, selected language, and optional storage implementation.
- * @returns `true` when the canonical language was written, or `false` when storage is unavailable or rejects the write.
- * @throws {TypeError} If the options, languages, storage key, selected language, or injected storage are invalid.
- * @remarks Safe during SSR. This function writes only the selected language and performs no DOM, URL, cookie, translation, network, or listener work.
+ * @param storageKey Project-specific local-storage key.
+ * @param language Language tag to canonicalize and persist.
+ * @returns `true` when storage succeeds, or `false` when storage is unavailable or rejects the write.
+ * @throws {TypeError} If `storageKey` is empty or `language` is empty or malformed.
+ * @remarks Safe during SSR. This function writes only the canonical language and never mutates the DOM, applies translations, redirects, or adds listeners.
  * @category Browser Information
  */
-export function setLanguagePreference<T extends string>(
-  options: SetLanguagePreferenceOptions<T>
+export function setLanguagePreference(
+  storageKey: string,
+  language: string
 ): boolean {
-  if (!options || typeof options !== "object" || Array.isArray(options)) {
-    throw new TypeError("Language options must be an object.");
+  validateStorageKey(storageKey);
+  const canonicalLanguage = canonicalizeLanguage(language);
+  if (!canonicalLanguage) {
+    throw new TypeError("language must be a valid language tag.");
   }
-  validateStorageKey(options.storageKey);
-  const configuration = validateLanguages(options.languages);
-  const language = findExactLanguage(configuration, options.language);
-  if (!language) {
-    throw new TypeError("language must be a configured language.");
-  }
-  const suppliedStorage = validateWritableStorage(options.storage);
-  const storage =
-    options.storage === undefined
-      ? getDefaultWritableStorage()
-      : suppliedStorage;
-  if (!storage) return false;
-
-  try {
-    storage.setItem(options.storageKey, language);
-    return true;
-  } catch (error) {
-    return false;
-  }
+  return writeLocalStorage(storageKey, canonicalLanguage);
 }
