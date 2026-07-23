@@ -263,6 +263,14 @@ a {
   font-size: 1.15rem;
 }
 
+.playground-tabs {
+  scrollbar-width: none;
+}
+
+.playground-tabs::-webkit-scrollbar {
+  display: none;
+}
+
 .feature-marker {
   display: inline-flex;
   align-items: center;
