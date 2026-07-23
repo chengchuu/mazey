@@ -1182,9 +1182,10 @@ Output:
 
 `value` is always the concrete `light` or `dark` theme. `label` identifies the
 preference that selected it: `System`, `Light`, or `Dark`. Only `light` and
-`dark` are accepted from `?theme=`; stored values may also be `system`. The
+`dark` are accepted from `?theme=` and are persisted under the supplied storage
+key when browser storage is available; stored values may also be `system`. The
 resolver is safe during SSR, tolerates unavailable browser storage and media
-queries, and does not mutate the DOM or write to storage.
+queries, and does not mutate the DOM.
 
 #### setThemePreference
 

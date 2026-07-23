@@ -70,15 +70,40 @@ describe("resolveThemePreference URL priority", () => {
       expectThemeResult(resolveThemePreference(storageKey), value, label);
     });
     expect(storage.getItem).not.toHaveBeenCalled();
+    expect(storage.setItem).toHaveBeenCalledWith(storageKey, query);
+  });
+
+  test("returns a valid query preference when storage rejects the write", () => {
+    const storage = createStorage("light");
+    storage.setItem.mockImplementation(() => {
+      throw new Error("Storage unavailable");
+    });
+
+    withWindow(
+      createWindow({
+        url: "https://example.com/?theme=dark",
+        storage,
+      }),
+      () => {
+        expectThemeResult(
+          resolveThemePreference(storageKey),
+          "dark",
+          "Dark"
+        );
+      }
+    );
+    expect(storage.getItem).not.toHaveBeenCalled();
+    expect(storage.setItem).toHaveBeenCalledWith(storageKey, "dark");
   });
 
   test.each([ "system", "unsupported", "" ])(
     "ignores query value %p and continues to storage",
     (query) => {
+      const storage = createStorage("dark");
       withWindow(
         createWindow({
           url: `https://example.com/?theme=${query}`,
-          storage: createStorage("dark"),
+          storage,
         }),
         () => {
           expectThemeResult(
@@ -88,14 +113,16 @@ describe("resolveThemePreference URL priority", () => {
           );
         }
       );
+      expect(storage.setItem).not.toHaveBeenCalled();
     }
   );
 
   test("uses only the first duplicate query value", () => {
+    const storage = createStorage("dark");
     withWindow(
       createWindow({
         url: "https://example.com/?theme=light&theme=dark",
-        storage: createStorage("dark"),
+        storage,
         systemDark: true,
       }),
       () => {
@@ -106,6 +133,8 @@ describe("resolveThemePreference URL priority", () => {
         );
       }
     );
+    expect(storage.setItem).toHaveBeenCalledTimes(1);
+    expect(storage.setItem).toHaveBeenCalledWith(storageKey, "light");
   });
 });
 
