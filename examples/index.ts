@@ -1,3 +1,5 @@
+import Tab from "bootstrap/js/dist/tab";
+
 import {
   convertCamelToKebab,
   formatDurationFromMs,
@@ -6,20 +8,7 @@ import {
   isValidEmail,
 } from "../src";
 
-const form = document.querySelector<HTMLFormElement>("[data-utility-form]");
-const durationInput =
-  document.querySelector<HTMLInputElement>("[data-duration]");
-const identifierInput =
-  document.querySelector<HTMLInputElement>("[data-identifier]");
-const emailInput = document.querySelector<HTMLInputElement>("[data-email]");
-const durationResult = document.querySelector<HTMLElement>(
-  "[data-duration-result]"
-);
-const identifierResult = document.querySelector<HTMLElement>(
-  "[data-identifier-result]"
-);
-const emailResult = document.querySelector<HTMLElement>("[data-email-result]");
-const error = document.querySelector<HTMLElement>("[data-error]");
+const initializedTabTriggers = new WeakSet<HTMLElement>();
 
 export function parseDurationInput(value: string): number | null {
   if (!value.trim()) return null;
@@ -47,13 +36,28 @@ export function parseDateTimeInput(value: string): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
+export function initializePlaygroundTabs(root: ParentNode = document): void {
+  root
+    .querySelectorAll<HTMLElement>('[data-bs-toggle="tab"]')
+    .forEach((trigger) => {
+      Tab.getOrCreateInstance(trigger);
+      if (initializedTabTriggers.has(trigger)) return;
+
+      trigger.addEventListener("shown.bs.tab", () => {
+        trigger.scrollIntoView?.({
+          block: "nearest",
+          inline: "nearest",
+        });
+      });
+      initializedTabTriggers.add(trigger);
+    });
+}
+
 export function initializeDateTimeExample(
   root: ParentNode = document,
   now: () => Date = () => new Date()
 ): void {
-  const dateTimeForm = root.querySelector<HTMLFormElement>(
-    "[data-date-time-form]"
-  );
+  const form = root.querySelector<HTMLFormElement>("[data-date-time-form]");
   const startInput = root.querySelector<HTMLInputElement>(
     "[data-date-time-start]"
   );
@@ -61,34 +65,25 @@ export function initializeDateTimeExample(
   const resetButton = root.querySelector<HTMLButtonElement>(
     "[data-date-time-reset]"
   );
+  const error = root.querySelector<HTMLElement>("[data-date-time-error]");
   const result = root.querySelector<HTMLElement>("[data-date-time-result]");
-  const dateTimeError = root.querySelector<HTMLElement>(
-    "[data-date-time-error]"
-  );
 
-  if (
-    !dateTimeForm ||
-    !startInput ||
-    !endInput ||
-    !resetButton ||
-    !result ||
-    !dateTimeError
-  ) {
+  if (!form || !startInput || !endInput || !resetButton || !error || !result) {
     return;
   }
 
-  const runDateTimeExample = (): void => {
-    dateTimeError.textContent = "";
+  const run = (): void => {
+    error.textContent = "";
     result.textContent = "";
     const start = parseDateTimeInput(startInput.value);
     const end = parseDateTimeInput(endInput.value);
 
     if (!start || !end) {
-      dateTimeError.textContent = "Enter a valid start and end date and time.";
+      error.textContent = "Enter a valid start and end date and time.";
       return;
     }
     if (start.getTime() > end.getTime()) {
-      dateTimeError.textContent =
+      error.textContent =
         "The start date and time must not be later than the end date and time.";
       return;
     }
@@ -98,57 +93,112 @@ export function initializeDateTimeExample(
     );
   };
 
-  const resetDateTimeExample = (): void => {
+  const reset = (): void => {
     const currentValue = formatDateTimeLocalValue(now());
     startInput.value = currentValue;
     endInput.value = currentValue;
-    dateTimeError.textContent = "";
-    runDateTimeExample();
+    error.textContent = "";
+    run();
   };
 
-  dateTimeForm.addEventListener("submit", (event) => {
+  form.addEventListener("submit", (event) => {
     event.preventDefault();
-    runDateTimeExample();
+    run();
   });
-  resetButton.addEventListener("click", resetDateTimeExample);
-  resetDateTimeExample();
+  resetButton.addEventListener("click", reset);
+  reset();
 }
 
-function runExamples(): void {
-  if (
-    !durationInput ||
-    !identifierInput ||
-    !emailInput ||
-    !durationResult ||
-    !identifierResult ||
-    !emailResult ||
-    !error
-  ) {
-    return;
-  }
+export function initializeDurationExample(root: ParentNode = document): void {
+  const form = root.querySelector<HTMLFormElement>("[data-duration-form]");
+  const input = root.querySelector<HTMLInputElement>("[data-duration]");
+  const error = root.querySelector<HTMLElement>("[data-duration-error]");
+  const result = root.querySelector<HTMLElement>("[data-duration-result]");
+  if (!form || !input || !error || !result) return;
 
-  error.textContent = "";
-  const duration = parseDurationInput(durationInput.value);
-  if (duration === null) {
-    error.textContent = "Enter a finite duration of zero milliseconds or more.";
-    return;
-  }
+  const run = (): void => {
+    error.textContent = "";
+    result.textContent = "";
+    const duration = parseDurationInput(input.value);
+    if (duration === null) {
+      error.textContent =
+        "Enter a finite duration of zero milliseconds or more.";
+      return;
+    }
 
-  try {
-    durationResult.textContent = formatDurationFromMs(duration);
-    identifierResult.textContent = convertCamelToKebab(identifierInput.value);
-    emailResult.textContent = String(isValidEmail(emailInput.value));
-  } catch (cause) {
-    error.textContent =
-      cause instanceof Error
-        ? `The utilities could not run: ${cause.message}`
-        : "The utilities could not run because of an unexpected error.";
-  }
+    try {
+      result.textContent = formatDurationFromMs(duration);
+    } catch (cause) {
+      error.textContent =
+        cause instanceof Error
+          ? `The duration example could not run: ${cause.message}`
+          : "The duration example could not run because of an unexpected error.";
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    run();
+  });
+  run();
 }
 
-form?.addEventListener("submit", (event) => {
-  event.preventDefault();
-  runExamples();
-});
+export function initializeIdentifierExample(root: ParentNode = document): void {
+  const form = root.querySelector<HTMLFormElement>("[data-identifier-form]");
+  const input = root.querySelector<HTMLInputElement>("[data-identifier]");
+  const error = root.querySelector<HTMLElement>("[data-identifier-error]");
+  const result = root.querySelector<HTMLElement>("[data-identifier-result]");
+  if (!form || !input || !error || !result) return;
 
+  const run = (): void => {
+    error.textContent = "";
+    result.textContent = "";
+    try {
+      result.textContent = convertCamelToKebab(input.value);
+    } catch (cause) {
+      error.textContent =
+        cause instanceof Error
+          ? `The identifier example could not run: ${cause.message}`
+          : "The identifier example could not run because of an unexpected error.";
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    run();
+  });
+  run();
+}
+
+export function initializeEmailExample(root: ParentNode = document): void {
+  const form = root.querySelector<HTMLFormElement>("[data-email-form]");
+  const input = root.querySelector<HTMLInputElement>("[data-email]");
+  const error = root.querySelector<HTMLElement>("[data-email-error]");
+  const result = root.querySelector<HTMLElement>("[data-email-result]");
+  if (!form || !input || !error || !result) return;
+
+  const run = (): void => {
+    error.textContent = "";
+    result.textContent = "";
+    try {
+      result.textContent = String(isValidEmail(input.value));
+    } catch (cause) {
+      error.textContent =
+        cause instanceof Error
+          ? `The email example could not run: ${cause.message}`
+          : "The email example could not run because of an unexpected error.";
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    run();
+  });
+  run();
+}
+
+initializePlaygroundTabs();
 initializeDateTimeExample();
+initializeDurationExample();
+initializeIdentifierExample();
+initializeEmailExample();
