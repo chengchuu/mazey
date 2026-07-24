@@ -10,6 +10,22 @@ import {
 
 const initializedTabTriggers = new WeakSet<HTMLElement>();
 
+type PlaygroundWindow = Pick<Window, "history" | "location">;
+
+function getTabHash(trigger: HTMLElement): string | null {
+  const target = trigger.getAttribute("data-bs-target");
+  return target?.startsWith("#") && target.length > 1 ? target : null;
+}
+
+function replaceTabHash(windowRef: PlaygroundWindow, hash: string): void {
+  if (windowRef.location.hash === hash) return;
+  try {
+    windowRef.history.replaceState(null, "", hash);
+  } catch {
+    // History may be unavailable in restricted browser environments.
+  }
+}
+
 export function parseDurationInput(value: string): number | null {
   if (!value.trim()) return null;
   const duration = Number(value);
@@ -36,21 +52,34 @@ export function parseDateTimeInput(value: string): Date | null {
   return Number.isFinite(date.getTime()) ? date : null;
 }
 
-export function initializePlaygroundTabs(root: ParentNode = document): void {
-  root
-    .querySelectorAll<HTMLElement>('[data-bs-toggle="tab"]')
-    .forEach((trigger) => {
-      Tab.getOrCreateInstance(trigger);
-      if (initializedTabTriggers.has(trigger)) return;
+export function initializePlaygroundTabs(
+  root: ParentNode = document,
+  windowRef: PlaygroundWindow = window
+): void {
+  const triggers = Array.from(
+    root.querySelectorAll<HTMLElement>('[data-bs-toggle="tab"]')
+  );
 
-      trigger.addEventListener("shown.bs.tab", () => {
-        trigger.scrollIntoView?.({
-          block: "nearest",
-          inline: "nearest",
-        });
+  triggers.forEach((trigger) => {
+    Tab.getOrCreateInstance(trigger);
+    if (initializedTabTriggers.has(trigger)) return;
+
+    trigger.addEventListener("shown.bs.tab", () => {
+      trigger.scrollIntoView?.({
+        block: "nearest",
+        inline: "nearest",
       });
-      initializedTabTriggers.add(trigger);
+      const hash = getTabHash(trigger);
+      if (hash) replaceTabHash(windowRef, hash);
     });
+    initializedTabTriggers.add(trigger);
+  });
+
+  const hash = windowRef.location.hash;
+  const hashTrigger = triggers.find((trigger) => getTabHash(trigger) === hash);
+  if (hashTrigger) {
+    Tab.getOrCreateInstance(hashTrigger).show();
+  }
 }
 
 export function initializeDateTimeExample(

@@ -176,13 +176,13 @@
             >
               <li class="nav-item" role="presentation">
                 <button
-                  id="playground-date-tab"
+                  id="date-interval-tab"
                   class="nav-link active"
                   type="button"
                   role="tab"
                   data-bs-toggle="tab"
-                  data-bs-target="#playground-date-panel"
-                  aria-controls="playground-date-panel"
+                  data-bs-target="#date-interval"
+                  aria-controls="date-interval"
                   aria-selected="true"
                 >
                   Date interval
@@ -190,13 +190,13 @@
               </li>
               <li class="nav-item" role="presentation">
                 <button
-                  id="playground-duration-tab"
+                  id="duration-tab"
                   class="nav-link"
                   type="button"
                   role="tab"
                   data-bs-toggle="tab"
-                  data-bs-target="#playground-duration-panel"
-                  aria-controls="playground-duration-panel"
+                  data-bs-target="#duration"
+                  aria-controls="duration"
                   aria-selected="false"
                 >
                   Duration
@@ -204,13 +204,13 @@
               </li>
               <li class="nav-item" role="presentation">
                 <button
-                  id="playground-identifier-tab"
+                  id="identifier-tab"
                   class="nav-link"
                   type="button"
                   role="tab"
                   data-bs-toggle="tab"
-                  data-bs-target="#playground-identifier-panel"
-                  aria-controls="playground-identifier-panel"
+                  data-bs-target="#identifier"
+                  aria-controls="identifier"
                   aria-selected="false"
                 >
                   Identifier
@@ -218,13 +218,13 @@
               </li>
               <li class="nav-item" role="presentation">
                 <button
-                  id="playground-email-tab"
+                  id="email-tab"
                   class="nav-link"
                   type="button"
                   role="tab"
                   data-bs-toggle="tab"
-                  data-bs-target="#playground-email-panel"
-                  aria-controls="playground-email-panel"
+                  data-bs-target="#email"
+                  aria-controls="email"
                   aria-selected="false"
                 >
                   Email
@@ -234,11 +234,10 @@
 
             <div class="tab-content p-4">
               <div
-                id="playground-date-panel"
+                id="date-interval"
                 class="tab-pane fade show active"
                 role="tabpanel"
-                aria-labelledby="playground-date-tab"
-                tabindex="0"
+                aria-labelledby="date-interval-tab"
               >
                 <h3 class="h4">Calculate date and time interval</h3>
                 <p>
@@ -304,11 +303,10 @@
               </div>
 
               <div
-                id="playground-duration-panel"
+                id="duration"
                 class="tab-pane fade"
                 role="tabpanel"
-                aria-labelledby="playground-duration-tab"
-                tabindex="0"
+                aria-labelledby="duration-tab"
               >
                 <h3 class="h4">Format a duration</h3>
                 <p>
@@ -353,11 +351,10 @@
               </div>
 
               <div
-                id="playground-identifier-panel"
+                id="identifier"
                 class="tab-pane fade"
                 role="tabpanel"
-                aria-labelledby="playground-identifier-tab"
-                tabindex="0"
+                aria-labelledby="identifier-tab"
               >
                 <h3 class="h4">Convert an identifier</h3>
                 <p>
@@ -365,11 +362,11 @@
                   <code>convertCamelToKebab</code>.
                 </p>
                 <form data-identifier-form novalidate>
-                  <label class="form-label" for="identifier"
+                  <label class="form-label" for="identifier-value"
                     >Camel-case identifier</label
                   >
                   <input
-                    id="identifier"
+                    id="identifier-value"
                     class="form-control"
                     type="text"
                     value="helloWorld"
@@ -400,18 +397,19 @@
               </div>
 
               <div
-                id="playground-email-panel"
+                id="email"
                 class="tab-pane fade"
                 role="tabpanel"
-                aria-labelledby="playground-email-tab"
-                tabindex="0"
+                aria-labelledby="email-tab"
               >
                 <h3 class="h4">Validate an email address</h3>
                 <p>Check an email address using <code>isValidEmail</code>.</p>
                 <form data-email-form novalidate>
-                  <label class="form-label" for="email">Email address</label>
+                  <label class="form-label" for="email-address"
+                    >Email address</label
+                  >
                   <input
-                    id="email"
+                    id="email-address"
                     class="form-control"
                     type="email"
                     value="dev@example.com"
