@@ -16,10 +16,10 @@ import {
 } from "../examples/index";
 
 const tabDefinitions = [
-  ["playground-date-tab", "playground-date-panel", "Date interval"],
-  ["playground-duration-tab", "playground-duration-panel", "Duration"],
-  ["playground-identifier-tab", "playground-identifier-panel", "Identifier"],
-  ["playground-email-tab", "playground-email-panel", "Email"],
+  ["date-interval-tab", "date-interval", "Date interval"],
+  ["duration-tab", "duration", "Duration"],
+  ["identifier-tab", "identifier", "Identifier"],
+  ["email-tab", "email", "Email"],
 ];
 
 function renderPlaygroundForms() {
@@ -46,10 +46,10 @@ function renderPlaygroundForms() {
     >${tabs}</ul>
     <div class="tab-content">
       <div
-        id="playground-date-panel"
+        id="date-interval"
         class="tab-pane fade show active"
         role="tabpanel"
-        aria-labelledby="playground-date-tab"
+        aria-labelledby="date-interval-tab"
       >
         <form data-date-time-form>
           <input data-date-time-start />
@@ -63,10 +63,10 @@ function renderPlaygroundForms() {
         </form>
       </div>
       <div
-        id="playground-duration-panel"
+        id="duration"
         class="tab-pane fade"
         role="tabpanel"
-        aria-labelledby="playground-duration-tab"
+        aria-labelledby="duration-tab"
       >
         <form data-duration-form>
           <input data-duration value="90000" />
@@ -76,10 +76,10 @@ function renderPlaygroundForms() {
         </form>
       </div>
       <div
-        id="playground-identifier-panel"
+        id="identifier"
         class="tab-pane fade"
         role="tabpanel"
-        aria-labelledby="playground-identifier-tab"
+        aria-labelledby="identifier-tab"
       >
         <form data-identifier-form>
           <input data-identifier value="helloWorld" />
@@ -89,10 +89,10 @@ function renderPlaygroundForms() {
         </form>
       </div>
       <div
-        id="playground-email-panel"
+        id="email"
         class="tab-pane fade"
         role="tabpanel"
-        aria-labelledby="playground-email-tab"
+        aria-labelledby="email-tab"
       >
         <form data-email-form>
           <input data-email value="dev@example.com" />
@@ -116,6 +116,7 @@ afterEach(() => {
     .querySelectorAll('[data-bs-toggle="tab"]')
     .forEach((trigger) => Tab.getInstance(trigger)?.dispose());
   document.body.innerHTML = "";
+  history.replaceState(null, "", "/");
 });
 
 test.each([
@@ -154,7 +155,7 @@ test("uses four accessible Bootstrap tabs with matching panels", () => {
     expect(trigger.dataset.bsTarget).toBe(`#${panelId}`);
     expect(trigger.getAttribute("aria-controls")).toBe(panelId);
     expect(panel.getAttribute("aria-labelledby")).toBe(tabId);
-    expect(panel.getAttribute("tabindex")).toBe("0");
+    expect(panel.getAttribute("tabindex")).toBeNull();
     expect(trigger.getAttribute("aria-selected")).toBe(
       index === 0 ? "true" : "false"
     );
@@ -163,24 +164,28 @@ test("uses four accessible Bootstrap tabs with matching panels", () => {
     expect(panel.classList.contains("show")).toBe(index === 0);
   });
 
-  expect(playground.querySelector("#playground-date-panel form")).toMatchObject(
-    {
-      dataset: expect.objectContaining({ dateTimeForm: "" }),
-    }
-  );
+  expect(playground.querySelector("#date-interval form")).toMatchObject({
+    dataset: expect.objectContaining({ dateTimeForm: "" }),
+  });
   expect(
-    playground.querySelector("#playground-duration-panel [data-duration-form]")
+    playground.querySelector("#duration [data-duration-form]")
   ).not.toBeNull();
   expect(
-    playground.querySelector(
-      "#playground-identifier-panel [data-identifier-form]"
-    )
+    playground.querySelector("#identifier [data-identifier-form]")
   ).not.toBeNull();
-  expect(
-    playground.querySelector("#playground-email-panel [data-email-form]")
-  ).not.toBeNull();
+  expect(playground.querySelector("#email [data-email-form]")).not.toBeNull();
   expect(playground.querySelectorAll(".playground-output")).toHaveLength(4);
   expect(playground.querySelectorAll('[role="alert"]')).toHaveLength(4);
+  const ids = [...playground.querySelectorAll("[id]")].map(
+    (element) => element.id
+  );
+  expect(new Set(ids).size).toBe(ids.length);
+  expect(
+    playground.querySelector('label[for="identifier-value"]').control
+  ).toBe(playground.getElementById("identifier-value"));
+  expect(playground.querySelector('label[for="email-address"]').control).toBe(
+    playground.getElementById("email-address")
+  );
   expect(html).not.toContain("data-utility-form");
   expect(html).not.toContain("data-error");
 });
@@ -424,13 +429,63 @@ test("Bootstrap Tab initialization reuses existing instances", () => {
   );
 });
 
-test("scrolls a newly shown tab into view without duplicate listeners", () => {
+test("keeps the playground URL unchanged when it has no fragment", () => {
   renderPlaygroundForms();
-  const emailTab = document.getElementById("playground-email-tab");
+  const windowRef = {
+    history: { replaceState: jest.fn() },
+    location: { hash: "" },
+  };
+
+  initializePlaygroundTabs(document, windowRef);
+
+  expect(document.getElementById("date-interval-tab").classList).toContain(
+    "active"
+  );
+  expect(windowRef.history.replaceState).not.toHaveBeenCalled();
+});
+
+test("activates the tab targeted by the initial URL hash", () => {
+  renderPlaygroundForms();
+  const windowRef = {
+    history: { replaceState: jest.fn() },
+    location: { hash: "#email" },
+  };
+
+  initializePlaygroundTabs(document, windowRef);
+
+  expect(document.getElementById("email-tab").classList).toContain("active");
+  expect(document.getElementById("email").classList).toContain("active");
+  expect(document.getElementById("date-interval-tab").classList).not.toContain(
+    "active"
+  );
+});
+
+test("ignores an unknown initial URL hash", () => {
+  renderPlaygroundForms();
+  const windowRef = {
+    history: { replaceState: jest.fn() },
+    location: { hash: "#unknown-example" },
+  };
+
+  initializePlaygroundTabs(document, windowRef);
+
+  expect(document.getElementById("date-interval-tab").classList).toContain(
+    "active"
+  );
+  expect(windowRef.history.replaceState).not.toHaveBeenCalled();
+});
+
+test("updates the hash and scrolls a shown tab without duplicate listeners", () => {
+  renderPlaygroundForms();
+  const emailTab = document.getElementById("email-tab");
+  const windowRef = {
+    history: { replaceState: jest.fn() },
+    location: { hash: "#date-interval" },
+  };
   emailTab.scrollIntoView = jest.fn();
 
-  initializePlaygroundTabs();
-  initializePlaygroundTabs();
+  initializePlaygroundTabs(document, windowRef);
+  initializePlaygroundTabs(document, windowRef);
   emailTab.dispatchEvent(new Event("shown.bs.tab", { bubbles: true }));
 
   expect(emailTab.scrollIntoView).toHaveBeenCalledTimes(1);
@@ -438,4 +493,10 @@ test("scrolls a newly shown tab into view without duplicate listeners", () => {
     block: "nearest",
     inline: "nearest",
   });
+  expect(windowRef.history.replaceState).toHaveBeenCalledTimes(1);
+  expect(windowRef.history.replaceState).toHaveBeenCalledWith(
+    null,
+    "",
+    "#email"
+  );
 });
