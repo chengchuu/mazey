@@ -5,13 +5,10 @@ import fs from "node:fs";
 import path from "node:path";
 import Tab from "bootstrap/js/dist/tab";
 import {
-  formatDateTimeLocalValue,
   initializeCAGRExample,
   initializeDateTimeExample,
   initializeDurationExample,
-  initializeIdentifierExample,
   initializePlaygroundTabs,
-  parseDateTimeInput,
   parseDurationInput,
 } from "../examples/index";
 
@@ -19,7 +16,6 @@ const tabDefinitions = [
   ["date-interval-tab", "date-interval", "Date interval"],
   ["cagr-tab", "cagr", "CAGR"],
   ["duration-tab", "duration", "Duration"],
-  ["identifier-tab", "identifier", "Identifier"],
 ];
 
 function renderPlaygroundForms() {
@@ -75,8 +71,8 @@ function renderPlaygroundForms() {
           <button type="submit">Calculate CAGR</button>
           <p role="alert" data-cagr-error></p>
           <div role="status">
-            <code data-cagr-decimal-result></code>
             <code data-cagr-percentage-result></code>
+            <code data-cagr-decimal-result></code>
           </div>
         </form>
       </div>
@@ -91,19 +87,6 @@ function renderPlaygroundForms() {
           <button type="submit">Run example</button>
           <p role="alert" data-duration-error></p>
           <div role="status"><code data-duration-result></code></div>
-        </form>
-      </div>
-      <div
-        id="identifier"
-        class="tab-pane fade"
-        role="tabpanel"
-        aria-labelledby="identifier-tab"
-      >
-        <form data-identifier-form>
-          <input data-identifier value="helloWorld" />
-          <button type="submit">Run example</button>
-          <p role="alert" data-identifier-error></p>
-          <div role="status"><code data-identifier-result></code></div>
         </form>
       </div>
     </div>
@@ -135,7 +118,7 @@ test.each([
   expect(parseDurationInput(value)).toBe(expected);
 });
 
-test("uses four accessible Bootstrap tabs with matching panels", () => {
+test("uses accessible Bootstrap tabs with matching panels", () => {
   const html = fs.readFileSync(
     path.join(process.cwd(), "examples", "index.html"),
     "utf8"
@@ -148,8 +131,8 @@ test("uses four accessible Bootstrap tabs with matching panels", () => {
   expect(tabList).not.toBeNull();
   expect(tabList.classList).toContain("playground-tabs");
   expect(tabList.classList).toContain("overflow-x-auto");
-  expect(triggers).toHaveLength(4);
-  expect(panels).toHaveLength(4);
+  expect(triggers).toHaveLength(3);
+  expect(panels).toHaveLength(3);
 
   tabDefinitions.forEach(([tabId, panelId, label], index) => {
     const trigger = playground.getElementById(tabId);
@@ -177,17 +160,16 @@ test("uses four accessible Bootstrap tabs with matching panels", () => {
   ).not.toBeNull();
   expect(playground.querySelector("#cagr [data-cagr-form]")).not.toBeNull();
   expect(
-    playground.querySelector("#identifier [data-identifier-form]")
-  ).not.toBeNull();
-  expect(playground.querySelectorAll(".playground-output")).toHaveLength(4);
-  expect(playground.querySelectorAll('[role="alert"]')).toHaveLength(4);
+    [...playground.querySelectorAll("#cagr .playground-output strong")].map(
+      (heading) => heading.textContent.trim()
+    )
+  ).toEqual(["Formatted CAGR", "Decimal CAGR"]);
+  expect(playground.querySelectorAll(".playground-output")).toHaveLength(3);
+  expect(playground.querySelectorAll('[role="alert"]')).toHaveLength(3);
   const ids = [...playground.querySelectorAll("[id]")].map(
     (element) => element.id
   );
   expect(new Set(ids).size).toBe(ids.length);
-  expect(
-    playground.querySelector('label[for="identifier-value"]').control
-  ).toBe(playground.getElementById("identifier-value"));
   expect(html).not.toContain("data-utility-form");
   expect(html).not.toContain("data-error");
 });
@@ -222,26 +204,11 @@ test("keeps the date interval controls and native local inputs", () => {
   expect(html.match(/type="datetime-local"/g)).toHaveLength(2);
 });
 
-test("formats datetime-local values from local components", () => {
-  const localDate = new Date(2024, 0, 2, 3, 4, 5);
-
-  expect(formatDateTimeLocalValue(localDate)).toBe("2024-01-02T03:04:05");
-  expect(formatDateTimeLocalValue.toString()).not.toContain("toISOString");
-});
-
-test.each(["", "invalid", "2024-02-30T12:00:00"])(
-  "rejects invalid date-time input %p",
-  (value) => {
-    expect(parseDateTimeInput(value)).toBeNull();
-  }
-);
-
 test("initializes every example with its expected result", () => {
   renderPlaygroundForms();
   initializeDateTimeExample(document, () => new Date(2024, 0, 1, 0, 0, 0));
   initializeCAGRExample();
   initializeDurationExample();
-  initializeIdentifierExample();
 
   expect(document.querySelector("[data-date-time-result]").textContent).toBe(
     "0 seconds"
@@ -255,9 +222,6 @@ test("initializes every example with its expected result", () => {
   expect(
     document.querySelector("[data-cagr-percentage-result]").textContent
   ).toBe("5.39%");
-  expect(document.querySelector("[data-identifier-result]").textContent).toBe(
-    "hello-world"
-  );
 });
 
 test("passes the CAGR return string directly and renders both result forms", () => {
@@ -367,7 +331,6 @@ test("date reset uses a fresh current time, clears errors, and recalculates", ()
 test("duration submission updates only the duration result", () => {
   renderPlaygroundForms();
   initializeDurationExample();
-  document.querySelector("[data-identifier-result]").textContent = "unchanged";
   document.querySelector("[data-cagr-decimal-result]").textContent =
     "unchanged";
   document.querySelector("[data-duration]").value = "120000";
@@ -376,30 +339,6 @@ test("duration submission updates only the duration result", () => {
 
   expect(document.querySelector("[data-duration-result]").textContent).toBe(
     "2 minutes"
-  );
-  expect(document.querySelector("[data-identifier-result]").textContent).toBe(
-    "unchanged"
-  );
-  expect(document.querySelector("[data-cagr-decimal-result]").textContent).toBe(
-    "unchanged"
-  );
-});
-
-test("identifier submission updates only the identifier result", () => {
-  renderPlaygroundForms();
-  initializeIdentifierExample();
-  document.querySelector("[data-duration-result]").textContent = "unchanged";
-  document.querySelector("[data-cagr-decimal-result]").textContent =
-    "unchanged";
-  document.querySelector("[data-identifier]").value = "newIdentifier";
-
-  submit("[data-identifier-form]");
-
-  expect(document.querySelector("[data-identifier-result]").textContent).toBe(
-    "new-identifier"
-  );
-  expect(document.querySelector("[data-duration-result]").textContent).toBe(
-    "unchanged"
   );
   expect(document.querySelector("[data-cagr-decimal-result]").textContent).toBe(
     "unchanged"
@@ -410,7 +349,6 @@ test("invalid duration shows only the duration error", () => {
   renderPlaygroundForms();
   initializeDurationExample();
   initializeCAGRExample();
-  initializeIdentifierExample();
   document.querySelector("[data-duration]").value = "-1";
 
   submit("[data-duration-form]");
@@ -419,9 +357,6 @@ test("invalid duration shows only the duration error", () => {
     "Enter a finite duration of zero milliseconds or more."
   );
   expect(document.querySelector("[data-duration-result]").textContent).toBe("");
-  expect(document.querySelector("[data-identifier-error]").textContent).toBe(
-    ""
-  );
   expect(document.querySelector("[data-cagr-error]").textContent).toBe("");
 });
 
@@ -430,14 +365,12 @@ test("initializers tolerate incomplete markup", () => {
     <form data-date-time-form></form>
     <form data-duration-form><input data-duration /></form>
     <form data-cagr-form><input data-cagr-start /></form>
-    <form data-identifier-form><input data-identifier /></form>
   `;
 
   expect(() => initializePlaygroundTabs()).not.toThrow();
   expect(() => initializeDateTimeExample()).not.toThrow();
   expect(() => initializeCAGRExample()).not.toThrow();
   expect(() => initializeDurationExample()).not.toThrow();
-  expect(() => initializeIdentifierExample()).not.toThrow();
 });
 
 test("Bootstrap Tab initialization reuses existing instances", () => {

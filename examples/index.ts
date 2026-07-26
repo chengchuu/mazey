@@ -2,11 +2,11 @@ import Tab from "bootstrap/js/dist/tab";
 
 import {
   calculateCAGR,
-  convertCamelToKebab,
   floatToPercent,
   formatDurationFromMs,
+  formatLocalDateTime,
   getDateDifference,
-  isValidDate,
+  parseLocalDateTime,
 } from "../src";
 
 const initializedTabTriggers = new WeakSet<HTMLElement>();
@@ -31,26 +31,6 @@ export function parseDurationInput(value: string): number | null {
   if (!value.trim()) return null;
   const duration = Number(value);
   return Number.isFinite(duration) && duration >= 0 ? duration : null;
-}
-
-export function formatDateTimeLocalValue(date: Date): string {
-  const pad = (value: number): string =>
-    value < 10 ? `0${value}` : String(value);
-
-  return [
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`,
-    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
-      date.getSeconds()
-    )}`,
-  ].join("T");
-}
-
-export function parseDateTimeInput(value: string): Date | null {
-  const trimmedValue = value.trim();
-  if (!isValidDate(trimmedValue)) return null;
-
-  const date = new Date(trimmedValue);
-  return Number.isFinite(date.getTime()) ? date : null;
 }
 
 export function initializePlaygroundTabs(
@@ -105,8 +85,8 @@ export function initializeDateTimeExample(
   const run = (): void => {
     error.textContent = "";
     result.textContent = "";
-    const start = parseDateTimeInput(startInput.value);
-    const end = parseDateTimeInput(endInput.value);
+    const start = parseLocalDateTime(startInput.value);
+    const end = parseLocalDateTime(endInput.value);
 
     if (!start || !end) {
       error.textContent = "Enter a valid start and end date and time.";
@@ -124,7 +104,7 @@ export function initializeDateTimeExample(
   };
 
   const reset = (): void => {
-    const currentValue = formatDateTimeLocalValue(now());
+    const currentValue = formatLocalDateTime(now(), { precision: "second" });
     startInput.value = currentValue;
     endInput.value = currentValue;
     error.textContent = "";
@@ -146,11 +126,11 @@ export function initializeCAGRExample(root: ParentNode = document): void {
   const returnInput =
     root.querySelector<HTMLInputElement>("[data-cagr-return]");
   const error = root.querySelector<HTMLElement>("[data-cagr-error]");
-  const decimalResult = root.querySelector<HTMLElement>(
-    "[data-cagr-decimal-result]"
-  );
   const percentageResult = root.querySelector<HTMLElement>(
     "[data-cagr-percentage-result]"
+  );
+  const decimalResult = root.querySelector<HTMLElement>(
+    "[data-cagr-decimal-result]"
   );
   if (
     !form ||
@@ -158,24 +138,24 @@ export function initializeCAGRExample(root: ParentNode = document): void {
     !endInput ||
     !returnInput ||
     !error ||
-    !decimalResult ||
-    !percentageResult
+    !percentageResult ||
+    !decimalResult
   ) {
     return;
   }
 
   const run = (): void => {
     error.textContent = "";
-    decimalResult.textContent = "";
     percentageResult.textContent = "";
+    decimalResult.textContent = "";
     try {
       const cagr = calculateCAGR(
         startInput.value,
         endInput.value,
         returnInput.value
       );
-      decimalResult.textContent = String(cagr);
       percentageResult.textContent = floatToPercent(cagr, 2);
+      decimalResult.textContent = String(cagr);
     } catch (cause) {
       error.textContent =
         cause instanceof Error
@@ -225,35 +205,7 @@ export function initializeDurationExample(root: ParentNode = document): void {
   run();
 }
 
-export function initializeIdentifierExample(root: ParentNode = document): void {
-  const form = root.querySelector<HTMLFormElement>("[data-identifier-form]");
-  const input = root.querySelector<HTMLInputElement>("[data-identifier]");
-  const error = root.querySelector<HTMLElement>("[data-identifier-error]");
-  const result = root.querySelector<HTMLElement>("[data-identifier-result]");
-  if (!form || !input || !error || !result) return;
-
-  const run = (): void => {
-    error.textContent = "";
-    result.textContent = "";
-    try {
-      result.textContent = convertCamelToKebab(input.value);
-    } catch (cause) {
-      error.textContent =
-        cause instanceof Error
-          ? `The identifier example could not run: ${cause.message}`
-          : "The identifier example could not run because of an unexpected error.";
-    }
-  };
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    run();
-  });
-  run();
-}
-
 initializePlaygroundTabs();
 initializeDateTimeExample();
 initializeCAGRExample();
 initializeDurationExample();
-initializeIdentifierExample();

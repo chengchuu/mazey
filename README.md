@@ -83,6 +83,8 @@ There are some examples maintained by hand below. For more information, please c
   - [sha256Hex](#sha256hex)
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
+  - [parseLocalDateTime](#parselocaldatetime)
+  - [formatLocalDateTime](#formatlocaldatetime)
   - [formatDate](#formatdate)
   - [isValidDate](#isvaliddate)
   - [isToday](#istoday)
@@ -390,6 +392,59 @@ Output:
 ```text
 9730
 2262490
+```
+
+#### parseLocalDateTime
+
+Strictly parse a normalized HTML `datetime-local` value as local wall-clock
+time. The function accepts a year with at least four digits, minute values with
+optional seconds and milliseconds, rejects timezone suffixes and impossible
+dates, and returns `null` for invalid input.
+
+Usage:
+
+```javascript
+const date = parseLocalDateTime("2026-07-21T14:30:45.123");
+console.log(date?.getFullYear());
+console.log(date?.getHours());
+console.log(date?.getMilliseconds());
+```
+
+Output:
+
+```text
+2026
+14
+123
+```
+
+#### formatLocalDateTime
+
+Format a `Date` from its local calendar fields for an HTML `datetime-local`
+control. Precision defaults to minutes and can be set to `second` or
+`millisecond`. The year is padded to at least four digits, and the function
+does not convert the value to UTC.
+
+Usage:
+
+```javascript
+const date = new Date(2026, 6, 21, 14, 30, 45, 123);
+const minutes = formatLocalDateTime(date);
+const seconds = formatLocalDateTime(date, { precision: "second" });
+const milliseconds = formatLocalDateTime(date, {
+  precision: "millisecond",
+});
+console.log(minutes);
+console.log(seconds);
+console.log(milliseconds);
+```
+
+Output:
+
+```text
+2026-07-21T14:30
+2026-07-21T14:30:45
+2026-07-21T14:30:45.123
 ```
 
 #### formatDate
