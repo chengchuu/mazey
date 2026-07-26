@@ -122,6 +122,7 @@ There are some examples maintained by hand below. For more information, please c
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [Calculate and Formula](#calculate-and-formula)
+  - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
@@ -130,6 +131,7 @@ There are some examples maintained by hand below. For more information, please c
   - [setThemePreference](#setthemepreference)
   - [resolveLanguagePreference](#resolvelanguagepreference)
   - [setLanguagePreference](#setlanguagepreference)
+  - [detectVisitorType](#detectvisitortype)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -1130,6 +1132,54 @@ a<br /><br />bc
 
 ### Calculate and Formula
 
+#### calculateCAGR
+
+Calculate an investment's Compound Annual Growth Rate (CAGR) from its start date, end date, and total return over the complete period.
+
+```text
+CAGR = (1 + totalReturnRate)^(365 / durationInDays) - 1
+```
+
+The dates may be supported structured date strings, millisecond timestamps, or `Date` instances. The calculation uses the exact elapsed milliseconds, including time-of-day components, and a fixed 365-day financial year.
+
+Number input is a decimal ratio, so `0.202` represents `20.2%`. String input is a percentage value, so `"20.2%"` and `"20.2"` both represent `20.2%`; strict scientific notation such as `"2.02e1%"` is also accepted. The returned CAGR is an unrounded decimal ratio.
+
+```javascript
+import { calculateCAGR, floatToPercent } from "mazey";
+
+const cagr = calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  "20.2%"
+);
+
+console.log({
+  cagr,
+  percentage: floatToPercent(cagr, 2),
+});
+```
+
+Possible output:
+
+```text
+{
+  cagr: 0.053908...,
+  percentage: "5.39%"
+}
+```
+
+The equivalent decimal-number call is:
+
+```javascript
+calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  0.202
+);
+```
+
+Date strings are validated using Mazey's strict date rules. Invalid dates, malformed or non-finite returns, and non-increasing date ranges throw errors. The parsed total return must be greater than `-1`, because `-1` represents a complete loss for which CAGR is undefined.
+
 #### inRate
 
 Hit probability (1% ~ 100%).
@@ -1288,6 +1338,58 @@ const stored = setLanguagePreference(
 ```
 
 Output: `true`
+
+#### detectVisitorType
+
+Conservatively classify a visitor as `"crawler"`, `"automation"`, or
+`"unknown"`. The function first checks a focused list of recognizable crawler,
+indexing, SEO, AI-fetcher, and link-preview user-agent tokens. It then checks
+explicit automation user-agent tokens and `navigator.webdriver === true`.
+
+When no argument is provided, the function safely reads
+`navigator.userAgent`. An explicit user-agent string can be supplied for
+captured-user-agent analysis, deterministic tests, or server-side use. During
+SSR or in Node.js without `navigator`, the default result is `"unknown"`;
+explicit user-agent classification still works.
+
+```javascript
+const visitorType = detectVisitorType();
+
+console.log(visitorType);
+```
+
+Possible output:
+
+```text
+unknown
+```
+
+Explicit crawler example:
+
+```javascript
+const visitorType = detectVisitorType(
+  "Mozilla/5.0 (compatible; Googlebot/2.1)"
+);
+
+console.log(visitorType);
+```
+
+Output:
+
+```text
+crawler
+```
+
+`"unknown"` means that no supported crawler or browser-automation signal was
+detected. User-agent values can be spoofed, and WebDriver signals can be hidden
+or changed, so false positives and false negatives are possible.
+
+> `unknown` does not mean that the visitor has been verified as human. This
+> function uses browser-side heuristics and must not be used as a security
+> boundary or by itself for authentication, authorization, payments, rate
+> limiting, fraud prevention, or access control. Genuine crawler verification
+> generally requires server-side request information and provider-specific
+> validation.
 
 #### getBrowserInfo
 
