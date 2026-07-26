@@ -6,9 +6,9 @@ import path from "node:path";
 import Tab from "bootstrap/js/dist/tab";
 import {
   formatDateTimeLocalValue,
+  initializeCAGRExample,
   initializeDateTimeExample,
   initializeDurationExample,
-  initializeEmailExample,
   initializeIdentifierExample,
   initializePlaygroundTabs,
   parseDateTimeInput,
@@ -17,9 +17,9 @@ import {
 
 const tabDefinitions = [
   ["date-interval-tab", "date-interval", "Date interval"],
+  ["cagr-tab", "cagr", "CAGR"],
   ["duration-tab", "duration", "Duration"],
   ["identifier-tab", "identifier", "Identifier"],
-  ["email-tab", "email", "Email"],
 ];
 
 function renderPlaygroundForms() {
@@ -63,6 +63,24 @@ function renderPlaygroundForms() {
         </form>
       </div>
       <div
+        id="cagr"
+        class="tab-pane fade"
+        role="tabpanel"
+        aria-labelledby="cagr-tab"
+      >
+        <form data-cagr-form>
+          <input data-cagr-start value="2022-04-01" />
+          <input data-cagr-end value="2025-10-01" />
+          <input data-cagr-return value="20.2%" />
+          <button type="submit">Calculate CAGR</button>
+          <p role="alert" data-cagr-error></p>
+          <div role="status">
+            <code data-cagr-decimal-result></code>
+            <code data-cagr-percentage-result></code>
+          </div>
+        </form>
+      </div>
+      <div
         id="duration"
         class="tab-pane fade"
         role="tabpanel"
@@ -86,19 +104,6 @@ function renderPlaygroundForms() {
           <button type="submit">Run example</button>
           <p role="alert" data-identifier-error></p>
           <div role="status"><code data-identifier-result></code></div>
-        </form>
-      </div>
-      <div
-        id="email"
-        class="tab-pane fade"
-        role="tabpanel"
-        aria-labelledby="email-tab"
-      >
-        <form data-email-form>
-          <input data-email value="dev@example.com" />
-          <button type="submit">Run example</button>
-          <p role="alert" data-email-error></p>
-          <div role="status"><code data-email-result></code></div>
         </form>
       </div>
     </div>
@@ -170,10 +175,10 @@ test("uses four accessible Bootstrap tabs with matching panels", () => {
   expect(
     playground.querySelector("#duration [data-duration-form]")
   ).not.toBeNull();
+  expect(playground.querySelector("#cagr [data-cagr-form]")).not.toBeNull();
   expect(
     playground.querySelector("#identifier [data-identifier-form]")
   ).not.toBeNull();
-  expect(playground.querySelector("#email [data-email-form]")).not.toBeNull();
   expect(playground.querySelectorAll(".playground-output")).toHaveLength(4);
   expect(playground.querySelectorAll('[role="alert"]')).toHaveLength(4);
   const ids = [...playground.querySelectorAll("[id]")].map(
@@ -183,9 +188,6 @@ test("uses four accessible Bootstrap tabs with matching panels", () => {
   expect(
     playground.querySelector('label[for="identifier-value"]').control
   ).toBe(playground.getElementById("identifier-value"));
-  expect(playground.querySelector('label[for="email-address"]').control).toBe(
-    playground.getElementById("email-address")
-  );
   expect(html).not.toContain("data-utility-form");
   expect(html).not.toContain("data-error");
 });
@@ -237,9 +239,9 @@ test.each(["", "invalid", "2024-02-30T12:00:00"])(
 test("initializes every example with its expected result", () => {
   renderPlaygroundForms();
   initializeDateTimeExample(document, () => new Date(2024, 0, 1, 0, 0, 0));
+  initializeCAGRExample();
   initializeDurationExample();
   initializeIdentifierExample();
-  initializeEmailExample();
 
   expect(document.querySelector("[data-date-time-result]").textContent).toBe(
     "0 seconds"
@@ -247,12 +249,52 @@ test("initializes every example with its expected result", () => {
   expect(document.querySelector("[data-duration-result]").textContent).toBe(
     "1.5 minutes"
   );
+  expect(
+    Number(document.querySelector("[data-cagr-decimal-result]").textContent)
+  ).toBeCloseTo(0.05390890296644435, 14);
+  expect(
+    document.querySelector("[data-cagr-percentage-result]").textContent
+  ).toBe("5.39%");
   expect(document.querySelector("[data-identifier-result]").textContent).toBe(
     "hello-world"
   );
-  expect(document.querySelector("[data-email-result]").textContent).toBe(
-    "true"
+});
+
+test("passes the CAGR return string directly and renders both result forms", () => {
+  renderPlaygroundForms();
+  initializeCAGRExample();
+  const initialResult = Number(
+    document.querySelector("[data-cagr-decimal-result]").textContent
   );
+  document.querySelector("[data-cagr-return]").value = "20.2";
+
+  submit("[data-cagr-form]");
+
+  expect(
+    Number(document.querySelector("[data-cagr-decimal-result]").textContent)
+  ).toBeCloseTo(initialResult, 14);
+  expect(
+    document.querySelector("[data-cagr-percentage-result]").textContent
+  ).toBe("5.39%");
+  expect(document.querySelector("[data-cagr-error]").textContent).toBe("");
+});
+
+test("shows a CAGR validation error without stale results", () => {
+  renderPlaygroundForms();
+  initializeCAGRExample();
+  document.querySelector("[data-cagr-return]").value = "20%abc";
+
+  submit("[data-cagr-form]");
+
+  expect(document.querySelector("[data-cagr-error]").textContent).toContain(
+    "totalReturnRate must be a valid percentage string."
+  );
+  expect(document.querySelector("[data-cagr-decimal-result]").textContent).toBe(
+    ""
+  );
+  expect(
+    document.querySelector("[data-cagr-percentage-result]").textContent
+  ).toBe("");
 });
 
 test("calculates a valid date and time interval", () => {
@@ -326,7 +368,8 @@ test("duration submission updates only the duration result", () => {
   renderPlaygroundForms();
   initializeDurationExample();
   document.querySelector("[data-identifier-result]").textContent = "unchanged";
-  document.querySelector("[data-email-result]").textContent = "unchanged";
+  document.querySelector("[data-cagr-decimal-result]").textContent =
+    "unchanged";
   document.querySelector("[data-duration]").value = "120000";
 
   submit("[data-duration-form]");
@@ -337,7 +380,7 @@ test("duration submission updates only the duration result", () => {
   expect(document.querySelector("[data-identifier-result]").textContent).toBe(
     "unchanged"
   );
-  expect(document.querySelector("[data-email-result]").textContent).toBe(
+  expect(document.querySelector("[data-cagr-decimal-result]").textContent).toBe(
     "unchanged"
   );
 });
@@ -346,7 +389,8 @@ test("identifier submission updates only the identifier result", () => {
   renderPlaygroundForms();
   initializeIdentifierExample();
   document.querySelector("[data-duration-result]").textContent = "unchanged";
-  document.querySelector("[data-email-result]").textContent = "unchanged";
+  document.querySelector("[data-cagr-decimal-result]").textContent =
+    "unchanged";
   document.querySelector("[data-identifier]").value = "newIdentifier";
 
   submit("[data-identifier-form]");
@@ -357,27 +401,7 @@ test("identifier submission updates only the identifier result", () => {
   expect(document.querySelector("[data-duration-result]").textContent).toBe(
     "unchanged"
   );
-  expect(document.querySelector("[data-email-result]").textContent).toBe(
-    "unchanged"
-  );
-});
-
-test("email submission updates only the email result", () => {
-  renderPlaygroundForms();
-  initializeEmailExample();
-  document.querySelector("[data-duration-result]").textContent = "unchanged";
-  document.querySelector("[data-identifier-result]").textContent = "unchanged";
-  document.querySelector("[data-email]").value = "invalid";
-
-  submit("[data-email-form]");
-
-  expect(document.querySelector("[data-email-result]").textContent).toBe(
-    "false"
-  );
-  expect(document.querySelector("[data-duration-result]").textContent).toBe(
-    "unchanged"
-  );
-  expect(document.querySelector("[data-identifier-result]").textContent).toBe(
+  expect(document.querySelector("[data-cagr-decimal-result]").textContent).toBe(
     "unchanged"
   );
 });
@@ -385,8 +409,8 @@ test("email submission updates only the email result", () => {
 test("invalid duration shows only the duration error", () => {
   renderPlaygroundForms();
   initializeDurationExample();
+  initializeCAGRExample();
   initializeIdentifierExample();
-  initializeEmailExample();
   document.querySelector("[data-duration]").value = "-1";
 
   submit("[data-duration-form]");
@@ -398,22 +422,22 @@ test("invalid duration shows only the duration error", () => {
   expect(document.querySelector("[data-identifier-error]").textContent).toBe(
     ""
   );
-  expect(document.querySelector("[data-email-error]").textContent).toBe("");
+  expect(document.querySelector("[data-cagr-error]").textContent).toBe("");
 });
 
 test("initializers tolerate incomplete markup", () => {
   document.body.innerHTML = `
     <form data-date-time-form></form>
     <form data-duration-form><input data-duration /></form>
+    <form data-cagr-form><input data-cagr-start /></form>
     <form data-identifier-form><input data-identifier /></form>
-    <form data-email-form><input data-email /></form>
   `;
 
   expect(() => initializePlaygroundTabs()).not.toThrow();
   expect(() => initializeDateTimeExample()).not.toThrow();
+  expect(() => initializeCAGRExample()).not.toThrow();
   expect(() => initializeDurationExample()).not.toThrow();
   expect(() => initializeIdentifierExample()).not.toThrow();
-  expect(() => initializeEmailExample()).not.toThrow();
 });
 
 test("Bootstrap Tab initialization reuses existing instances", () => {
@@ -448,13 +472,13 @@ test("activates the tab targeted by the initial URL hash", () => {
   renderPlaygroundForms();
   const windowRef = {
     history: { replaceState: jest.fn() },
-    location: { hash: "#email" },
+    location: { hash: "#cagr" },
   };
 
   initializePlaygroundTabs(document, windowRef);
 
-  expect(document.getElementById("email-tab").classList).toContain("active");
-  expect(document.getElementById("email").classList).toContain("active");
+  expect(document.getElementById("cagr-tab").classList).toContain("active");
+  expect(document.getElementById("cagr").classList).toContain("active");
   expect(document.getElementById("date-interval-tab").classList).not.toContain(
     "active"
   );
@@ -477,19 +501,19 @@ test("ignores an unknown initial URL hash", () => {
 
 test("updates the hash and scrolls a shown tab without duplicate listeners", () => {
   renderPlaygroundForms();
-  const emailTab = document.getElementById("email-tab");
+  const cagrTab = document.getElementById("cagr-tab");
   const windowRef = {
     history: { replaceState: jest.fn() },
     location: { hash: "#date-interval" },
   };
-  emailTab.scrollIntoView = jest.fn();
+  cagrTab.scrollIntoView = jest.fn();
 
   initializePlaygroundTabs(document, windowRef);
   initializePlaygroundTabs(document, windowRef);
-  emailTab.dispatchEvent(new Event("shown.bs.tab", { bubbles: true }));
+  cagrTab.dispatchEvent(new Event("shown.bs.tab", { bubbles: true }));
 
-  expect(emailTab.scrollIntoView).toHaveBeenCalledTimes(1);
-  expect(emailTab.scrollIntoView).toHaveBeenCalledWith({
+  expect(cagrTab.scrollIntoView).toHaveBeenCalledTimes(1);
+  expect(cagrTab.scrollIntoView).toHaveBeenCalledWith({
     block: "nearest",
     inline: "nearest",
   });
@@ -497,6 +521,6 @@ test("updates the hash and scrolls a shown tab without duplicate listeners", () 
   expect(windowRef.history.replaceState).toHaveBeenCalledWith(
     null,
     "",
-    "#email"
+    "#cagr"
   );
 });

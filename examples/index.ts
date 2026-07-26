@@ -1,11 +1,12 @@
 import Tab from "bootstrap/js/dist/tab";
 
 import {
+  calculateCAGR,
   convertCamelToKebab,
+  floatToPercent,
   formatDurationFromMs,
   getDateDifference,
   isValidDate,
-  isValidEmail,
 } from "../src";
 
 const initializedTabTriggers = new WeakSet<HTMLElement>();
@@ -138,6 +139,58 @@ export function initializeDateTimeExample(
   reset();
 }
 
+export function initializeCAGRExample(root: ParentNode = document): void {
+  const form = root.querySelector<HTMLFormElement>("[data-cagr-form]");
+  const startInput = root.querySelector<HTMLInputElement>("[data-cagr-start]");
+  const endInput = root.querySelector<HTMLInputElement>("[data-cagr-end]");
+  const returnInput =
+    root.querySelector<HTMLInputElement>("[data-cagr-return]");
+  const error = root.querySelector<HTMLElement>("[data-cagr-error]");
+  const decimalResult = root.querySelector<HTMLElement>(
+    "[data-cagr-decimal-result]"
+  );
+  const percentageResult = root.querySelector<HTMLElement>(
+    "[data-cagr-percentage-result]"
+  );
+  if (
+    !form ||
+    !startInput ||
+    !endInput ||
+    !returnInput ||
+    !error ||
+    !decimalResult ||
+    !percentageResult
+  ) {
+    return;
+  }
+
+  const run = (): void => {
+    error.textContent = "";
+    decimalResult.textContent = "";
+    percentageResult.textContent = "";
+    try {
+      const cagr = calculateCAGR(
+        startInput.value,
+        endInput.value,
+        returnInput.value
+      );
+      decimalResult.textContent = String(cagr);
+      percentageResult.textContent = floatToPercent(cagr, 2);
+    } catch (cause) {
+      error.textContent =
+        cause instanceof Error
+          ? `The CAGR example could not run: ${cause.message}`
+          : "The CAGR example could not run because of an unexpected error.";
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    run();
+  });
+  run();
+}
+
 export function initializeDurationExample(root: ParentNode = document): void {
   const form = root.querySelector<HTMLFormElement>("[data-duration-form]");
   const input = root.querySelector<HTMLInputElement>("[data-duration]");
@@ -199,35 +252,8 @@ export function initializeIdentifierExample(root: ParentNode = document): void {
   run();
 }
 
-export function initializeEmailExample(root: ParentNode = document): void {
-  const form = root.querySelector<HTMLFormElement>("[data-email-form]");
-  const input = root.querySelector<HTMLInputElement>("[data-email]");
-  const error = root.querySelector<HTMLElement>("[data-email-error]");
-  const result = root.querySelector<HTMLElement>("[data-email-result]");
-  if (!form || !input || !error || !result) return;
-
-  const run = (): void => {
-    error.textContent = "";
-    result.textContent = "";
-    try {
-      result.textContent = String(isValidEmail(input.value));
-    } catch (cause) {
-      error.textContent =
-        cause instanceof Error
-          ? `The email example could not run: ${cause.message}`
-          : "The email example could not run because of an unexpected error.";
-    }
-  };
-
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
-    run();
-  });
-  run();
-}
-
 initializePlaygroundTabs();
 initializeDateTimeExample();
+initializeCAGRExample();
 initializeDurationExample();
 initializeIdentifierExample();
-initializeEmailExample();

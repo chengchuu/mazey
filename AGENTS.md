@@ -32,6 +32,7 @@ This repository is a browser-focused utility library named `mazey`, intended for
 ## Source Modules
 
 - `src/util.ts`: shared utility layer; many other modules depend on this
+- `src/date.ts`: date parsing, validation, comparison, formatting, and duration helpers
 - `src/typing.d.ts`: shared internal/public types
 - `src/url.ts`: URL parsing, query helpers, URL transforms, script query inspection
 - `src/dom.ts`: class/style/meta/image DOM helpers
@@ -44,7 +45,7 @@ This repository is a browser-focused utility library named `mazey`, intended for
 - `src/preference.ts`: internal storage, URL, and validation helpers shared by preference modules
 - `src/perf.ts`: Performance API and navigation timing helpers
 - `src/debug.ts`: custom console wrappers
-- `src/calc.ts`: standalone algorithms and probability helpers
+- `src/calc.ts`: standalone algorithms, probability helpers, and financial calculations
 
 ## Data Flow
 
@@ -59,12 +60,13 @@ Typical runtime flow:
 Important internal dependencies:
 
 - `util.ts` is the main shared dependency
+- `date.ts` provides shared strict date normalization used by `calc.ts` and `util.ts`
 - `typing.d.ts` is imported across modules for signatures and shared types
 - `debug.ts` provides `mazeyCon`, used by modules like `dom.ts` and `browser.ts`
 - `load.ts` depends on `util.ts` and `url.ts`
 - `perf.ts` depends on `util.ts`
 - `browser.ts` depends on `util.ts`
-- `calc.ts` depends on `util.ts`
+- `calc.ts` depends on `date.ts`
 
 This is a mostly flat architecture, not a layered service system.
 

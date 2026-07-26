@@ -5,6 +5,197 @@ import type {
 import { isNonEmptyArray } from "./util";
 
 /**
+ * Conservative visitor classifications detected from supported browser-side
+ * signals.
+ *
+ * - `"crawler"`: a known crawler or automated-fetcher user-agent token matched.
+ * - `"automation"`: an explicit automation user-agent token matched or
+ *   `navigator.webdriver` is `true`.
+ * - `"unknown"`: no supported crawler or automation signal was detected.
+ *
+ * `"unknown"` does not mean that the visitor is verified as human.
+ *
+ * @remarks This heuristic result is not suitable for authentication,
+ * authorization, fraud prevention, access control, or other security decisions.
+ * @category Browser Information
+ */
+export type VisitorType = "crawler" | "automation" | "unknown";
+
+const knownCrawlerUserAgentTokens = Object.freeze([
+  "adsbot-google",
+  "ahrefsbot",
+  "amazonbot",
+  "applebot",
+  "baiduspider",
+  "bingbot",
+  "bingpreview",
+  "bytespider",
+  "ccbot",
+  "chatgpt-user",
+  "claudebot",
+  "discordbot",
+  "dotbot",
+  "duckduckbot",
+  "facebookexternalhit",
+  "facebot",
+  "google-inspectiontool",
+  "googlebot",
+  "googleother",
+  "gptbot",
+  "linkedinbot",
+  "mediapartners-google",
+  "mj12bot",
+  "perplexitybot",
+  "petalbot",
+  "semrushbot",
+  "slackbot",
+  "slurp",
+  "storebot-google",
+  "telegrambot",
+  "twitterbot",
+  "whatsapp",
+  "yandexbot",
+] as const);
+
+const knownAutomationUserAgentTokens = Object.freeze([
+  "headlesschrome",
+  "phantomjs",
+  "slimerjs",
+  "selenium",
+  "puppeteer",
+  "playwright",
+] as const);
+
+function getBrowserNavigator(): Navigator | null {
+  try {
+    return typeof navigator === "undefined" ? null : navigator;
+  } catch (e) {
+    return null;
+  }
+}
+
+function getDefaultUserAgent(): string {
+  const browserNavigator = getBrowserNavigator();
+  if (!browserNavigator) {
+    return "";
+  }
+
+  try {
+    const userAgent = browserNavigator.userAgent;
+    return typeof userAgent === "string" ? userAgent : "";
+  } catch (e) {
+    return "";
+  }
+}
+
+function hasKnownUserAgentToken(
+  userAgent: string,
+  tokens: readonly string[]
+): boolean {
+  const normalizedUserAgent = userAgent.trim().toLowerCase();
+  return tokens.some(token => normalizedUserAgent.includes(token));
+}
+
+function isBrowserAutomated(): boolean {
+  const browserNavigator = getBrowserNavigator();
+  if (!browserNavigator) {
+    return false;
+  }
+
+  try {
+    return browserNavigator.webdriver === true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Classify a visitor using conservative browser-side heuristics.
+ *
+ * Classification checks known crawler and automated-fetcher user-agent tokens
+ * first. It then checks explicit browser-automation user-agent tokens and
+ * `navigator.webdriver === true`. All other visitors return `"unknown"`.
+ *
+ * `"unknown"` means that no supported signal was detected. It does not verify
+ * that the visitor is human. User-agent values can be modified or spoofed, and
+ * automation signals can be hidden, modified, or unavailable. Both false
+ * positives and false negatives are possible.
+ *
+ * Usage:
+ *
+ * ```typescript
+ * import { detectVisitorType } from "mazey";
+ *
+ * const visitorType = detectVisitorType();
+ * console.log(visitorType);
+ * ```
+ *
+ * Possible output:
+ *
+ * ```text
+ * unknown
+ * ```
+ *
+ * Explicit user-agent:
+ *
+ * ```typescript
+ * const visitorType = detectVisitorType(
+ *   "Mozilla/5.0 (compatible; Googlebot/2.1)"
+ * );
+ *
+ * console.log(visitorType);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * crawler
+ * ```
+ *
+ * @param userAgent Optional user-agent string. Defaults to
+ * `navigator.userAgent` when available. An explicit value replaces only the
+ * user-agent source; the current browser's WebDriver signal is still checked.
+ * @returns `"crawler"`, `"automation"`, or `"unknown"`, in that priority.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Safe during SSR and in Node.js. This is a heuristic classification
+ * utility, not human verification, crawler authentication, or a security
+ * boundary. Do not use it by itself for authentication, authorization,
+ * payments, rate limiting, fraud prevention, access control, or
+ * security-sensitive content. Genuine crawler verification generally requires
+ * server-side request information and provider-specific validation.
+ * @category Browser Information
+ */
+export function detectVisitorType(userAgent?: string): VisitorType {
+  if (userAgent !== undefined && typeof userAgent !== "string") {
+    throw new TypeError("userAgent must be a string when provided.");
+  }
+
+  const resolvedUserAgent =
+    userAgent === undefined ? getDefaultUserAgent() : userAgent;
+
+  if (
+    hasKnownUserAgentToken(
+      resolvedUserAgent,
+      knownCrawlerUserAgentTokens
+    )
+  ) {
+    return "crawler";
+  }
+
+  if (
+    hasKnownUserAgentToken(
+      resolvedUserAgent,
+      knownAutomationUserAgentTokens
+    ) ||
+    isBrowserAutomated()
+  ) {
+    return "automation";
+  }
+
+  return "unknown";
+}
+
+/**
  * Options for {@link isSafePWAEnv}.
  *
  * @category Browser Information

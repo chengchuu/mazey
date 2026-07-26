@@ -190,6 +190,20 @@
               </li>
               <li class="nav-item" role="presentation">
                 <button
+                  id="cagr-tab"
+                  class="nav-link"
+                  type="button"
+                  role="tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#cagr"
+                  aria-controls="cagr"
+                  aria-selected="false"
+                >
+                  CAGR
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
                   id="duration-tab"
                   class="nav-link"
                   type="button"
@@ -214,20 +228,6 @@
                   aria-selected="false"
                 >
                   Identifier
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button
-                  id="email-tab"
-                  class="nav-link"
-                  type="button"
-                  role="tab"
-                  data-bs-toggle="tab"
-                  data-bs-target="#email"
-                  aria-controls="email"
-                  aria-selected="false"
-                >
-                  Email
                 </button>
               </li>
             </ul>
@@ -298,6 +298,83 @@
                   >
                     <strong>Interval</strong><br />
                     <code data-date-time-result>0 seconds</code>
+                  </div>
+                </form>
+              </div>
+
+              <div
+                id="cagr"
+                class="tab-pane fade"
+                role="tabpanel"
+                aria-labelledby="cagr-tab"
+              >
+                <h3 class="h4">Calculate an investment CAGR</h3>
+                <p>
+                  Annualize a complete-period return using
+                  <code>calculateCAGR</code> and a fixed 365-day year.
+                </p>
+                <form data-cagr-form novalidate>
+                  <div class="row g-4">
+                    <div class="col-lg-6">
+                      <label class="form-label" for="cagr-start"
+                        >Start date</label
+                      >
+                      <input
+                        id="cagr-start"
+                        class="form-control"
+                        type="date"
+                        value="2022-04-01"
+                        required
+                        data-cagr-start
+                      />
+                    </div>
+                    <div class="col-lg-6">
+                      <label class="form-label" for="cagr-end">End date</label>
+                      <input
+                        id="cagr-end"
+                        class="form-control"
+                        type="date"
+                        value="2025-10-01"
+                        required
+                        data-cagr-end
+                      />
+                    </div>
+                    <div class="col-lg-6">
+                      <label class="form-label" for="cagr-return"
+                        >Total return</label
+                      >
+                      <input
+                        id="cagr-return"
+                        class="form-control"
+                        type="text"
+                        value="20.2%"
+                        maxlength="100"
+                        required
+                        data-cagr-return
+                      />
+                      <div class="form-text">
+                        Enter a percentage value such as 20.2%, 20.2, or -15.5%.
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary mt-4" type="submit">
+                    Calculate CAGR
+                  </button>
+                  <p
+                    class="alert alert-danger playground-error mt-3 mb-0"
+                    role="alert"
+                    data-cagr-error
+                  ></p>
+                  <div
+                    class="playground-output mt-3"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <strong>Decimal CAGR</strong><br />
+                    <code data-cagr-decimal-result></code><br />
+                    <strong>Formatted CAGR</strong><br />
+                    <code data-cagr-percentage-result></code>
                   </div>
                 </form>
               </div>
@@ -392,49 +469,6 @@
                   >
                     <strong>Converted identifier</strong><br />
                     <code data-identifier-result>hello-world</code>
-                  </div>
-                </form>
-              </div>
-
-              <div
-                id="email"
-                class="tab-pane fade"
-                role="tabpanel"
-                aria-labelledby="email-tab"
-              >
-                <h3 class="h4">Validate an email address</h3>
-                <p>Check an email address using <code>isValidEmail</code>.</p>
-                <form data-email-form novalidate>
-                  <label class="form-label" for="email-address"
-                    >Email address</label
-                  >
-                  <input
-                    id="email-address"
-                    class="form-control"
-                    type="email"
-                    value="dev@example.com"
-                    maxlength="254"
-                    data-email
-                  />
-                  <div class="form-text">
-                    The result reflects Mazey's email validator.
-                  </div>
-                  <button class="btn btn-primary mt-4" type="submit">
-                    Run example
-                  </button>
-                  <p
-                    class="alert alert-danger playground-error mt-3 mb-0"
-                    role="alert"
-                    data-email-error
-                  ></p>
-                  <div
-                    class="playground-output mt-3"
-                    role="status"
-                    aria-live="polite"
-                    aria-atomic="true"
-                  >
-                    <strong>Email valid</strong><br />
-                    <code data-email-result>true</code>
                   </div>
                 </form>
               </div>

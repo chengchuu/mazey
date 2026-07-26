@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 145 runtime exports in the current repository: 143 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 149 runtime exports in the current repository: 147 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -86,7 +86,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `genUniqueNumString` | Combine current milliseconds with random digits           | Universal          | Not guaranteed unique and not suitable for security identifiers.                                            |
 | `floatToPercent`     | Convert a fraction to a percentage string                 | Universal          | Without `fixSize`, floors after multiplying by 100; with it, uses `toFixed`.                                |
 | `floatFixed`         | Format a number/string to fixed decimals                  | Universal          | Uses `parseFloat(...).toFixed(size)` and returns a string.                                                  |
-| `getFileSize`        | Format bytes using 1024-based units                       | Universal          | Uses ceiling and returns empty for non-positive/non-finite values.                                          |
+| `getFileSize`        | Deprecated alias of `formatByteSize`                      | Universal          | Accepts the same options and returns the same result; use `formatByteSize` in new code.                      |
+| `formatByteSize`     | Format bytes with configurable scale and precision        | Universal          | Defaults to base 1024 and one decimal for scaled values; zero is `0 B`; invalid input returns the configured fallback. |
 | `genHashCode`        | Produce a numeric hash from a string                      | Universal          | Small non-cryptographic signed integer hash.                                                                |
 | `sha256Hex`          | Generate a lowercase SHA-256 hexadecimal digest           | Node.js-compatible | Requires Web Crypto; string input also requires `TextEncoder`; missing APIs and digest failures reject.     |
 | `convert10To26`      | Convert a positive integer to lowercase alphabetic digits | Universal          | Spreadsheet-like `a..z, aa`; floors input; invalid/non-positive returns empty.                              |
@@ -110,6 +111,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function     | Purpose                                     | Runtime   | Notes                                                                                                                                                              |
 | ------------ | ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `assignDefined` | Shallowly assign defined own properties  | Universal | Mutates the target; applies sources left to right; safely preserves own `__proto__`; skips `undefined` and excludes inherited, non-enumerable, and symbol keys.      |
 | `deepCopy`   | Deep-copy supported object graphs           | Universal | Handles cycles and common built-ins; custom classes become plain own-property objects; unsupported native objects remain shared references. Does not mutate input. |
 | `deepFreeze` | Recursively freeze enumerable object values | Universal | Mutates state by freezing the original graph; handles cycles; does not traverse symbol/non-enumerable values or Map/Set entries.                                   |
 
@@ -180,14 +182,24 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `setThemePreference`        | Persist a website theme preference                         | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                                   |
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
 | `setLanguagePreference`     | Canonicalize and persist one website language              | Browser-preferred | Writes the canonical language tag; returns false when storage is unavailable or throws; never mutates DOM or loads translations.                                  |
+| `detectVisitorType`         | Classify supported crawler and automation signals          | Browser-preferred | Crawler UA tokens > automation UA tokens or WebDriver > `unknown`; SSR-safe; heuristic only and never proof of a human visitor.                                   |
 | `getBrowserInfo`            | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                              |
 | `genBrowserAttrs`           | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                         |
 | `isSupportWebp`             | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                                 |
 | `isBrowser`                 | Detect the presence of a browser-like `window` global      | Universal         | Safe in Node.js; only a `true` browser result is cached, while `false` is re-evaluated.                                                                            |
 
-Preference signatures:
+Visitor and preference signatures:
 
 ```ts
+type VisitorType =
+  | "crawler"
+  | "automation"
+  | "unknown";
+
+detectVisitorType(
+  userAgent?: string
+): VisitorType;
+
 resolveThemePreference(
   storageKey: string
 ): PreferenceResult<ResolvedTheme>;
@@ -206,6 +218,15 @@ setLanguagePreference(
   language: string
 ): boolean;
 ```
+
+`detectVisitorType` accepts an optional explicit user agent and otherwise
+guards access to `navigator.userAgent`. It checks focused known crawler tokens
+before explicit automation tokens and `navigator.webdriver === true`. Without
+a supported signal, including during SSR without an explicit user agent, it
+returns `unknown`. That result does not verify a human visitor. User agents can
+be spoofed and WebDriver signals can be hidden, so do not use this heuristic as
+a security boundary; genuine crawler verification requires server-side request
+information and provider-specific validation.
 
 Both resolvers return only a machine-readable `value` and a human-readable
 `label`. Theme values resolve to concrete `light` or `dark`; a stored `system`
@@ -247,9 +268,32 @@ apply preferences to the DOM.
 
 | Function                | Purpose                                           | Runtime   | Notes                                                                                 |
 | ----------------------- | ------------------------------------------------- | --------- | ------------------------------------------------------------------------------------- |
+| `calculateCAGR`         | Calculate an investment's annualized return       | Universal | Exact elapsed duration with a fixed 365-day year; throws for invalid dates, returns, or non-finite results. |
 | `longestComSubstring`   | Return longest common contiguous substring length | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
 | `longestComSubsequence` | Return longest common subsequence length          | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
 | `isHit`                 | Return a probabilistic hit using `Math.random`    | Universal | Evaluates `Math.random() < rate`; does not clamp or provide cryptographic randomness. |
+
+`calculateCAGR` is dependency-free and works in browsers and Node.js without
+browser globals:
+
+```ts
+type InvestmentReturnRate = number | string;
+
+calculateCAGR(
+  startDate: MazeyDate,
+  endDate: MazeyDate,
+  totalReturnRate: InvestmentReturnRate
+): number;
+```
+
+Runtime input type determines the return-rate convention. A number is a decimal
+ratio, so `0.202` means `20.2%`. A string is a percentage value, so `"20.2%"`,
+`"20.2"`, `"+20.2%"`, `"-15.5%"`, and scientific notation such as
+`"2.02e1%"` are accepted and divided by 100. String parsing is strict and
+rejects partial, empty, malformed, and non-finite values. The calculation uses
+exact elapsed milliseconds and a fixed 365-day year. Invalid dates and return
+types throw `TypeError`; non-increasing dates, total returns at or below `-1`,
+and non-finite results throw `RangeError`.
 
 ## Compatibility and low-level exports
 
