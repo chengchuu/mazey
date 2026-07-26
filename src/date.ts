@@ -53,11 +53,12 @@ function createLocalDate(
   day: number,
   hour: number,
   minute: number,
-  second: number
+  second: number,
+  millisecond = 0
 ): Date {
   const date = new Date(0);
   date.setFullYear(year, month - 1, day);
-  date.setHours(hour, minute, second, 0);
+  date.setHours(hour, minute, second, millisecond);
   return date;
 }
 
@@ -173,6 +174,182 @@ export function toValidDate(value: unknown): Date | null {
     millisecond,
     timezone
   );
+}
+
+/**
+ * Precision used by `formatLocalDateTime`.
+ *
+ * @category Util
+ */
+export type LocalDateTimePrecision = "minute" | "second" | "millisecond";
+
+const localDateTimePattern = /^(\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/;
+
+function padLocalDateTimeComponent(value: number, width: number): string {
+  const input = String(value);
+  return input.length >= width
+    ? input
+    : `${"0".repeat(width - input.length)}${input}`;
+}
+
+/**
+ * Parse an HTML `datetime-local` value into a local `Date`.
+ *
+ * Accepted normalized values use a year with at least four digits followed by
+ * `-MM-DDTHH:mm`, with optional seconds and 1-3 fractional-second digits.
+ * Components are validated strictly, so impossible dates and times return
+ * `null` instead of being normalized by `Date`.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { parseLocalDateTime } from "mazey";
+ *
+ * const date = parseLocalDateTime("2026-07-21T14:30:45.123");
+ * console.log(date?.getFullYear());
+ * console.log(date?.getHours());
+ * console.log(date?.getMilliseconds());
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2026
+ * 14
+ * 123
+ * ```
+ *
+ * @param value A normalized HTML `datetime-local` value without a timezone.
+ * @returns A local `Date`, or `null` when the value is malformed or represents an impossible local date and time.
+ * @remarks The value is interpreted using the runtime's local timezone. Timezone suffixes, surrounding whitespace, and date-only values are rejected.
+ * @category Util
+ */
+export function parseLocalDateTime(value: string): Date | null {
+  if (typeof value !== "string") return null;
+
+  const match = localDateTimePattern.exec(value);
+  if (!match) return null;
+
+  const [ year, month, day, hour, minute, second = "0", fraction = "" ] =
+    match.slice(1);
+  const numericYear = Number(year);
+  const numericMonth = Number(month);
+  const numericDay = Number(day);
+  const numericHour = Number(hour);
+  const numericMinute = Number(minute);
+  const numericSecond = Number(second);
+  const millisecond = Number(`${fraction}00`.slice(0, 3));
+
+  if (numericYear < 1 || !hasMatchingDateComponents(
+    numericYear,
+    numericMonth,
+    numericDay,
+    numericHour,
+    numericMinute,
+    numericSecond,
+    millisecond
+  )) {
+    return null;
+  }
+
+  return createLocalDate(
+    numericYear,
+    numericMonth,
+    numericDay,
+    numericHour,
+    numericMinute,
+    numericSecond,
+    millisecond
+  );
+}
+
+/**
+ * Format a `Date` as an HTML `datetime-local` value using local fields.
+ *
+ * | Precision     | Output shape                  |
+ * | ------------- | ----------------------------- |
+ * | `minute`      | `YYYY-MM-DDTHH:mm`            |
+ * | `second`      | `YYYY-MM-DDTHH:mm:ss`         |
+ * | `millisecond` | `YYYY-MM-DDTHH:mm:ss.SSS`     |
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { formatLocalDateTime } from "mazey";
+ *
+ * const date = new Date(2026, 6, 21, 14, 30, 45, 123);
+ * const minutes = formatLocalDateTime(date);
+ * const seconds = formatLocalDateTime(date, { precision: "second" });
+ * const milliseconds = formatLocalDateTime(date, {
+ *   precision: "millisecond",
+ * });
+ * console.log(minutes);
+ * console.log(seconds);
+ * console.log(milliseconds);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2026-07-21T14:30
+ * 2026-07-21T14:30:45
+ * 2026-07-21T14:30:45.123
+ * ```
+ *
+ * @param date A valid `Date` to format.
+ * @param options Formatting options. Precision defaults to `minute`.
+ * @returns A normalized HTML `datetime-local` value containing local calendar fields. The year is padded to at least four digits.
+ * @throws {TypeError} If `date` is not a `Date` or `precision` is unsupported.
+ * @throws {RangeError} If `date` is invalid or its local year is earlier than 1.
+ * @remarks This function does not call `toISOString()` and does not convert the value to UTC. It does not mutate the supplied `Date`.
+ * @category Util
+ */
+export function formatLocalDateTime(
+  date: Date,
+  options: { precision?: LocalDateTimePrecision } = {}
+): string {
+  const dateTime = typeof date === "object" && date !== null
+    ? getDateTime(date)
+    : null;
+  if (dateTime === null) {
+    throw new TypeError("date must be a Date");
+  }
+  if (!Number.isFinite(dateTime)) {
+    throw new RangeError("Invalid date");
+  }
+
+  const precision = options.precision ?? "minute";
+  if (precision !== "minute"
+    && precision !== "second"
+    && precision !== "millisecond") {
+    throw new TypeError("precision must be minute, second, or millisecond");
+  }
+
+  const localDate = new Date(dateTime);
+  const year = localDate.getFullYear();
+  if (year < 1) {
+    throw new RangeError("Date year must be greater than zero");
+  }
+
+  const formattedDate = [
+    padLocalDateTimeComponent(year, 4),
+    padLocalDateTimeComponent(localDate.getMonth() + 1, 2),
+    padLocalDateTimeComponent(localDate.getDate(), 2),
+  ].join("-");
+  const formattedTime = [
+    padLocalDateTimeComponent(localDate.getHours(), 2),
+    padLocalDateTimeComponent(localDate.getMinutes(), 2),
+  ];
+
+  if (precision !== "minute") {
+    formattedTime.push(padLocalDateTimeComponent(localDate.getSeconds(), 2));
+  }
+
+  let output = `${formattedDate}T${formattedTime.join(":")}`;
+  if (precision === "millisecond") {
+    output += `.${padLocalDateTimeComponent(localDate.getMilliseconds(), 3)}`;
+  }
+  return output;
 }
 
 /**

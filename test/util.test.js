@@ -5,7 +5,8 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopy, deepCopyObject, deepFreeze, assignDefined, repeatUntilConditionMet,
-  formatDate, generateCalendarVersion, isValidDate,
+  formatDate, parseLocalDateTime, formatLocalDateTime,
+  generateCalendarVersion, isValidDate,
   isToday, isThisYear, isThisMonth, isThisWeek, isThisHour,
   formatDistanceToNow, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
@@ -475,6 +476,106 @@ test("formatDate: Preserves epoch timestamps and replaces repeated tokens", () =
 
 test("formatDate: Rejects invalid dates", () => {
   expect(() => formatDate("not-a-date")).toThrow(RangeError);
+});
+
+describe("local datetime utilities", () => {
+  test.each([
+    [ "2026-07-21T14:30", [ 2026, 6, 21, 14, 30, 0, 0 ] ],
+    [ "2026-07-21T14:30:45", [ 2026, 6, 21, 14, 30, 45, 0 ] ],
+    [ "2026-07-21T14:30:45.1", [ 2026, 6, 21, 14, 30, 45, 100 ] ],
+    [ "2026-07-21T14:30:45.12", [ 2026, 6, 21, 14, 30, 45, 120 ] ],
+    [ "2026-07-21T14:30:45.123", [ 2026, 6, 21, 14, 30, 45, 123 ] ],
+    [ "2024-02-29T00:00", [ 2024, 1, 29, 0, 0, 0, 0 ] ],
+    [ "10000-01-01T00:00", [ 10000, 0, 1, 0, 0, 0, 0 ] ],
+  ])("parses the strict local value %s", (value, expected) => {
+    const date = parseLocalDateTime(value);
+
+    expect(date).not.toBeNull();
+    expect([
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      date.getHours(),
+      date.getMinutes(),
+      date.getSeconds(),
+      date.getMilliseconds(),
+    ]).toEqual(expected);
+  });
+
+  test.each([
+    "",
+    " 2026-07-21T14:30 ",
+    "2026-07-21",
+    "2026-07-21 14:30",
+    "2026-7-21T14:30",
+    "0000-01-01T00:00",
+    "2023-02-29T14:30",
+    "2026-04-31T14:30",
+    "2026-07-21T24:00",
+    "2026-07-21T14:60",
+    "2026-07-21T14:30:60",
+    "2026-07-21T14:30:45.1234",
+    "2026-07-21T14:30Z",
+  ])("rejects the invalid or unsupported local value %s", value => {
+    expect(parseLocalDateTime(value)).toBeNull();
+  });
+
+  test("returns null for non-string runtime input", () => {
+    expect(parseLocalDateTime(null)).toBeNull();
+    expect(parseLocalDateTime(new Date())).toBeNull();
+  });
+
+  test("formats local fields at each supported precision", () => {
+    const date = new Date(2026, 6, 21, 4, 5, 6, 7);
+
+    expect(formatLocalDateTime(date)).toBe("2026-07-21T04:05");
+    expect(formatLocalDateTime(date, { precision: "second" })).toBe(
+      "2026-07-21T04:05:06"
+    );
+    expect(formatLocalDateTime(date, { precision: "millisecond" })).toBe(
+      "2026-07-21T04:05:06.007"
+    );
+  });
+
+  test("pads years to at least four digits", () => {
+    const date = new Date(0);
+    date.setFullYear(42, 0, 2);
+    date.setHours(3, 4, 0, 0);
+
+    expect(formatLocalDateTime(date)).toBe("0042-01-02T03:04");
+    expect(parseLocalDateTime("0042-01-02T03:04")?.getFullYear()).toBe(42);
+
+    date.setFullYear(10000, 0, 2);
+    expect(formatLocalDateTime(date)).toBe("10000-01-02T03:04");
+    expect(parseLocalDateTime("10000-01-02T03:04")?.getFullYear()).toBe(10000);
+  });
+
+  test("round-trips local wall-clock fields without mutating the input", () => {
+    const original = new Date(2026, 6, 21, 14, 30, 45, 123);
+    const originalTime = original.getTime();
+    const value = formatLocalDateTime(original, { precision: "millisecond" });
+    const parsed = parseLocalDateTime(value);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed.getTime()).toBe(originalTime);
+    expect(original.getTime()).toBe(originalTime);
+  });
+
+  test("supports Date objects from another realm", () => {
+    const date = runInNewContext("new Date(2026, 6, 21, 14, 30, 45, 123)");
+
+    expect(formatLocalDateTime(date, { precision: "millisecond" })).toBe(
+      "2026-07-21T14:30:45.123"
+    );
+  });
+
+  test("rejects invalid dates, non-Date values, and unsupported precision", () => {
+    expect(() => formatLocalDateTime(new Date("invalid"))).toThrow(RangeError);
+    expect(() => formatLocalDateTime("2026-07-21T14:30")).toThrow(TypeError);
+    expect(() => formatLocalDateTime(new Date(), { precision: "hour" })).toThrow(
+      TypeError
+    );
+  });
 });
 
 describe("isValidDate", () => {
