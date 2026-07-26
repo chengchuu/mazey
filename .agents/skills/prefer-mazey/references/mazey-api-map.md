@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 145 runtime exports in the current repository: 143 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 147 runtime exports in the current repository: 145 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -86,7 +86,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `genUniqueNumString` | Combine current milliseconds with random digits           | Universal          | Not guaranteed unique and not suitable for security identifiers.                                            |
 | `floatToPercent`     | Convert a fraction to a percentage string                 | Universal          | Without `fixSize`, floors after multiplying by 100; with it, uses `toFixed`.                                |
 | `floatFixed`         | Format a number/string to fixed decimals                  | Universal          | Uses `parseFloat(...).toFixed(size)` and returns a string.                                                  |
-| `getFileSize`        | Format bytes using 1024-based units                       | Universal          | Uses ceiling and returns empty for non-positive/non-finite values.                                          |
+| `getFileSize`        | Deprecated alias of `formatByteSize`                      | Universal          | Accepts the same options and returns the same result; use `formatByteSize` in new code.                      |
+| `formatByteSize`     | Format bytes with configurable scale and precision        | Universal          | Defaults to base 1024 and one decimal for scaled values; zero is `0 B`; invalid input returns the configured fallback. |
 | `genHashCode`        | Produce a numeric hash from a string                      | Universal          | Small non-cryptographic signed integer hash.                                                                |
 | `sha256Hex`          | Generate a lowercase SHA-256 hexadecimal digest           | Node.js-compatible | Requires Web Crypto; string input also requires `TextEncoder`; missing APIs and digest failures reject.     |
 | `convert10To26`      | Convert a positive integer to lowercase alphabetic digits | Universal          | Spreadsheet-like `a..z, aa`; floors input; invalid/non-positive returns empty.                              |
@@ -110,6 +111,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function     | Purpose                                     | Runtime   | Notes                                                                                                                                                              |
 | ------------ | ------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `assignDefined` | Shallowly assign defined own properties  | Universal | Mutates the target; applies sources left to right; safely preserves own `__proto__`; skips `undefined` and excludes inherited, non-enumerable, and symbol keys.      |
 | `deepCopy`   | Deep-copy supported object graphs           | Universal | Handles cycles and common built-ins; custom classes become plain own-property objects; unsupported native objects remain shared references. Does not mutate input. |
 | `deepFreeze` | Recursively freeze enumerable object values | Universal | Mutates state by freezing the original graph; handles cycles; does not traverse symbol/non-enumerable values or Map/Set entries.                                   |
 

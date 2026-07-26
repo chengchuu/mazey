@@ -93,8 +93,10 @@ There are some examples maintained by hand below. For more information, please c
   - [formatDistanceToNow](#formatdistancetonow)
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
+  - [formatByteSize](#formatbytesize)
   - [deepCopy](#deepcopy)
   - [deepFreeze](#deepfreeze)
+  - [assignDefined](#assigndefined)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
@@ -553,6 +555,26 @@ Output:
 1.5 days
 ```
 
+#### formatByteSize
+
+Format a non-negative byte count using 1024-based units and one fractional
+digit by default. Decimal scaling, precision, and the invalid-input fallback
+are configurable. The former `getFileSize` name is a deprecated alias.
+
+```javascript
+formatByteSize(0);
+formatByteSize(1536);
+formatByteSize(1500000, { base: 1000, fractionDigits: 2 });
+```
+
+Output:
+
+```text
+0 B
+1.5 KB
+1.50 MB
+```
+
 #### deepCopy
 
 Copy/Clone Object deeply.
@@ -596,6 +618,26 @@ Output:
 ```text
 true
 true
+```
+
+#### assignDefined
+
+Shallowly mutate a target with defined properties from later sources. The
+helper skips only `undefined`, so `null`, empty strings, `0`, and `false`
+remain valid overrides.
+
+```javascript
+const options = assignDefined(
+  { retries: 3, verbose: true },
+  { retries: undefined, verbose: false }
+);
+console.log(options);
+```
+
+Output:
+
+```text
+{ retries: 3, verbose: false }
 ```
 
 #### debounce

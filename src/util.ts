@@ -299,6 +299,67 @@ export function deepFreeze<T>(value: T): T {
 }
 
 /**
+ * Shallowly assign defined properties from one or more sources.
+ *
+ * The target is mutated. Only own enumerable string-keyed properties are
+ * considered, and `undefined` values are skipped. Other falsy values such as
+ * `null`, an empty string, `0`, and `false` are assigned.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { assignDefined } from "mazey";
+ *
+ * const options = assignDefined(
+ *   { retries: 3, verbose: true },
+ *   { retries: undefined, verbose: false },
+ * );
+ *
+ * console.log(options);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * { retries: 3, verbose: false }
+ * ```
+ *
+ * @param target The object to mutate.
+ * @param sources Sources applied from left to right.
+ * @returns The mutated target.
+ * @category Util
+ */
+export function assignDefined<T extends object>(
+  target: T,
+  ...sources: ReadonlyArray<Partial<T> | undefined>
+): T {
+  sources.forEach(source => {
+    if (source === undefined) return;
+
+    Object.keys(source).forEach(key => {
+      const value = (source as Record<string, unknown>)[key];
+      if (value !== undefined) {
+        const writableTarget = target as unknown as Record<string, unknown>;
+        if (
+          key === "__proto__" &&
+          !Object.prototype.hasOwnProperty.call(target, key)
+        ) {
+          Object.defineProperty(target, key, {
+            configurable: true,
+            enumerable: true,
+            value,
+            writable: true,
+          });
+        } else {
+          writableTarget[key] = value;
+        }
+      }
+    });
+  });
+  return target;
+}
+
+/**
  * Alias of `deepCopy`.
  *
  * @hidden
@@ -1734,44 +1795,91 @@ export function isValidData(data: MazeyObject, attributes: string[], validValue:
 }
 
 /**
- * Convert a byte count to a human-readable file size.
+ * Options for formatting a byte count.
+ *
+ * @category Util
+ */
+export interface FormatByteSizeOptions {
+  /** Unit scale. Defaults to `1024`. */
+  base?: 1000 | 1024;
+  /** Decimal places for rounded values. Must be an integer from 0 to 20. Defaults to `1`. */
+  fractionDigits?: number;
+  /** Returned for negative, non-finite, or otherwise invalid input. Defaults to an empty string. */
+  invalidValue?: string;
+}
+
+const byteSizeUnits = [ "B", "KB", "MB", "GB", "TB" ];
+
+/**
+ * Format a non-negative byte count using `B`, `KB`, `MB`, `GB`, or `TB`.
+ *
+ * Scaling defaults to 1024 with one fractional digit. Byte values omit
+ * insignificant trailing zeroes, while scaled values retain the requested
+ * number of fractional digits. Values beyond terabytes remain expressed in
+ * `TB`.
  *
  * Usage:
  *
  * ```javascript
- * import { getFileSize } from "mazey";
+ * import { formatByteSize } from "mazey";
  *
- * const ret = getFileSize(1024);
- * console.log(ret);
+ * formatByteSize(0);       // "0 B"
+ * formatByteSize(1536);    // "1.5 KB"
+ * formatByteSize(1500000, { base: 1000, fractionDigits: 2 }); // "1.50 MB"
  * ```
  *
- * Output:
- *
- * ```text
- * 1 KB
- * ```
- *
- * @param size File size in bytes.
- * @returns A rounded file-size string, or an empty string for a non-positive or non-finite value.
+ * @param bytes Byte count to format.
+ * @param options Formatting options.
+ * @returns A formatted byte-size string, or `invalidValue` for invalid input.
  * @category Util
  */
-export function getFileSize(size: number): string {
-  const toCeilStr: (v: number) => string = n => String(Math.ceil(n));
-  if (!Number.isFinite(size) || size <= 0) return "";
-  const num = 1024.0; // byte
-  if (size < num) {
-    return size + " B";
+export function formatByteSize(
+  bytes: number,
+  options: FormatByteSizeOptions = {},
+): string {
+  const {
+    base = 1024,
+    fractionDigits = 1,
+    invalidValue = "",
+  } = options;
+  if (
+    !Number.isFinite(bytes) ||
+    bytes < 0 ||
+    (base !== 1000 && base !== 1024) ||
+    !Number.isInteger(fractionDigits) ||
+    fractionDigits < 0 ||
+    fractionDigits > 20
+  ) {
+    return invalidValue;
   }
-  if (size < Math.pow(num, 2)) {
-    return toCeilStr(size / num) + " KB";
-  } // kb
-  if (size < Math.pow(num, 3)) {
-    return toCeilStr(size / Math.pow(num, 2)) + " MB";
-  } // M
-  if (size < Math.pow(num, 4)) {
-    return toCeilStr(size / Math.pow(num, 3)) + " G";
-  } // G
-  return toCeilStr(size / Math.pow(num, 4)) + " T";
+
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= base && unitIndex < byteSizeUnits.length - 1) {
+    value /= base;
+    unitIndex += 1;
+  }
+
+  if (unitIndex === 0) {
+    return `${Number(value.toFixed(fractionDigits))} ${byteSizeUnits[unitIndex]}`;
+  }
+  return `${value.toFixed(fractionDigits)} ${byteSizeUnits[unitIndex]}`;
+}
+
+/**
+ * Deprecated alias of `formatByteSize`.
+ *
+ * @deprecated Use `formatByteSize` instead.
+ * @param size Byte count to format.
+ * @param options Formatting options.
+ * @returns The result of `formatByteSize`.
+ * @category Util
+ */
+export function getFileSize(
+  size: number,
+  options: FormatByteSizeOptions = {},
+): string {
+  return formatByteSize(size, options);
 }
 
 /**
