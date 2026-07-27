@@ -3,6 +3,7 @@ import Tab from "bootstrap/js/dist/tab";
 import {
   calculateCAGR,
   floatToPercent,
+  formatDate,
   formatDurationFromMs,
   formatLocalDateTime,
   getDateDifference,
@@ -119,7 +120,10 @@ export function initializeDateTimeExample(
   reset();
 }
 
-export function initializeCAGRExample(root: ParentNode = document): void {
+export function initializeCAGRExample(
+  root: ParentNode = document,
+  now: () => Date = () => new Date()
+): void {
   const form = root.querySelector<HTMLFormElement>("[data-cagr-form]");
   const startInput = root.querySelector<HTMLInputElement>("[data-cagr-start]");
   const endInput = root.querySelector<HTMLInputElement>("[data-cagr-end]");
@@ -168,6 +172,7 @@ export function initializeCAGRExample(root: ParentNode = document): void {
     event.preventDefault();
     run();
   });
+  endInput.value = formatDate(now(), "yyyy-MM-dd");
   run();
 }
 

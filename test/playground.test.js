@@ -18,6 +18,8 @@ const tabDefinitions = [
   ["duration-tab", "duration", "Duration"],
 ];
 
+const fixedCAGRNow = () => new Date(2025, 9, 1, 12, 0, 0);
+
 function renderPlaygroundForms() {
   const tabs = tabDefinitions
     .map(
@@ -66,7 +68,7 @@ function renderPlaygroundForms() {
       >
         <form data-cagr-form>
           <input data-cagr-start value="2022-04-01" />
-          <input data-cagr-end value="2025-10-01" />
+          <input data-cagr-end />
           <input data-cagr-return value="20.2%" />
           <button type="submit">Calculate CAGR</button>
           <p role="alert" data-cagr-error></p>
@@ -207,7 +209,7 @@ test("keeps the date interval controls and native local inputs", () => {
 test("initializes every example with its expected result", () => {
   renderPlaygroundForms();
   initializeDateTimeExample(document, () => new Date(2024, 0, 1, 0, 0, 0));
-  initializeCAGRExample();
+  initializeCAGRExample(document, fixedCAGRNow);
   initializeDurationExample();
 
   expect(document.querySelector("[data-date-time-result]").textContent).toBe(
@@ -224,9 +226,16 @@ test("initializes every example with its expected result", () => {
   ).toBe("5.39%");
 });
 
+test("sets the CAGR end date to the current local day", () => {
+  renderPlaygroundForms();
+  initializeCAGRExample(document, () => new Date(2026, 6, 27, 23, 59, 58));
+
+  expect(document.querySelector("[data-cagr-end]").value).toBe("2026-07-27");
+});
+
 test("passes the CAGR return string directly and renders both result forms", () => {
   renderPlaygroundForms();
-  initializeCAGRExample();
+  initializeCAGRExample(document, fixedCAGRNow);
   const initialResult = Number(
     document.querySelector("[data-cagr-decimal-result]").textContent
   );
@@ -245,7 +254,7 @@ test("passes the CAGR return string directly and renders both result forms", () 
 
 test("shows a CAGR validation error without stale results", () => {
   renderPlaygroundForms();
-  initializeCAGRExample();
+  initializeCAGRExample(document, fixedCAGRNow);
   document.querySelector("[data-cagr-return]").value = "20%abc";
 
   submit("[data-cagr-form]");
@@ -348,7 +357,7 @@ test("duration submission updates only the duration result", () => {
 test("invalid duration shows only the duration error", () => {
   renderPlaygroundForms();
   initializeDurationExample();
-  initializeCAGRExample();
+  initializeCAGRExample(document, fixedCAGRNow);
   document.querySelector("[data-duration]").value = "-1";
 
   submit("[data-duration-form]");
