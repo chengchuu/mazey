@@ -3,6 +3,7 @@
  */
 
 export * from "./calc";
+export * from "./package";
 export {
   mNow,
   getDateDifference,
