@@ -46,6 +46,7 @@ This repository is a browser-focused utility library named `mazey`, intended for
 - `src/perf.ts`: Performance API and navigation timing helpers
 - `src/debug.ts`: custom console wrappers
 - `src/calc.ts`: standalone algorithms, probability helpers, and financial calculations
+- `src/package.ts`: package-manifest validation and derived bundle/install metadata
 
 ## Data Flow
 
