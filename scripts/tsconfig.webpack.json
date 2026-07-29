@@ -5,12 +5,14 @@
     "outDir": "../.ts-webpack",
     "declaration": false,
     "declarationMap": false,
+    "jsx": "react-jsx",
     "types": ["global"]
   },
   "include": [
     "../src/**/*.ts",
     "../types/**/*.ts",
     "../examples/**/*.ts",
+    "../examples/**/*.tsx",
     "../site/**/*.ts",
     "../site/**/*.d.ts"
   ]
