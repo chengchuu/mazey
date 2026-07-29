@@ -213,6 +213,20 @@ test("API toolbar preserves TypeDoc's search dialog", () => {
   );
 });
 
+test("API theme controls use readable native option colors", () => {
+  const apiCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "api.css"),
+    "utf8"
+  );
+
+  expect(apiCss).toMatch(
+    /\.site-project-links select,\s*\.tsd-theme-toggle select\s*{[^}]*color-scheme:\s*var\(--color-scheme\);[^}]*background-color:\s*var\(--color-background-secondary\);[^}]*}/
+  );
+  expect(apiCss).toMatch(
+    /\.site-project-links select option,\s*\.tsd-theme-toggle select option\s*{[^}]*color:\s*var\(--color-text\);[^}]*background-color:\s*var\(--color-background-secondary\);[^}]*}/
+  );
+});
+
 test("API index uses the TypeDoc page title as its primary heading", () => {
   const transformed = transformApiHtml(
     typeDocHtml.replace("<main><p>", "<main><h1>Mazey</h1><p>"),
