@@ -1,4 +1,9 @@
-import { calculateCAGR, floatToPercent, formatDate } from "../../../src";
+import {
+  calculateCAGR,
+  floatToPercent,
+  formatDate,
+  subYears,
+} from "../../../src";
 
 import type { ExampleResult } from "./example-result";
 
@@ -15,9 +20,9 @@ export interface CAGRExampleValues {
 
 export function createCAGRExampleValues(now: Date): CAGRExampleValues {
   return {
-    start: "2022-04-01",
+    start: formatDate(subYears(now, 10), "yyyy-MM-dd"),
     end: formatDate(now, "yyyy-MM-dd"),
-    totalReturn: "20.2%",
+    totalReturn: "50.2%",
   };
 }
 

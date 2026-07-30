@@ -149,7 +149,7 @@ test("example forms retain independent state", async () => {
   await user.click(screen.getByRole("tab", { name: "CAGR" }));
   const cagrPanel = screen.getByRole("tabpanel");
   expect(within(cagrPanel).queryByRole("alert")).not.toBeInTheDocument();
-  expect(within(cagrPanel).getByLabelText("Total return")).toHaveValue("20.2%");
+  expect(within(cagrPanel).getByLabelText("Total return")).toHaveValue("50.2%");
 
   await user.click(screen.getByRole("tab", { name: "Duration" }));
   expect(screen.getByLabelText("Duration in milliseconds")).toHaveValue(-1);

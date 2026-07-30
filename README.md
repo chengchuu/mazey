@@ -86,6 +86,7 @@ There are some examples maintained by hand below. For more information, please c
   - [parseLocalDateTime](#parselocaldatetime)
   - [formatLocalDateTime](#formatlocaldatetime)
   - [formatDate](#formatdate)
+  - [subYears](#subyears)
   - [isValidDate](#isvaliddate)
   - [isToday](#istoday)
   - [isThisYear](#isthisyear)
@@ -120,6 +121,7 @@ There are some examples maintained by hand below. For more information, please c
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
   - [isValidCssSelector](#isvalidcssselector)
+  - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
   - [addStyle](#addstyle)
   - [genStyleString](#genstylestring)
@@ -474,6 +476,24 @@ Default formatDate value: 2023-01-11
 String formatDate value: 2022-01-11 14:12:26
 Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
+```
+
+#### subYears
+
+Subtract calendar years from a `Date` or millisecond timestamp without
+mutating the original date. Positive decimals are rounded down, negative
+decimals are rounded up, and leap-day results are clamped to the destination
+month's final day.
+
+```javascript
+const result = subYears(new Date(2014, 8, 1), 5);
+console.log(formatDate(result, "yyyy-MM-dd"));
+```
+
+Output:
+
+```text
+2009-09-01
 ```
 
 #### isValidDate
@@ -1071,6 +1091,24 @@ Invalid selector syntax returns `false` instead of throwing.
 isValidCssSelector(".message > img"); // true
 isValidCssSelector("["); // false
 isValidCssSelector("", { allowEmpty: true }); // true
+```
+
+#### resolveElementTarget
+
+Resolve a direct element, scoped selector, optionally unwrapped ref-like value,
+or component-like `$el` value. Invalid or unmatched targets return `null`.
+
+```javascript
+const element = resolveElementTarget("#dialog", {
+  root: document,
+  defaultElement: document.documentElement,
+});
+
+const elementRef = { value: element };
+resolveElementTarget(elementRef, {
+  root: document,
+  unwrap: value => value?.value,
+});
 ```
 
 #### extractElementText

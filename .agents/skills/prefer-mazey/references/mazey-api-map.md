@@ -47,6 +47,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                                                         |
 | `parseLocalDateTime`      | Parse an HTML local date-time value strictly              | Universal          | Accepts a four-or-more-digit year, `T`, minutes, optional seconds, and 1-3 fraction digits; uses local fields; invalid input returns `null`.      |
 | `formatLocalDateTime`     | Format a date for an HTML local date-time control         | Universal          | Uses local fields without UTC conversion and pads years to at least four digits; supports minute, second, or millisecond precision.              |
+| `subYears`                | Subtract local calendar years from a date                  | Universal          | Accepts a `Date` or millisecond timestamp; rounds amounts toward zero, clamps leap days, returns a new `Date`, and does not mutate the input.     |
 | `isValidDate`             | Validate date objects, timestamps, and structured strings | Universal          | Numbers are milliseconds; local and zoned ISO-style strings are parsed strictly; locale date strings are rejected.                            |
 | `isToday`                 | Test whether a date is today                              | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares local year/month/day; invalid input returns false.                     |
 | `isThisYear`              | Test whether a date is in the current year                | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares the local year; invalid input returns false.                           |
@@ -157,6 +158,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
 | `getPageMeta`        | Read the first named meta tag's content         | Browser-only      | Scans DOM meta elements with exact name matching.                                                               |
 | `isValidCssSelector` | Validate selector syntax against a query root   | Browser-preferred | Trims input; empty values require `allowEmpty`; non-empty values return false without `document` or a root.     |
+| `resolveElementTarget` | Resolve direct, selector, wrapped, or `$el` targets | Browser-only      | Scopes selectors to a required root; supports an unwrap adapter; invalid or unmatched targets return `null`; does not mutate the DOM. |
 | `extractElementText` | Extract normalized text from a cloned element   | Browser-only      | Does not mutate the original; replaces images with `alt` text by default; ignores invalid exclusion selectors. |
 
 ## Storage and cookies
