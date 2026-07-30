@@ -5,7 +5,7 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopy, deepCopyObject, deepFreeze, assignDefined, repeatUntilConditionMet,
-  formatDate, parseLocalDateTime, formatLocalDateTime,
+  formatDate, parseLocalDateTime, formatLocalDateTime, subYears,
   generateCalendarVersion, isValidDate,
   isToday, isThisYear, isThisMonth, isThisWeek, isThisHour,
   formatDistanceToNow, isBrowser, waitTime, isArray,
@@ -575,6 +575,82 @@ describe("local datetime utilities", () => {
     expect(() => formatLocalDateTime(new Date(), { precision: "hour" })).toThrow(
       TypeError
     );
+  });
+});
+
+describe("subYears", () => {
+  test("subtracts calendar years from Date and timestamp inputs", () => {
+    const date = new Date(2014, 8, 1, 14, 30, 45, 123);
+    const originalTime = date.getTime();
+    const result = subYears(date, 5);
+
+    expect([
+      result.getFullYear(),
+      result.getMonth(),
+      result.getDate(),
+      result.getHours(),
+      result.getMinutes(),
+      result.getSeconds(),
+      result.getMilliseconds(),
+    ]).toEqual([ 2009, 8, 1, 14, 30, 45, 123 ]);
+    expect(subYears(date.getTime(), 5).getTime()).toBe(result.getTime());
+    expect(date.getTime()).toBe(originalTime);
+  });
+
+  test.each([
+    [ 1.9, 2025 ],
+    [ 1.1, 2025 ],
+    [ -1.9, 2027 ],
+    [ -1.1, 2027 ],
+    [ 0.9, 2026 ],
+    [ -0.9, 2026 ],
+  ])("rounds an amount of %s to the year %s", (amount, expectedYear) => {
+    expect(subYears(new Date(2026, 6, 21), amount).getFullYear()).toBe(
+      expectedYear
+    );
+  });
+
+  test("clamps leap day to the final day of the destination month", () => {
+    const result = subYears(new Date(2024, 1, 29, 12, 30), 1);
+
+    expect([
+      result.getFullYear(),
+      result.getMonth(),
+      result.getDate(),
+      result.getHours(),
+      result.getMinutes(),
+    ]).toEqual([ 2023, 1, 28, 12, 30 ]);
+    expect(subYears(new Date(2024, 1, 29), 4).getDate()).toBe(29);
+  });
+
+  test("returns a new Date without mutating the input", () => {
+    const date = new Date(2026, 6, 21, 14, 30);
+    const originalTime = date.getTime();
+    const result = subYears(date, 0);
+
+    expect(result).not.toBe(date);
+    expect(result.getTime()).toBe(originalTime);
+    expect(date.getTime()).toBe(originalTime);
+  });
+
+  test("supports Date objects from another realm", () => {
+    const date = runInNewContext("new Date(2026, 6, 21, 14, 30)");
+
+    expect(subYears(date, 2).getFullYear()).toBe(2024);
+  });
+
+  test.each([
+    [ new Date("invalid"), 1 ],
+    [ NaN, 1 ],
+    [ Infinity, 1 ],
+    [ new Date(), NaN ],
+    [ new Date(), Infinity ],
+    [ new Date(), null ],
+    [ new Date(), true ],
+    [ new Date(), "1" ],
+    [ new Date(), Symbol("years") ],
+  ])("returns an invalid Date for invalid input", (date, amount) => {
+    expect(Number.isNaN(subYears(date, amount).getTime())).toBe(true);
   });
 });
 

@@ -60,9 +60,16 @@ describe("date interval example core", () => {
 describe("CAGR example core", () => {
   test("creates defaults with the current local day", () => {
     expect(createCAGRExampleValues(new Date(2026, 6, 29, 23, 59, 58))).toEqual({
-      start: "2022-04-01",
+      start: "2016-07-29",
       end: "2026-07-29",
-      totalReturn: "20.2%",
+      totalReturn: "50.2%",
+    });
+  });
+
+  test("clamps a leap-day start through subYears", () => {
+    expect(createCAGRExampleValues(new Date(2024, 1, 29, 12))).toMatchObject({
+      start: "2014-02-28",
+      end: "2024-02-29",
     });
   });
 

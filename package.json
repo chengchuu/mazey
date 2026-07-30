@@ -1,6 +1,6 @@
 {
   "name": "mazey",
-  "version": "5.6.1",
+  "version": "5.6.2",
   "description": "A functional library for daily frontend work.",
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",

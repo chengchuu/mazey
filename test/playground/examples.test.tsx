@@ -72,11 +72,14 @@ test("CAGR preserves defaults and clears stale output on validation failure", as
   const user = userEvent.setup();
   render(<CAGRExample now={() => new Date(2025, 9, 1, 12, 0, 0)} />);
 
-  expect(screen.getByLabelText("Start date")).toHaveValue("2022-04-01");
+  expect(screen.getByLabelText("Start date")).toHaveValue("2015-10-01");
   expect(screen.getByLabelText("End date")).toHaveValue("2025-10-01");
-  expect(screen.getByLabelText("Total return")).toHaveValue("20.2%");
-  expect(screen.getByRole("status")).toHaveTextContent("5.39%");
-  expect(screen.getByRole("status")).toHaveTextContent("0.05390890296644435");
+  expect(screen.getByLabelText("Total return")).toHaveValue("50.2%");
+  expect(screen.getByRole("status")).toHaveTextContent("4.15%");
+  const initialDecimal =
+    screen.getByRole("status").querySelectorAll("code")[1].textContent ?? "";
+  expect(initialDecimal).not.toBe("");
+  expect(Number(initialDecimal)).toBeCloseTo(0.04148, 4);
 
   await user.clear(screen.getByLabelText("Total return"));
   await user.type(screen.getByLabelText("Total return"), "20%abc");
@@ -85,10 +88,8 @@ test("CAGR preserves defaults and clears stale output on validation failure", as
   expect(screen.getByRole("alert")).toHaveTextContent(
     "totalReturnRate must be a valid percentage string."
   );
-  expect(screen.getByRole("status")).not.toHaveTextContent("5.39%");
-  expect(screen.getByRole("status")).not.toHaveTextContent(
-    "0.05390890296644435"
-  );
+  expect(screen.getByRole("status")).not.toHaveTextContent("4.15%");
+  expect(screen.getByRole("status")).not.toHaveTextContent(initialDecimal);
 });
 
 test("duration initializes and handles valid and invalid submissions", async () => {
