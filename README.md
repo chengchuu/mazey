@@ -132,6 +132,7 @@ There are some examples maintained by hand below. For more information, please c
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
+  - [getSystemTheme](#getsystemtheme)
   - [resolveThemePreference](#resolvethemepreference)
   - [setThemePreference](#setthemepreference)
   - [resolveLanguagePreference](#resolvelanguagepreference)
@@ -1381,6 +1382,30 @@ Output:
 ```
 
 ### Browser Information
+
+#### getSystemTheme
+
+Read the operating system's current `prefers-color-scheme` value directly. The
+function returns `"light"`, `"dark"`, or `null` when the preference cannot be
+determined.
+
+```javascript
+const systemTheme = getSystemTheme();
+
+console.log(systemTheme);
+```
+
+Possible browser output:
+
+```text
+dark
+```
+
+This is a one-time synchronous read. It is safe during SSR and does not inspect
+URL parameters, access project storage, apply a theme, mutate the DOM, or add
+media-query listeners. Use `resolveThemePreference` when URL, storage, system,
+and fallback resolution is required. Use `listenMediaQueryChanges` to observe
+future color-scheme changes.
 
 #### resolveThemePreference
 
