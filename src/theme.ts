@@ -34,7 +34,35 @@ function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || isResolvedTheme(value);
 }
 
-function getSystemTheme(): ResolvedTheme | null {
+/**
+ * Read the operating system's current color-scheme preference.
+ *
+ * This performs one synchronous
+ * `(prefers-color-scheme: dark)` media-query check. It returns `dark` when
+ * the query matches, `light` when the query is available and does not match,
+ * or `null` when the preference cannot be read safely.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { getSystemTheme } from "mazey";
+ *
+ * const systemTheme = getSystemTheme();
+ *
+ * console.log(systemTheme);
+ * ```
+ *
+ * Possible browser output:
+ *
+ * ```text
+ * dark
+ * ```
+ *
+ * @returns The current `light` or `dark` system theme, or `null` during SSR and in unsupported or inaccessible environments.
+ * @remarks Unlike `resolveThemePreference`, this function does not inspect URL parameters or storage and does not provide a fallback theme. It performs a one-time read without mutating the DOM, applying a theme, writing storage, or adding media-query listeners. Use `listenMediaQueryChanges` when future changes must be observed.
+ * @category Browser Information
+ */
+export function getSystemTheme(): ResolvedTheme | null {
   if (typeof window === "undefined") return null;
   try {
     const matchMedia = window.matchMedia;

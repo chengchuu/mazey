@@ -191,6 +191,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isStandalonePWA`           | Detect standalone PWA presentation                         | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                                       |
 | `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; prefers modern events, supports legacy listeners, and returns idempotent cleanup without implicit globals.                       |
 | `watchServiceWorkerUpdates` | Observe and activate waiting service-worker updates         | Browser-only      | Tracks waiting/installing workers, reports updates only for controlled pages, accepts UI-neutral callbacks, and returns activation/disposal controls.             |
+| `getSystemTheme`            | Read the current operating-system color scheme              | Browser-preferred | One synchronous `prefers-color-scheme` read; returns `light`, `dark`, or `null`; ignores URL and storage; never mutates the DOM or adds listeners.                 |
 | `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; valid query values are persisted when possible; returns only `{ value, label }`; SSR-safe and DOM-independent.     |
 | `setThemePreference`        | Persist a website theme preference                         | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                                   |
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
@@ -212,6 +213,8 @@ type VisitorType =
 detectVisitorType(
   userAgent?: string
 ): VisitorType;
+
+getSystemTheme(): ResolvedTheme | null;
 
 resolveThemePreference(
   storageKey: string
