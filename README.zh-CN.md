@@ -796,33 +796,39 @@ console.log(ret);
 
 #### Storage 工具
 
-操作 Web Storage。函数适用于 JSON 数据，并会自动转换格式。
+在 Web Storage 中存储 JSON 序列化值，并在读取时解析这些值。
 
 用法:
 
 ```javascript
-setSessionStorage("test", "123");
-const ret1 = getSessionStorage("test");
-setLocalStorage("test", "123");
-const ret2 = getLocalStorage("test");
-console.log(ret1, ret2);
+setSessionJSON("preferences", { theme: "dark" });
+const sessionValue = getSessionJSON("preferences");
+setLocalJSON("recentItems", [ "one", "two" ]);
+const localValue = getLocalJSON("recentItems");
+console.log({ sessionValue, localValue });
 
-// 也可以按项目封装键名
+// 也可以按项目封装键名。
 const projectName = "mazey";
 function mSetLocalStorage (key, value) {
-  return setLocalStorage(`${projectName}_${key}`, value);
+  return setLocalJSON(`${projectName}_${key}`, value);
 }
 
 function mGetLocalStorage (key) {
-  return getLocalStorage(`${projectName}_${key}`);
+  return getLocalJSON(`${projectName}_${key}`);
 }
 ```
 
 输出:
 
 ```text
-123 123
+{
+  sessionValue: { theme: "dark" },
+  localValue: [ "one", "two" ]
+}
 ```
+
+`setSessionStorage`、`getSessionStorage`、`setLocalStorage` 和
+`getLocalStorage` 是对应 `JSON` 工具的弃用别名。
 
 ### DOM
 
