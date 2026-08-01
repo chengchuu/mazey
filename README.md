@@ -1036,33 +1036,39 @@ Output:
 
 #### Storage Helpers
 
-Handle Storage (Keep fit for JSON, it can transfer format automatically).
+Store JSON-serialized values in Web Storage and parse them when reading.
 
 Usage:
 
 ```javascript
-setSessionStorage("test", "123");
-const ret1 = getSessionStorage("test");
-setLocalStorage("test", "123");
-const ret2 = getLocalStorage("test");
-console.log(ret1, ret2);
+setSessionJSON("preferences", { theme: "dark" });
+const sessionValue = getSessionJSON("preferences");
+setLocalJSON("recentItems", [ "one", "two" ]);
+const localValue = getLocalJSON("recentItems");
+console.log({ sessionValue, localValue });
 
-// or package in usage
+// Wrap the helpers with a project-specific key prefix.
 const projectName = "mazey";
 function mSetLocalStorage (key, value) {
-  return setLocalStorage(`${projectName}_${key}`, value);
+  return setLocalJSON(`${projectName}_${key}`, value);
 }
 
 function mGetLocalStorage (key) {
-  return getLocalStorage(`${projectName}_${key}`);
+  return getLocalJSON(`${projectName}_${key}`);
 }
 ```
 
 Output:
 
 ```text
-123 123
+{
+  sessionValue: { theme: "dark" },
+  localValue: [ "one", "two" ]
+}
 ```
+
+`setSessionStorage`, `getSessionStorage`, `setLocalStorage`, and
+`getLocalStorage` are deprecated aliases of the corresponding `JSON` helpers.
 
 ### DOM
 

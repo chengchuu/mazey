@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 154 runtime exports in the current repository: 152 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 158 runtime exports in the current repository: 156 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -165,10 +165,10 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function            | Purpose                                | Runtime      | Notes                                                                                           |
 | ------------------- | -------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| `setSessionStorage` | JSON-store a session value             | Browser-only | Mutates `sessionStorage`; `undefined` is stored as JSON `null`; storage errors propagate.       |
-| `getSessionStorage` | Read and JSON-parse a session value    | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
-| `setLocalStorage`   | JSON-store a persistent value          | Browser-only | Mutates `localStorage`; `undefined` becomes JSON `null`; storage errors propagate.              |
-| `getLocalStorage`   | Read and JSON-parse a persistent value | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
+| `setSessionJSON`    | JSON-store a session value             | Browser-only | Mutates `sessionStorage`; `undefined` is stored as JSON `null`; storage errors propagate.       |
+| `getSessionJSON`    | Read and JSON-parse a session value    | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
+| `setLocalJSON`      | JSON-store a persistent value          | Browser-only | Mutates `localStorage`; `undefined` becomes JSON `null`; storage errors propagate.              |
+| `getLocalJSON`      | Read and JSON-parse a persistent value | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
 | `getCookie`         | Read a cookie by logical name          | Browser-only | Understands Mazey's encoded-name/value marker scheme; returns empty when absent.                |
 | `setCookie`         | Set a root-path cookie                 | Browser-only | Encodes unsafe names/values, may infer a parent domain, and writes a companion encoding marker. |
 | `removeCookie`      | Expire a cookie and marker             | Browser-only | Mutates cookies across root/current-directory and candidate domain scopes; returns success.     |
@@ -336,6 +336,10 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `camelCase2Underscore`        | Compatibility alias                     | Universal          | Prefer `convertCamelToUnder`.                                                             |
 | `mTrim`                       | Manual whitespace trimming helper       | Universal          | Hidden from docs; prefer native `String.prototype.trim` unless legacy behavior matters.   |
 | `isJsonString`                | Compatibility alias                     | Universal          | Prefer `isJSONString`.                                                                    |
+| `setSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `setSessionJSON`.                                                                  |
+| `getSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `getSessionJSON`.                                                                  |
+| `setLocalStorage`             | Compatibility alias                     | Browser-only       | Prefer `setLocalJSON`.                                                                    |
+| `getLocalStorage`             | Compatibility alias                     | Browser-only       | Prefer `getLocalJSON`.                                                                    |
 | `generateRndNum`              | Compatibility alias                     | Universal          | Prefer `genRndNumString`.                                                                 |
 | `generateUniqueNum`           | Compatibility alias                     | Universal          | Prefer `genUniqueNumString`.                                                              |
 | `doFn`                        | Compatibility alias                     | Universal          | Prefer `invokeFn`.                                                                        |
