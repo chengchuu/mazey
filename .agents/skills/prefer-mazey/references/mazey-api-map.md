@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 158 runtime exports in the current repository: 156 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 162 runtime exports in the current repository: 160 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -113,6 +113,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `toJavaScriptGlobalName` | Convert text to an uppercase ASCII identifier | Universal | Replaces invalid identifier characters with `_`, preserves `$`/`_`, and prefixes leading digits. |
 | `convertToHtmlBreaks` | Replace line breaks with `<br />`             | Universal | Returns empty for falsy input; does not escape HTML.                    |
 | `removeHTML`          | Strip HTML-like tags from text                | Universal | Regex-based, optional newline removal; not an HTML parser or sanitizer. |
+| `escapeHtmlAttribute` | Escape a quoted HTML attribute value          | Universal | Escapes `&`, `<`, `>`, and both quotes without escaping `/`; optionally preserves syntactically valid named and numeric references. |
 | `sanitizeInput`       | Escape six HTML-sensitive characters          | Universal | Context-limited escaping, not a complete XSS sanitizer.                 |
 | `unsanitizeInput`     | Decode entities emitted by `sanitizeInput`    | Universal | Decodes only Mazey's fixed entity set.                                  |
 | `cutZHString`         | Truncate text using a Chinese-width heuristic | Universal | Supports `hasDot`/`dotText`; nullish input returns empty.               |
