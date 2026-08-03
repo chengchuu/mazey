@@ -25,8 +25,9 @@ test("date interval initializes, validates, calculates, and resets", async () =>
   const end = screen.getByLabelText("End date and time");
 
   expect((start as HTMLInputElement).value).toBe("2026-07-29T14:30:45.000");
-  expect((end as HTMLInputElement).value).toBe("2026-07-29T14:30:45.000");
-  expect(screen.getByRole("status")).toHaveTextContent("0 seconds");
+  expect((end as HTMLInputElement).value).toBe("2027-01-01T00:00");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveTextContent("day");
 
   await user.clear(start);
   await user.click(screen.getByRole("button", { name: "Calculate interval" }));
@@ -36,6 +37,8 @@ test("date interval initializes, validates, calculates, and resets", async () =>
   expect(screen.getByRole("status")).not.toHaveTextContent("0 seconds");
 
   await user.type(start, "2026-07-28T13:29:44");
+  await user.clear(end);
+  await user.type(end, "2026-07-29T14:30:45");
   await user.click(screen.getByRole("button", { name: "Calculate interval" }));
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   expect(screen.getByRole("status")).toHaveTextContent(
