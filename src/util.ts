@@ -1344,6 +1344,69 @@ export function clearHtml(str: string, options: { removeNewLine?: boolean } = {}
 }
 
 /**
+ * Escape a string for use inside a quoted HTML attribute.
+ *
+ * By default, the function escapes ampersands, angle brackets, double quotes,
+ * and single quotes. Set `preserveEntities` to retain syntactically valid
+ * named, decimal, and hexadecimal character references that already appear in
+ * source markup. Bare or malformed ampersands are still escaped. Forward
+ * slashes are never escaped.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { escapeHtmlAttribute } from "mazey";
+ *
+ * const rawValue = escapeHtmlAttribute(
+ *   'https://example.com/?q="Mazey"&page=1'
+ * );
+ * const markupValue = escapeHtmlAttribute(
+ *   "Mazey &amp; TypeScript",
+ *   { preserveEntities: true }
+ * );
+ *
+ * console.log(rawValue);
+ * console.log(markupValue);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * https://example.com/?q=&quot;Mazey&quot;&amp;page=1
+ * Mazey &amp; TypeScript
+ * ```
+ *
+ * @param value Text to escape for a quoted HTML attribute.
+ * @param options Escaping options. Existing character references are escaped unless `preserveEntities` is `true`.
+ * @returns The escaped attribute value.
+ * @throws {TypeError} If `value` is not a string.
+ * @remarks This function performs context-specific escaping only. It does not validate URLs, sanitize arbitrary HTML, or make an unsafe attribute name or surrounding markup safe.
+ * @category Util
+ */
+export function escapeHtmlAttribute(
+  value: string,
+  options: { preserveEntities?: boolean } = {}
+): string {
+  if (typeof value !== "string") {
+    throw new TypeError("value must be a string.");
+  }
+
+  const ampersandPattern = options.preserveEntities
+    ? /&(?!(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]+);)/gi
+    : /&/g;
+  const replacements: Record<string, string> = {
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  };
+
+  return value
+    .replace(ampersandPattern, "&amp;")
+    .replace(/[<>"']/g, character => replacements[character]);
+}
+
+/**
  * Sanitizes user input to prevent XSS attacks.
  *
  * Usage:

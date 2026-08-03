@@ -80,6 +80,7 @@ There are some examples maintained by hand below. For more information, please c
   - [isNumber](#isnumber)
   - [isJSONString](#isjsonstring)
   - [parseJsonSafe](#parsejsonsafe)
+  - [escapeHtmlAttribute](#escapehtmlattribute)
   - [sha256Hex](#sha256hex)
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
@@ -333,6 +334,36 @@ const data = parseJsonSafe('{"enabled":true}');
 const fallback = parseJsonSafe("invalid", {});
 console.log(data, fallback);
 ```
+
+#### escapeHtmlAttribute
+
+Escape text for use inside a quoted HTML attribute without escaping `/`.
+Ampersands, angle brackets, and both quote characters are escaped by default.
+
+```javascript
+const rawValue = escapeHtmlAttribute(
+  'https://example.com/?q="Mazey"&page=1'
+);
+const markupValue = escapeHtmlAttribute(
+  "Mazey &amp; TypeScript",
+  { preserveEntities: true }
+);
+
+console.log(rawValue);
+console.log(markupValue);
+```
+
+Output:
+
+```text
+https://example.com/?q=&quot;Mazey&quot;&amp;page=1
+Mazey &amp; TypeScript
+```
+
+With `preserveEntities: true`, syntactically valid named, decimal, and
+hexadecimal character references remain unchanged while bare or malformed
+ampersands are escaped. This helper performs attribute-value escaping; it does
+not sanitize arbitrary HTML or validate URLs.
 
 #### sha256Hex
 
