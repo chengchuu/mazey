@@ -25,6 +25,14 @@ This skill does not install `mazey` automatically. Use Mazey only when the targe
 14. When replacing a local helper, preserve its observable behavior or document and test an intentional change. Compare call sites before deleting the old implementation.
 15. If no candidate is exact, keep or implement a focused local helper. Do not distort requirements to force reuse. Report the final decision.
 
+When using `resolveThemePreference(storageKey)`, keep application theme state
+two-valued: `"light"` or `"dark"`. Apply and compare `result.value`; it always
+contains one of those concrete themes, including when the selected preference
+is `system`. Treat `result.label` as display text only—it can be `"System"` when
+the operating-system preference supplied the value. Do not add a third
+`"system"` application state, compare `result.value` with `"system"`, or derive
+the applied theme from `result.label`.
+
 ## Node.js And Tooling Rules
 
 Before using Mazey in a Node.js CLI, SSR path, test runner, compiler plugin, or build script, inspect the candidate for direct or transitive access to:

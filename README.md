@@ -139,6 +139,11 @@ There are some examples maintained by hand below. For more information, please c
   - [resolveLanguagePreference](#resolvelanguagepreference)
   - [setLanguagePreference](#setlanguagepreference)
   - [detectVisitorType](#detectvisitortype)
+  - [isIOS](#isios)
+  - [isAndroid](#isandroid)
+  - [isMacOS](#ismacos)
+  - [isWindows](#iswindows)
+  - [isLinux](#islinux)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -1630,6 +1635,79 @@ or changed, so false positives and false negatives are possible.
 > limiting, fraud prevention, or access control. Genuine crawler verification
 > generally requires server-side request information and provider-specific
 > validation.
+
+#### isIOS
+
+Check whether the current browser represents iOS or iPadOS. The current-browser
+check also recognizes modern iPadOS browsers that identify as macOS.
+
+```javascript
+const result = isIOS();
+
+console.log(result);
+```
+
+Possible output:
+
+```text
+true
+```
+
+#### isAndroid
+
+Check whether the current browser represents Android.
+
+```javascript
+const result = isAndroid();
+
+console.log(result);
+```
+
+#### isMacOS
+
+Check whether the current browser represents macOS. Modern iPadOS desktop-mode
+browsers are excluded when their platform and touch signals are available.
+
+```javascript
+const result = isMacOS();
+
+console.log(result);
+```
+
+#### isWindows
+
+Check whether the current browser represents Windows.
+
+```javascript
+const result = isWindows();
+
+console.log(result);
+```
+
+#### isLinux
+
+Check whether the current browser represents Linux. Android user agents are
+excluded even though they commonly contain the `Linux` token.
+
+```javascript
+const result = isLinux();
+
+console.log(result);
+```
+
+Each helper accepts an optional user-agent string for deterministic or
+server-side classification:
+
+```javascript
+const result = isAndroid(
+  "Mozilla/5.0 (Linux; Android 14; Pixel 8)"
+);
+```
+
+An explicit value is classified without reading the current browser's platform
+or touch signals. Calls without an argument return `false` during SSR or when
+the user agent cannot be read. User-agent detection is heuristic and spoofable;
+do not use these helpers as a security boundary.
 
 #### getBrowserInfo
 
