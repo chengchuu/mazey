@@ -4,8 +4,44 @@
 /* eslint-disable no-undef */
 import {
   detectVisitorType, isSafePWAEnv, isStandalonePWA, getBrowserInfo,
-  isSupportWebp, genBrowserAttrs,
+  isSupportWebp, genBrowserAttrs, isIOS, isAndroid, isMacOS, isWindows,
+  isLinux,
 } from "../lib/index.esm";
+
+const operatingSystemChecks = {
+  ios: isIOS,
+  android: isAndroid,
+  macos: isMacOS,
+  windows: isWindows,
+  linux: isLinux,
+};
+
+const operatingSystemUserAgents = {
+  iphone:
+    "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) " +
+    "AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+  ipad:
+    "Mozilla/5.0 (iPad; CPU OS 16_6 like Mac OS X) " +
+    "AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+  ipod:
+    "Mozilla/5.0 (iPod touch; CPU iPhone OS 15_7 like Mac OS X) " +
+    "AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1",
+  androidPhone:
+    "Mozilla/5.0 (Linux; Android 14; Pixel 8) " +
+    "AppleWebKit/537.36 Chrome/126.0 Mobile Safari/537.36",
+  androidTablet:
+    "Mozilla/5.0 (Linux; Android 13; Pixel Tablet) " +
+    "AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
+  macos:
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) " +
+    "AppleWebKit/605.1.15 Version/17.5 Safari/605.1.15",
+  windows:
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) " +
+    "AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
+  linux:
+    "Mozilla/5.0 (X11; Linux x86_64) " +
+    "AppleWebKit/537.36 Chrome/126.0 Safari/537.36",
+};
 
 describe("detectVisitorType", () => {
   const originalUserAgent = Object.getOwnPropertyDescriptor(
@@ -246,6 +282,195 @@ describe("detectVisitorType", () => {
       expect([ "user", "human", true, false ]).not.toContain(result);
     });
   });
+});
+
+describe("operating-system helpers", () => {
+  const originalUserAgent = Object.getOwnPropertyDescriptor(
+    navigator,
+    "userAgent"
+  );
+  const originalPlatform = Object.getOwnPropertyDescriptor(
+    navigator,
+    "platform"
+  );
+  const originalMaxTouchPoints = Object.getOwnPropertyDescriptor(
+    navigator,
+    "maxTouchPoints"
+  );
+  const originalBrowserInfo = window.MAZEY_BROWSER_INFO;
+
+  function restoreNavigatorProperty(property, descriptor) {
+    if (descriptor) {
+      Object.defineProperty(navigator, property, descriptor);
+    } else {
+      delete navigator[property];
+    }
+  }
+
+  function setNavigatorProperty(property, value) {
+    Object.defineProperty(navigator, property, {
+      configurable: true,
+      value,
+    });
+  }
+
+  afterEach(() => {
+    restoreNavigatorProperty("userAgent", originalUserAgent);
+    restoreNavigatorProperty("platform", originalPlatform);
+    restoreNavigatorProperty("maxTouchPoints", originalMaxTouchPoints);
+    window.MAZEY_BROWSER_INFO = originalBrowserInfo;
+  });
+
+  it.each([
+    [ "iPhone", operatingSystemUserAgents.iphone, "ios" ],
+    [ "iPad", operatingSystemUserAgents.ipad, "ios" ],
+    [ "iPod", operatingSystemUserAgents.ipod, "ios" ],
+    [ "Android phone", operatingSystemUserAgents.androidPhone, "android" ],
+    [ "Android tablet", operatingSystemUserAgents.androidTablet, "android" ],
+    [ "macOS", operatingSystemUserAgents.macos, "macos" ],
+    [ "Windows", operatingSystemUserAgents.windows, "windows" ],
+    [ "Linux", operatingSystemUserAgents.linux, "linux" ],
+  ])("classifies an explicit %s user agent", (name, userAgent, system) => {
+    Object.entries(operatingSystemChecks).forEach(([ candidate, checkSystem ]) => {
+      expect(checkSystem(userAgent)).toBe(candidate === system);
+    });
+  });
+
+  it("matches user agents case-insensitively", () => {
+    expect(isIOS(operatingSystemUserAgents.iphone.toUpperCase())).toBe(true);
+    expect(isAndroid(operatingSystemUserAgents.androidPhone.toUpperCase())).toBe(
+      true
+    );
+  });
+
+  it.each([
+    "",
+    "   ",
+    "ExampleClient/1.0",
+    "ExampleBIOS/1.0",
+    "Mozilla/5.0 (X11; FreeBSD amd64)",
+    "NotAndroid/1.0",
+    "MyiPhoneClient/1.0",
+    "Darwin32/1.0",
+    "NotMacintosh/1.0",
+    "Linuxoid/1.0",
+  ])(
+    "returns false for unsupported user agent %p",
+    (userAgent) => {
+      Object.values(operatingSystemChecks).forEach((checkSystem) => {
+        expect(checkSystem(userAgent)).toBe(false);
+      });
+    }
+  );
+
+  it("uses an explicit user agent instead of current navigator signals", () => {
+    setNavigatorProperty("userAgent", operatingSystemUserAgents.androidPhone);
+    setNavigatorProperty("platform", "Linux armv8l");
+    setNavigatorProperty("maxTouchPoints", 5);
+
+    expect(isWindows(operatingSystemUserAgents.windows)).toBe(true);
+    expect(isAndroid(operatingSystemUserAgents.windows)).toBe(false);
+  });
+
+  it("does not mix iPad compatibility signals into explicit analysis", () => {
+    setNavigatorProperty("platform", "MacIntel");
+    setNavigatorProperty("maxTouchPoints", 5);
+
+    expect(isMacOS(operatingSystemUserAgents.macos)).toBe(true);
+    expect(isIOS(operatingSystemUserAgents.macos)).toBe(false);
+  });
+
+  it("recognizes iPadOS desktop mode from current navigator signals", () => {
+    setNavigatorProperty("userAgent", operatingSystemUserAgents.macos);
+    setNavigatorProperty("platform", "MacIntel");
+    setNavigatorProperty("maxTouchPoints", 5);
+
+    expect(isIOS()).toBe(true);
+    expect(isMacOS()).toBe(false);
+  });
+
+  it("keeps an ordinary non-touch Mac classified as macOS", () => {
+    setNavigatorProperty("userAgent", operatingSystemUserAgents.macos);
+    setNavigatorProperty("platform", "MacIntel");
+    setNavigatorProperty("maxTouchPoints", 0);
+
+    expect(isMacOS()).toBe(true);
+    expect(isIOS()).toBe(false);
+  });
+
+  it("does not read or update the getBrowserInfo cache", () => {
+    const cached = { system: "windows" };
+    window.MAZEY_BROWSER_INFO = cached;
+    setNavigatorProperty("userAgent", operatingSystemUserAgents.androidPhone);
+
+    expect(isAndroid()).toBe(true);
+    expect(isWindows()).toBe(false);
+    expect(window.MAZEY_BROWSER_INFO).toBe(cached);
+  });
+
+  it("returns false when the default user agent is inaccessible", () => {
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      get() {
+        throw new Error("host failure");
+      },
+    });
+
+    Object.values(operatingSystemChecks).forEach((checkSystem) => {
+      expect(checkSystem()).toBe(false);
+    });
+  });
+
+  it("continues safely when platform and touch signals are inaccessible", () => {
+    setNavigatorProperty("userAgent", operatingSystemUserAgents.macos);
+    Object.defineProperty(navigator, "platform", {
+      configurable: true,
+      get() {
+        throw new Error("host failure");
+      },
+    });
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      get() {
+        throw new Error("host failure");
+      },
+    });
+
+    expect(isMacOS()).toBe(true);
+    expect(isIOS()).toBe(false);
+  });
+
+  it("reads each default navigator signal only once", () => {
+    const userAgentGetter = jest.fn(() => operatingSystemUserAgents.linux);
+    const platformGetter = jest.fn(() => "Linux x86_64");
+    const maxTouchPointsGetter = jest.fn(() => 0);
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      get: userAgentGetter,
+    });
+    Object.defineProperty(navigator, "platform", {
+      configurable: true,
+      get: platformGetter,
+    });
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      get: maxTouchPointsGetter,
+    });
+
+    expect(isLinux()).toBe(true);
+    expect(userAgentGetter).toHaveBeenCalledTimes(1);
+    expect(platformGetter).toHaveBeenCalledTimes(1);
+    expect(maxTouchPointsGetter).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([ null, 123, true, {}, [] ])(
+    "rejects invalid runtime user-agent value %p",
+    (userAgent) => {
+      Object.values(operatingSystemChecks).forEach((checkSystem) => {
+        expect(() => checkSystem(userAgent)).toThrow(TypeError);
+      });
+    }
+  );
 });
 
 describe("isSafePWAEnv", () => {
@@ -584,6 +809,73 @@ describe("getBrowserInfo", () => {
     } finally {
       if (originalUserAgent) {
         Object.defineProperty(navigator, "userAgent", originalUserAgent);
+      }
+      window.MAZEY_BROWSER_INFO = originalBrowserInfo;
+    }
+  });
+
+  it("uses shared iPadOS detection and preserves the cached result", () => {
+    const originalUserAgent = Object.getOwnPropertyDescriptor(
+      navigator,
+      "userAgent"
+    );
+    const originalPlatform = Object.getOwnPropertyDescriptor(
+      navigator,
+      "platform"
+    );
+    const originalMaxTouchPoints = Object.getOwnPropertyDescriptor(
+      navigator,
+      "maxTouchPoints"
+    );
+    const originalBrowserInfo = window.MAZEY_BROWSER_INFO;
+
+    Object.defineProperty(navigator, "userAgent", {
+      configurable: true,
+      value: operatingSystemUserAgents.macos,
+    });
+    Object.defineProperty(navigator, "platform", {
+      configurable: true,
+      value: "MacIntel",
+    });
+    Object.defineProperty(navigator, "maxTouchPoints", {
+      configurable: true,
+      value: 5,
+    });
+    window.MAZEY_BROWSER_INFO = undefined;
+
+    try {
+      const browserInfo = getBrowserInfo();
+      expect(browserInfo).toMatchObject({
+        system: "ios",
+        platform: "mobile",
+        appleType: "ipad",
+      });
+
+      Object.defineProperty(navigator, "userAgent", {
+        configurable: true,
+        value: operatingSystemUserAgents.windows,
+      });
+      expect(getBrowserInfo()).toBe(browserInfo);
+      expect(getBrowserInfo().system).toBe("ios");
+    } finally {
+      if (originalUserAgent) {
+        Object.defineProperty(navigator, "userAgent", originalUserAgent);
+      } else {
+        delete navigator.userAgent;
+      }
+      if (originalPlatform) {
+        Object.defineProperty(navigator, "platform", originalPlatform);
+      } else {
+        delete navigator.platform;
+      }
+      if (originalMaxTouchPoints) {
+        Object.defineProperty(
+          navigator,
+          "maxTouchPoints",
+          originalMaxTouchPoints
+        );
+      } else {
+        delete navigator.maxTouchPoints;
       }
       window.MAZEY_BROWSER_INFO = originalBrowserInfo;
     }

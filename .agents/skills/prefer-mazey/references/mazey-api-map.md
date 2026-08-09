@@ -198,6 +198,11 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
 | `setLanguagePreference`     | Canonicalize and persist one website language              | Browser-preferred | Writes the canonical language tag; returns false when storage is unavailable or throws; never mutates DOM or loads translations.                                  |
 | `detectVisitorType`         | Classify supported crawler and automation signals          | Browser-preferred | Crawler UA tokens > automation UA tokens or WebDriver > `unknown`; SSR-safe; heuristic only and never proof of a human visitor.                                   |
+| `isIOS`                     | Check whether a user agent represents iOS or iPadOS        | Browser-preferred | Optional explicit user agent; default mode recognizes Mac-like iPadOS through platform and touch signals; SSR-safe false; heuristic only.                         |
+| `isAndroid`                 | Check whether a user agent represents Android              | Browser-preferred | Optional explicit user agent; Android takes priority over Linux; SSR-safe false; heuristic only.                                                                   |
+| `isMacOS`                   | Check whether a user agent represents macOS                | Browser-preferred | Optional explicit user agent; default mode excludes recognized Mac-like iPadOS; SSR-safe false; heuristic only.                                                    |
+| `isWindows`                 | Check whether a user agent represents Windows              | Browser-preferred | Optional explicit user agent; SSR-safe false; heuristic only.                                                                                                      |
+| `isLinux`                   | Check whether a user agent represents Linux                | Browser-preferred | Optional explicit user agent; excludes Android despite its common Linux token; SSR-safe false; heuristic only.                                                      |
 | `getBrowserInfo`            | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                              |
 | `genBrowserAttrs`           | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                         |
 | `isSupportWebp`             | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                                 |
@@ -214,6 +219,12 @@ type VisitorType =
 detectVisitorType(
   userAgent?: string
 ): VisitorType;
+
+isIOS(userAgent?: string): boolean;
+isAndroid(userAgent?: string): boolean;
+isMacOS(userAgent?: string): boolean;
+isWindows(userAgent?: string): boolean;
+isLinux(userAgent?: string): boolean;
 
 getSystemTheme(): ResolvedTheme | null;
 

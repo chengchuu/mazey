@@ -21,6 +21,20 @@ import { isNonEmptyArray } from "./util";
  */
 export type VisitorType = "crawler" | "automation" | "unknown";
 
+type DetectedOperatingSystem =
+  | "android"
+  | "ios"
+  | "windows"
+  | "macos"
+  | "linux"
+  | "";
+
+interface OperatingSystemSignals {
+  userAgent: string;
+  platform: string;
+  maxTouchPoints: number;
+}
+
 const knownCrawlerUserAgentTokens = Object.freeze([
   "adsbot-google",
   "ahrefsbot",
@@ -86,6 +100,211 @@ function getDefaultUserAgent(): string {
   } catch (e) {
     return "";
   }
+}
+
+function getDefaultOperatingSystemSignals(): OperatingSystemSignals {
+  const browserNavigator = getBrowserNavigator();
+  if (!browserNavigator) {
+    return { userAgent: "", platform: "", maxTouchPoints: 0 };
+  }
+
+  let userAgent = "";
+  let platform = "";
+  let maxTouchPoints = 0;
+  try {
+    const currentUserAgent = browserNavigator.userAgent;
+    userAgent = typeof currentUserAgent === "string" ? currentUserAgent : "";
+  } catch (e) {
+    return { userAgent: "", platform: "", maxTouchPoints: 0 };
+  }
+  try {
+    const currentPlatform = browserNavigator.platform;
+    platform = typeof currentPlatform === "string" ? currentPlatform : "";
+  } catch (e) {
+    platform = "";
+  }
+  try {
+    const currentMaxTouchPoints = browserNavigator.maxTouchPoints;
+    maxTouchPoints = Number.isFinite(currentMaxTouchPoints)
+      ? currentMaxTouchPoints
+      : 0;
+  } catch (e) {
+    maxTouchPoints = 0;
+  }
+
+  return { userAgent, platform, maxTouchPoints };
+}
+
+function detectOperatingSystem(
+  signals: OperatingSystemSignals
+): DetectedOperatingSystem {
+  const userAgent = signals.userAgent.trim().toLowerCase();
+  if (!userAgent) return "";
+
+  if (/\bandroid\b|\badr\b/.test(userAgent)) return "android";
+
+  const isIPadOSDesktop =
+    /\bmacintosh\b/.test(userAgent) &&
+    signals.platform.toLowerCase() === "macintel" &&
+    signals.maxTouchPoints > 1;
+  if (
+    /\bios\b|\biphone\b|\bipad\b|\bipod\b|\biwatch\b/.test(userAgent) ||
+    isIPadOSDesktop
+  ) {
+    return "ios";
+  }
+
+  if (/\bwindows\b|\bwin32\b|\bwin64\b|\bwow32\b|\bwow64\b/.test(userAgent)) {
+    return "windows";
+  }
+  if (/\bmacintosh\b|\bmacintel\b|\bmac os x\b/.test(userAgent)) {
+    return "macos";
+  }
+  if (/\blinux\b/.test(userAgent)) return "linux";
+  return "";
+}
+
+function resolveOperatingSystem(
+  userAgent?: string
+): DetectedOperatingSystem {
+  if (userAgent !== undefined && typeof userAgent !== "string") {
+    throw new TypeError("userAgent must be a string when provided.");
+  }
+  if (userAgent !== undefined) {
+    return detectOperatingSystem({
+      userAgent,
+      platform: "",
+      maxTouchPoints: 0,
+    });
+  }
+  return detectOperatingSystem(getDefaultOperatingSystemSignals());
+}
+
+/**
+ * Check whether a user agent represents iOS or iPadOS.
+ *
+ * Without an argument, the function reads the current `navigator.userAgent`.
+ * It also recognizes iPadOS browsers that identify as macOS by checking the
+ * current `navigator.platform` and `navigator.maxTouchPoints` compatibility
+ * signals. An explicit user agent is classified by that string alone.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { isIOS } from "mazey";
+ *
+ * const result = isIOS();
+ * console.log(result);
+ * ```
+ *
+ * Possible output:
+ *
+ * ```text
+ * true
+ * ```
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current browser's user agent.
+ * @returns `true` for recognized iOS or iPadOS user agents; otherwise `false`.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Safe during SSR and in Node.js. User-agent detection is heuristic and spoofable; do not use this result as a security boundary.
+ * @category Browser Information
+ */
+export function isIOS(userAgent?: string): boolean {
+  return resolveOperatingSystem(userAgent) === "ios";
+}
+
+/**
+ * Check whether a user agent represents Android.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { isAndroid } from "mazey";
+ *
+ * const result = isAndroid();
+ * console.log(result);
+ * ```
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current browser's user agent.
+ * @returns `true` for recognized Android user agents; otherwise `false`.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Safe during SSR and in Node.js. An explicit value is classified without reading current browser signals. User-agent detection is heuristic and spoofable; do not use this result as a security boundary.
+ * @category Browser Information
+ */
+export function isAndroid(userAgent?: string): boolean {
+  return resolveOperatingSystem(userAgent) === "android";
+}
+
+/**
+ * Check whether a user agent represents macOS.
+ *
+ * Modern iPadOS browsers that identify as macOS are excluded when the current
+ * browser exposes the standard MacIntel multi-touch compatibility signals.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { isMacOS } from "mazey";
+ *
+ * const result = isMacOS();
+ * console.log(result);
+ * ```
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current browser's user agent.
+ * @returns `true` for recognized macOS user agents; otherwise `false`.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Safe during SSR and in Node.js. An explicit value is classified without reading current browser signals. User-agent detection is heuristic and spoofable; do not use this result as a security boundary.
+ * @category Browser Information
+ */
+export function isMacOS(userAgent?: string): boolean {
+  return resolveOperatingSystem(userAgent) === "macos";
+}
+
+/**
+ * Check whether a user agent represents Windows.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { isWindows } from "mazey";
+ *
+ * const result = isWindows();
+ * console.log(result);
+ * ```
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current browser's user agent.
+ * @returns `true` for recognized Windows user agents; otherwise `false`.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Safe during SSR and in Node.js. An explicit value is classified without reading current browser signals. User-agent detection is heuristic and spoofable; do not use this result as a security boundary.
+ * @category Browser Information
+ */
+export function isWindows(userAgent?: string): boolean {
+  return resolveOperatingSystem(userAgent) === "windows";
+}
+
+/**
+ * Check whether a user agent represents Linux.
+ *
+ * Android user agents are excluded even though they commonly contain the
+ * `Linux` token.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { isLinux } from "mazey";
+ *
+ * const result = isLinux();
+ * console.log(result);
+ * ```
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current browser's user agent.
+ * @returns `true` for recognized Linux user agents; otherwise `false`.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Safe during SSR and in Node.js. An explicit value is classified without reading current browser signals. User-agent detection is heuristic and spoofable; do not use this result as a security boundary.
+ * @category Browser Information
+ */
+export function isLinux(userAgent?: string): boolean {
+  return resolveOperatingSystem(userAgent) === "linux";
 }
 
 function hasKnownUserAgentToken(
@@ -416,7 +635,8 @@ export function getBrowserInfo(): BrowserInfo {
   };
   try {
     // Priority: system + system version > platform > engine + carrier + engine version + carrier version > shell + shell version
-    const ua: string = navigator.userAgent.toLowerCase();
+    const operatingSystemSignals = getDefaultOperatingSystemSignals();
+    const ua: string = operatingSystemSignals.userAgent.toLowerCase();
     if (!ua) {
       return browserInfo;
     }
@@ -433,19 +653,10 @@ export function getBrowserInfo(): BrowserInfo {
       return ret;
     };
     // System
-    let system = "";
+    const system = detectOperatingSystem(operatingSystemSignals);
     // Apple Device Type
     let appleType = "";
-    if (testUa(/windows|win32|win64|wow32|wow64/g)) {
-      system = "windows"; // Windows system
-    } else if (testUa(/macintosh|macintel/g)) {
-      system = "macos"; // macOS system
-    } else if (testUa(/x11/g)) {
-      system = "linux"; // Linux system
-    } else if (testUa(/android|adr/g)) {
-      system = "android"; // Android system
-    } else if (testUa(/ios|iphone|ipad|ipod|iwatch/g)) {
-      system = "ios"; // iOS system
+    if (system === "ios") {
       if (testUa(/ipad/g)) {
         appleType = "ipad";
       } else if (testUa(/iphone/g)) {
@@ -454,6 +665,11 @@ export function getBrowserInfo(): BrowserInfo {
         appleType = "iwatch";
       } else if (testUa(/ipod/g)) {
         appleType = "ipod";
+      } else if (
+        operatingSystemSignals.platform.toLowerCase() === "macintel" &&
+        operatingSystemSignals.maxTouchPoints > 1
+      ) {
+        appleType = "ipad";
       }
     }
     browserInfo = {

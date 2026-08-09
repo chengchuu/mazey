@@ -1,3 +1,7 @@
+examples/** linguist-detectable=false
+scripts/** linguist-detectable=false
+site/** linguist-detectable=false
+test/** linguist-detectable=false
 *.ts text eol=lf
 *.js text eol=lf
 *.json text eol=lf
