@@ -55,7 +55,7 @@ test("the static document shell stays crawlable and owns the React mount", () =>
   expect(
     documentRef.querySelector("#playground-root [role='status']")?.textContent
   ).toContain("Loading interactive examples…");
-  expect(documentRef.querySelector("main")?.textContent).toContain(
+  expect(documentRef.querySelector("main")?.textContent).not.toContain(
     "Run public Mazey utilities directly in your browser."
   );
   expect(documentRef.querySelector("noscript")?.textContent).toContain(
