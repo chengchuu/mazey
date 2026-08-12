@@ -194,6 +194,25 @@ test("site navbar uses the same mode background as browser chrome", () => {
   );
 });
 
+test("playground primary section uses compact vertical spacing", () => {
+  const playground = fs.readFileSync(
+    path.join(process.cwd(), "examples", "index.html"),
+    "utf8"
+  );
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(playground).toContain('class="section-band section-band--compact"');
+  expect(siteCss).toMatch(
+    /\.section-band--compact\s*{[^}]*padding:\s*3\.5rem 0;[^}]*}/
+  );
+  expect(siteCss).toMatch(
+    /@media \(max-width: 575\.98px\)\s*{[\s\S]*?\.section-band--compact\s*{[^}]*padding:\s*2rem 0;[^}]*}/
+  );
+});
+
 test("API toolbar preserves TypeDoc's search dialog", () => {
   const transformed = transformApiHtml(typeDocHtml, "index.html");
   const apiCss = fs.readFileSync(

@@ -242,6 +242,10 @@ a {
   border-bottom: 1px solid var(--mz-border);
 }
 
+.section-band--compact {
+  padding: 3.5rem 0;
+}
+
 .section-band--muted {
   background: var(--mz-surface-muted);
 }
@@ -395,6 +399,10 @@ a {
 
   .section-band {
     padding: 3.5rem 0;
+  }
+
+  .section-band--compact {
+    padding: 2rem 0;
   }
 
   .pwa-update-notice {
