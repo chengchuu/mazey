@@ -51,6 +51,10 @@ test("the static document shell stays crawlable and owns the React mount", () =>
   const documentRef = new DOMParser().parseFromString(html, "text/html");
 
   expect(documentRef.querySelectorAll("h1")).toHaveLength(1);
+  expect(documentRef.querySelector("h1")?.classList).toContain(
+    "visually-hidden"
+  );
+  expect(documentRef.querySelector(".section-heading")).toBeNull();
   expect(documentRef.getElementById("playground-root")).not.toBeNull();
   expect(
     documentRef.querySelector("#playground-root [role='status']")?.textContent
