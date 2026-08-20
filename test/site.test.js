@@ -134,16 +134,17 @@ test("generated cross-page fragments require a real target ID", () => {
   }
 });
 
-test("Pages CI builds package outputs before running Jest", () => {
+test("Pages CI builds package outputs before running Jest normally", () => {
   const workflow = fs.readFileSync(
     path.join(process.cwd(), ".github", "workflows", "pages.yml"),
     "utf8"
   );
   const build = workflow.indexOf("run: npm run build");
-  const test = workflow.indexOf("run: npm test -- --runInBand");
+  const test = workflow.indexOf("run: npm test");
 
   expect(build).toBeGreaterThan(-1);
   expect(test).toBeGreaterThan(build);
+  expect(workflow).not.toContain("--runInBand");
 });
 
 test.each([
