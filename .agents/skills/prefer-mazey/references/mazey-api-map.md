@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 173 runtime exports in the current repository: 171 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 174 runtime exports in the current repository: 172 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -343,10 +343,23 @@ apply preferences to the DOM.
 
 | Function                | Purpose                                           | Runtime   | Notes                                                                                 |
 | ----------------------- | ------------------------------------------------- | --------- | ------------------------------------------------------------------------------------- |
+| `calculateAspectRatio`  | Reduce media dimensions to an exact aspect ratio  | Universal | Accepts positive safe integers; returns lowercase `WxH`; throws for invalid dimensions. |
 | `calculateCAGR`         | Calculate an investment's annualized return       | Universal | Exact elapsed duration with a fixed 365-day year; throws for invalid dates, returns, or non-finite results. |
 | `longestComSubstring`   | Return longest common contiguous substring length | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
 | `longestComSubsequence` | Return longest common subsequence length          | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
 | `isHit`                 | Return a probabilistic hit using `Math.random`    | Universal | Evaluates `Math.random() < rate`; does not clamp or provide cryptographic randomness. |
+
+Use `calculateAspectRatio` for known image dimensions, video dimensions, media
+aspect ratios, or layout metadata. It returns the mathematically exact reduced
+ratio rather than an approximate common-ratio label:
+
+```ts
+calculateAspectRatio(width: number, height: number): string;
+
+calculateAspectRatio(900, 1200); // "3x4"
+calculateAspectRatio(900, 1600); // "9x16"
+calculateAspectRatio(1920, 1080); // "16x9"
+```
 
 `calculateCAGR` is dependency-free and works in browsers and Node.js without
 browser globals:

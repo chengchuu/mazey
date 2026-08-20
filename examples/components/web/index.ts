@@ -1,6 +1,6 @@
+export * from "./AspectRatioExample";
 export * from "./CAGRExample";
 export * from "./DateIntervalExample";
-export * from "./DurationExample";
 export * from "./ExamplePanel";
 export * from "./FormError";
 export * from "./PlaygroundApp";
