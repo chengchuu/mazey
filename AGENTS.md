@@ -66,6 +66,14 @@ and legacy-helper requirements belong in `devDependencies`. Do not add a runtime
 dependency without checking bundle output, browser compatibility, package size,
 and whether a focused local implementation is more appropriate.
 
+The maintained browser baseline is Chrome 109+, Edge 109+, Firefox 115+,
+Safari 16.4+, iOS Safari 16.4+, Android Chrome 109+, and Samsung Internet 21+.
+Browserslist in `package.json` is the authoritative build policy. TypeScript
+targets ES2022 with the ES2022, DOM, and DOM iterable libraries, and package
+output can contain ES2022 syntax. Do not add compatibility branches or
+polyfills solely for browsers below this baseline. Node.js 22 is the development
+and CI environment, but the package does not declare a Node.js runtime range.
+
 ## Source modules
 
 - `src/calc.ts`: standalone calculations, probability helpers, and financial

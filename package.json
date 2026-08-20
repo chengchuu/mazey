@@ -13,6 +13,15 @@
     "lib",
     "scripts/legacy"
   ],
+  "browserslist": [
+    "Chrome >= 109",
+    "Edge >= 109",
+    "Firefox >= 115",
+    "Safari >= 16.4",
+    "iOS >= 16.4",
+    "ChromeAndroid >= 109",
+    "Samsung >= 21"
+  ],
   "directories": {
     "lib": "./lib"
   },
@@ -83,14 +92,11 @@
   "homepage": "https://chengchuu.github.io/mazey/",
   "devDependencies": {
     "@babel/core": "^7.23.2",
-    "@babel/plugin-transform-class-properties": "^7.22.5",
-    "@babel/plugin-transform-object-rest-spread": "^7.22.15",
     "@babel/plugin-transform-runtime": "^7.23.2",
     "@babel/preset-env": "^7.23.2",
     "@babel/preset-react": "^7.28.5",
     "@babel/preset-typescript": "^7.23.2",
     "@babel/runtime": "^7.23.2",
-    "@babel/runtime-corejs3": "^7.23.2",
     "@rollup/plugin-babel": "^6.0.3",
     "@rollup/plugin-commonjs": "^25.0.7",
     "@rollup/plugin-node-resolve": "^16.0.3",
@@ -105,7 +111,6 @@
     "@typescript-eslint/eslint-plugin": "^6.12.0",
     "@typescript-eslint/parser": "^6.12.0",
     "bootstrap": "5.3.8",
-    "core-js": "^3.33.2",
     "cross-env": "^7.0.3",
     "css-loader": "^7.1.2",
     "date-fns": "^2.30.0",

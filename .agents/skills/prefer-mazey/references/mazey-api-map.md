@@ -42,7 +42,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function                  | Purpose                                                   | Runtime            | Notes                                                                                                                                          |
 | ------------------------- | --------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Uses `Date.now()` with an older fallback.                                                                                                      |
+| `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Delegates to `Date.now()`.                                                                                                                      |
 | `getDateDifference`       | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` omits zero-valued units; negative or invalid intervals return empty.                              |
 | `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                                                         |
 | `parseLocalDateTime`      | Parse an HTML local date-time value strictly              | Universal          | Accepts a four-or-more-digit year, `T`, minutes, optional seconds, and 1-3 fraction digits; uses local fields; invalid input returns `null`.      |
@@ -141,7 +141,7 @@ const isMobile: typeof isValidPhoneNumber;
 | `getUrlParam`          | Read one or all values from a supplied URL/query    | Universal         | `returnArray` preserves duplicates; scalar mode returns first value or `null`.                                            |
 | `updateQueryParam`     | Set a query value while preserving the hash         | Universal         | Encodes key/value and collapses duplicate target keys.                                                                    |
 | `getHashQueryParam`    | Read a query value embedded in `location.hash`      | Browser-only      | Uses text after the first `?`; decodes values.                                                                            |
-| `getDomain`            | Concatenate selected URL/anchor fields              | Browser-only      | Uses `window.URL` or a DOM anchor; `rules` controls fields such as hostname/pathname.                                     |
+| `getDomain`            | Concatenate selected URL/anchor fields              | Browser-only      | Resolves with `URL` and a DOM anchor fallback; `rules` controls fields such as hostname/pathname.                         |
 | `isValidUrl`           | Match a scheme URL                                  | Universal         | Regex-based and broader than HTTP; not equivalent to WHATWG `URL` validation.                                             |
 | `isValidHttpUrl`       | Validate strict HTTP/HTTPS URLs                     | Universal         | Rejects credentials and malformed hosts/ports; `strict: false` permits protocol-relative URLs.                            |
 | `parseGitHubRepository` | Parse GitHub shorthands and Git transport URLs      | Universal         | Returns owner/name/slug/HTTPS URL; bounded strict-ASCII grammar; permits only the conventional `git` username and rejects passwords, ports, queries, fragments, and encoding. |
@@ -149,8 +149,8 @@ const isMobile: typeof isValidPhoneNumber;
 | `getScriptQueryParam`  | Read a query value from matching script tags        | Browser-only      | Scans `document` script `src` attributes; default match substring is `.js`.                                               |
 | `convertObjectToQuery` | Encode own string properties as a query             | Universal         | Returns `?key=value`; empty object returns empty; excludes inherited properties.                                          |
 | `convertHttpToHttps`   | Replace a leading `http:` with `https:`             | Universal         | Simple prefix replacement; does not validate the URL.                                                                     |
-| `getUrlHost`           | Return host and optional port                       | Browser-only      | Uses `window.URL`; accepts protocol-relative HTTP URLs after normalization.                                               |
-| `getUrlPath`           | Return a URL pathname                               | Browser-only      | Uses `window.URL`; returns empty for unsupported/invalid input.                                                           |
+| `getUrlHost`           | Return host and optional port                       | Browser-only      | Uses `URL`; accepts absolute schemes and protocol-relative HTTP URLs after normalization; invalid input returns empty.    |
+| `getUrlPath`           | Return a URL pathname                               | Browser-only      | Uses `URL`; accepts absolute schemes and protocol-relative HTTP URLs after normalization; invalid input returns empty.    |
 | `onURLChange`          | Observe popstate, hash, pushState, and replaceState | Browser-only      | Patches history methods globally once and returns an unsubscribe function.                                                |
 
 ## DOM and styles
@@ -186,8 +186,8 @@ const isMobile: typeof isValidPhoneNumber;
 
 | Function                | Purpose                                          | Runtime      | Notes                                                                                     |
 | ----------------------- | ------------------------------------------------ | ------------ | ----------------------------------------------------------------------------------------- |
-| `loadCSS`               | Append a stylesheet and await loading            | Browser-only | Resolves `loaded`, rejects modern load errors, and contains old-browser polling behavior. |
-| `loadScript`            | Append and await a script element                | Browser-only | Supports attributes, callback, CSS companion, and timeout; rejects errors/timeouts.       |
+| `loadCSS`               | Append a stylesheet and await loading            | Browser-only | Resolves `loaded` or rejects through standard load and error events.                        |
+| `loadScript`            | Append and await a script element                | Browser-only | Uses standard load and error events; supports attributes, callback, CSS companion, and timeout. |
 | `windowLoaded`          | Await page load or timeout                       | Browser-only | Resolves `complete`/`load`; removes listener and timer; timeout rejects `Error`.          |
 | `loadImage`             | Preload an image without adding it to DOM        | Browser-only | Requires global `Image`; resolves the image or rejects its error event.                   |
 | `loadScriptIfUndefined` | Load a script unless a window property is truthy | Browser-only | Deduplicates concurrent requests by property and URL; resolves `defined` or `loaded`.     |
@@ -198,7 +198,7 @@ const isMobile: typeof isValidPhoneNumber;
 | --------------------------- | ---------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isSafePWAEnv`              | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.                                        |
 | `isStandalonePWA`           | Detect standalone PWA presentation                         | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                                       |
-| `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; prefers modern events, supports legacy listeners, and returns idempotent cleanup without implicit globals.                       |
+| `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; uses standard `change` events and returns idempotent cleanup without implicit globals.                                          |
 | `watchServiceWorkerUpdates` | Observe and activate waiting service-worker updates         | Browser-only      | Tracks waiting/installing workers, reports updates only for controlled pages, accepts UI-neutral callbacks, and returns activation/disposal controls.             |
 | `getSystemTheme`            | Read the current operating-system color scheme              | Browser-preferred | One synchronous `prefers-color-scheme` read; returns `light`, `dark`, or `null`; ignores URL and storage; never mutates the DOM or adds listeners.                 |
 | `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; valid query values are persisted when possible; keep application state two-valued by using `value` (`light` or `dark`), while `label` may be `System`; SSR-safe and DOM-independent. |
@@ -314,7 +314,7 @@ apply preferences to the DOM.
 
 | Function       | Purpose                                         | Runtime      | Notes                                                                                    |
 | -------------- | ----------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------- |
-| `cancelBubble` | Stop DOM event propagation                      | Browser-only | Calls `stopPropagation` or legacy `cancelBubble`.                                        |
+| `cancelBubble` | Stop DOM event propagation                      | Browser-only | Calls `Event.stopPropagation()`.                                                         |
 | `addEvent`     | Register a named Mazey callback                 | Browser-only | Mutates the global registry on `window`; duplicate callbacks are allowed.                |
 | `fireEvent`    | Invoke a snapshot of named callbacks            | Browser-only | Optional single params object; listener changes do not alter the current dispatch queue. |
 | `removeEvent`  | Remove one callback or all callbacks for a name | Browser-only | Omitting `fn` deletes the entire named listener list.                                    |
@@ -382,7 +382,7 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `deepCopyObject`              | Compatibility alias                     | Universal          | Prefer `deepCopy`.                                                                        |
 | `camelCaseToKebabCase`        | Compatibility alias                     | Universal          | Prefer `convertCamelToKebab`.                                                             |
 | `camelCase2Underscore`        | Compatibility alias                     | Universal          | Prefer `convertCamelToUnder`.                                                             |
-| `mTrim`                       | Manual whitespace trimming helper       | Universal          | Hidden from docs; prefer native `String.prototype.trim` unless legacy behavior matters.   |
+| `mTrim`                       | Trim leading and trailing whitespace    | Universal          | Hidden from docs; delegates to `String.prototype.trim`.                                   |
 | `isJsonString`                | Compatibility alias                     | Universal          | Prefer `isJSONString`.                                                                    |
 | `setSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `setSessionJSON`.                                                                  |
 | `getSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `getSessionJSON`.                                                                  |

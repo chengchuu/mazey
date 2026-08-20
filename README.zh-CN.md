@@ -28,6 +28,12 @@ npm install mazey
 
 你也可以下载 [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)，并自行托管该文件。
 
+## 浏览器支持
+
+Mazey 支持 Chrome 109 及以上版本、Edge 109 及以上版本、Firefox 115 及以上版本、Safari 16.4 及以上版本、iOS Safari 16.4 及以上版本、Android Chrome 109 及以上版本，以及 Samsung Internet 21 及以上版本。软件包输出可能包含 ES2022 语法，并且不包含 JavaScript polyfill。Internet Explorer、Opera Mini、KaiOS、旧版 Android Browser 和更早的浏览器版本不在支持范围内。
+
+开发和持续集成环境使用 Node.js 22。Mazey 未声明 Node.js 运行时兼容范围。
+
 ## 使用
 
 下面的示例使用一个函数，判断某个值是否适合参与常规计算和比较。
@@ -1286,9 +1292,9 @@ if (isStandalonePWA()) {
 
 #### getPerformance
 
-获取页面加载时间 (`PerformanceNavigationTiming`)。
+通过 `PerformanceNavigationTiming` 获取页面加载指标。
 
-该函数使用 [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API 获取页面加载数据。与已弃用的 [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API 相比，新 API 提供的数据更准确，也更详细。
+如果浏览器未提供导航条目，该函数返回的 Promise 会进入 rejected 状态。函数不会回退到已弃用的 `PerformanceTiming` API。
 
 用法:
 
