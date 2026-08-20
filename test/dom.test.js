@@ -6,7 +6,8 @@ import {
   genStyleString, getDomain, getBrowserInfo,
   setClass, setImgSizeBySrc, addClass,
   newLine, hasClass, removeClass, addStyle,
-  extractElementText, getPageMeta, isValidCssSelector, resolveElementTarget,
+  extractElementText, getPageMeta, hide, isValidCssSelector,
+  resolveElementTarget, show,
 } from "../lib/index.esm";
 
 test("newLine: Transfer 'a\nb\nc' to 'a<br />b<br />c'?", () => {
@@ -407,6 +408,131 @@ describe("resolveElementTarget", () => {
     expect(resolveElementTarget({ nodeType: 1 }, { root })).toBeNull();
     expect(resolveElementTarget({ $el: null }, { root })).toBeNull();
     expect(resolveElementTarget(42, { root })).toBeNull();
+  });
+});
+
+describe("hide and show", () => {
+  beforeEach(() => {
+    document.head.innerHTML = "";
+    document.body.innerHTML = "";
+  });
+
+  it("mutates a direct element and returns the original target", () => {
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+
+    expect(hide(element)).toBe(element);
+    expect(element.style.display).toBe("none");
+    expect(show(element)).toBe(element);
+    expect(element.style.display).toBe("");
+  });
+
+  it("resolves selectors and restores a visible inline display value", () => {
+    document.body.innerHTML = `
+      <span class="notice" style="display: inline-block"></span>
+      <span class="notice"></span>
+    `;
+    const target = ".notice";
+    const elements = Array.from(document.querySelectorAll(target));
+
+    expect(hide(target)).toBe(target);
+    expect(elements.map(element => element.style.display)).toEqual([
+      "none",
+      "none",
+    ]);
+
+    expect(show(target)).toBe(target);
+    expect(elements.map(element => element.style.display)).toEqual([
+      "inline-block",
+      "",
+    ]);
+  });
+
+  it("preserves the original display value across repeated hide calls", () => {
+    const element = document.createElement("span");
+    element.style.display = "inline-flex";
+    document.body.appendChild(element);
+
+    hide(element);
+    hide(element);
+    show(element);
+
+    expect(element.style.display).toBe("inline-flex");
+  });
+
+  it("supports iterable and array-like collections", () => {
+    const first = document.createElement("div");
+    const second = document.createElement("div");
+    document.body.append(first, second);
+    const iterable = new Set([ first, second ]);
+    const arrayLike = { 0: first, 1: second, length: 2 };
+
+    expect(hide(iterable)).toBe(iterable);
+    expect(first.style.display).toBe("none");
+    expect(second.style.display).toBe("none");
+    expect(show(arrayLike)).toBe(arrayLike);
+    expect(first.style.display).toBe("");
+    expect(second.style.display).toBe("");
+  });
+
+  it("recovers document defaults when a stylesheet keeps elements hidden", () => {
+    document.head.innerHTML = "<style>button, span, tr { display: none; }</style>";
+    document.body.innerHTML = `
+      <button id="action" style="display: none"></button>
+      <span id="message" style="display: none"></span>
+      <table><tbody><tr id="row" style="display: none"><td></td></tr></tbody></table>
+    `;
+    const action = document.querySelector("#action");
+    const message = document.querySelector("#message");
+    const row = document.querySelector("#row");
+
+    show([ action, message, row ]);
+
+    expect(action.style.display).toBe("inline-block");
+    expect(message.style.display).toBe("inline");
+    expect(row.style.display).toBe("table-row");
+  });
+
+  it("does not instantiate a custom element while recovering its display", () => {
+    let connectionCount = 0;
+    class VisibilityTestElement extends HTMLElement {
+      connectedCallback() {
+        connectionCount += 1;
+      }
+    }
+    customElements.define("mazey-visibility-test", VisibilityTestElement);
+    document.head.innerHTML = "<style>mazey-visibility-test { display: none; }</style>";
+    const element = document.createElement("mazey-visibility-test");
+    element.style.display = "none";
+    document.body.appendChild(element);
+
+    show(element);
+
+    expect(element.style.display).toBe("inline");
+    expect(connectionCount).toBe(1);
+  });
+
+  it("ignores invalid targets and invalid selectors", () => {
+    const invalidObject = { value: document.createElement("div") };
+
+    expect(hide("[")).toBe("[");
+    expect(show("[")).toBe("[");
+    expect(hide(null)).toBeNull();
+    expect(show(undefined)).toBeUndefined();
+    expect(hide(invalidObject)).toBe(invalidObject);
+    expect(show(42)).toBe(42);
+  });
+
+  it("deduplicates repeated elements before mutation", () => {
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    const observer = new MutationObserver(() => {});
+    observer.observe(element, { attributes: true, attributeFilter: [ "style" ] });
+
+    hide([ element, element ]);
+
+    expect(observer.takeRecords()).toHaveLength(1);
+    observer.disconnect();
   });
 });
 

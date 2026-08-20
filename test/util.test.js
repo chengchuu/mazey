@@ -11,7 +11,7 @@ import {
   formatDistanceToNow, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   parseJsonSafe,
-  isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
+  isValidData, isValidEmail, isMobile, isValidPhoneNumber, isNonEmptyArray,
   getDateDifference, getFriendlyInterval, formatDurationFromMs,
   getFileSize, formatByteSize, getCurrentVersion,
   genUniqueNumString, generateRndNum, genHashCode, sha256Hex,
@@ -1168,6 +1168,14 @@ describe("isValidPhoneNumber", () => {
     expect(isValidPhoneNumber("1380013800a")).toBe(false);
     expect(isValidPhoneNumber("02345678901")).toBe(false);
     expect(isValidPhoneNumber("00000000000")).toBe(false);
+  });
+
+  it("exposes isMobile as the same phone-number validator", () => {
+    expect(isMobile).toBe(isValidPhoneNumber);
+    [ "13800138000", "15012345678", "1380013800", "1380013800a" ]
+      .forEach(mobile => {
+        expect(isMobile(mobile)).toBe(isValidPhoneNumber(mobile));
+      });
   });
 });
 

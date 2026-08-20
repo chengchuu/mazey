@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 162 runtime exports in the current repository: 160 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 173 runtime exports in the current repository: 171 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -86,7 +86,13 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isNonEmptyObject`   | Test for an object-tag value with own string keys | Universal | Accepts class instances with enumerable own keys; rejects arrays, null, and empty objects.          |
 | `isValidData`        | Verify an own-property path equals a value        | Universal | Requires every segment to be an own property; does not mutate input.                                |
 | `isValidPhoneNumber` | Validate an 11-digit Chinese mobile-shaped number | Universal | Pattern is `^1\d{10}$`; not an international phone validator.                                       |
+| `isMobile`           | Alias the Chinese mobile-number validator         | Universal | Direct alias of `isValidPhoneNumber`; it does not inspect browser or device form factor.             |
 | `isValidEmail`       | Validate common email syntax                      | Universal | Regex-based and not a complete RFC/mail-deliverability check.                                       |
+
+```ts
+isValidPhoneNumber(mobile: string): boolean;
+const isMobile: typeof isValidPhoneNumber;
+```
 
 ## Numbers and hashing
 
@@ -154,6 +160,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `hasClass`           | Test an element class                           | Browser-only      | Logs and returns false for a missing element.                                                                   |
 | `addClass`           | Add one or more classes                         | Browser-only      | Mutates the element; ignores empty names; array path uses `classList`.                                          |
 | `removeClass`        | Remove a class                                  | Browser-only      | Mutates the element and logs for missing input.                                                                 |
+| `hide`               | Hide selector or element targets                | Browser-only      | Accepts one element or iterable/array-like collections, preserves visible inline display, deduplicates targets, and returns the original input. |
+| `show`               | Show selector or element targets                | Browser-only      | Restores display preserved by `hide`; applies a document-aware tag default when CSS still hides an element; returns the original input. |
 | `addStyle`           | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
 | `setImgSizeBySrc`    | Apply image dimensions from URL parameters      | Browser-only      | Mutates image styles; reads `width`/`height`; uses jQuery when present.                                         |
 | `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
@@ -198,6 +206,9 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
 | `setLanguagePreference`     | Canonicalize and persist one website language              | Browser-preferred | Writes the canonical language tag; returns false when storage is unavailable or throws; never mutates DOM or loads translations.                                  |
 | `detectVisitorType`         | Classify supported crawler and automation signals          | Browser-preferred | Crawler UA tokens > automation UA tokens or WebDriver > `unknown`; SSR-safe; heuristic only and never proof of a human visitor.                                   |
+| `isPhone`                   | Check for a phone or handset-class device                  | Browser-preferred | Optional explicit UA; iPhone/iPod, Android with `Mobile`, then bounded `Mobile` fallback; tablets excluded; SSR-safe false; heuristic only.                         |
+| `isDesktop`                 | Check for a desktop or laptop-class device                 | Browser-preferred | Optional explicit UA; Windows, ordinary macOS, Linux, and ChromeOS; touch alone does not imply tablet; SSR-safe false; heuristic only.                              |
+| `isTablet`                  | Check for a tablet device                                  | Browser-preferred | Optional explicit UA; iPad, MacIntel multi-touch iPadOS in default mode, Android without `Mobile`, or bounded `Tablet`; SSR-safe false; heuristic only.             |
 | `isIOS`                     | Check whether a user agent represents iOS or iPadOS        | Browser-preferred | Optional explicit user agent; default mode recognizes Mac-like iPadOS through platform and touch signals; SSR-safe false; heuristic only.                         |
 | `isAndroid`                 | Check whether a user agent represents Android              | Browser-preferred | Optional explicit user agent; Android takes priority over Linux; SSR-safe false; heuristic only.                                                                   |
 | `isMacOS`                   | Check whether a user agent represents macOS                | Browser-preferred | Optional explicit user agent; default mode excludes recognized Mac-like iPadOS; SSR-safe false; heuristic only.                                                    |
@@ -219,6 +230,10 @@ type VisitorType =
 detectVisitorType(
   userAgent?: string
 ): VisitorType;
+
+isPhone(userAgent?: string): boolean;
+isDesktop(userAgent?: string): boolean;
+isTablet(userAgent?: string): boolean;
 
 isIOS(userAgent?: string): boolean;
 isAndroid(userAgent?: string): boolean;
@@ -266,6 +281,27 @@ returns `unknown`. That result does not verify a human visitor. User agents can
 be spoofed and WebDriver signals can be hidden, so do not use this heuristic as
 a security boundary; genuine crawler verification requires server-side request
 information and provider-specific validation.
+
+`isPhone`, `isDesktop`, and `isTablet` share one form-factor classifier. The
+mobile category means phone or handset-class devices and excludes tablets.
+Android with a bounded `Mobile` token is mobile; Android without that token is
+a tablet. Conventional iPads and bounded `Tablet` tokens are tablets. In
+default current-browser mode, the existing Macintosh, `MacIntel`, and more than
+one touch point compatibility signals classify modern iPadOS desktop mode as a
+tablet. Windows, ordinary macOS, Linux, and ChromeOS are desktop devices, and
+touch capability alone does not change Windows classification.
+
+An explicit user agent is classified by that string alone and does not borrow
+the current browser's platform or touch signals. Without explicit input, the
+helpers return `false` during SSR when browser signals are unavailable. The
+classification is synchronous, heuristic, and spoofable. It does not use
+viewport dimensions and must not replace responsive CSS, feature detection, or
+security controls. `getBrowserInfo().platform` remains the legacy broad
+`desktop` or `mobile` grouping.
+
+`isPhone` is the device-form-factor helper. The separate `isMobile` export is
+the same function object as `isValidPhoneNumber`; it validates an 11-digit
+Chinese mobile-shaped number and does not read browser signals.
 
 Both resolvers return only a machine-readable `value` and a human-readable
 `label`. Theme values resolve to concrete `light` or `dark`; a stored `system`

@@ -1850,12 +1850,12 @@ export async function sha256Hex(input: string | BufferSource): Promise<string> {
  * Usage:
  *
  * ```javascript
- * import { isMobile } from "mazey";
+ * import { isValidPhoneNumber } from "mazey";
  *
- * const ret1 = isMobile("13800138000");
- * const ret2 = isMobile("1380013800");
- * const ret3 = isMobile("138001380000");
- * const ret4 = isMobile("1380013800a");
+ * const ret1 = isValidPhoneNumber("13800138000");
+ * const ret2 = isValidPhoneNumber("1380013800");
+ * const ret3 = isValidPhoneNumber("138001380000");
+ * const ret4 = isValidPhoneNumber("1380013800a");
  * console.log(ret1, ret2, ret3, ret4);
  * ```
  *
@@ -1873,6 +1873,16 @@ export function isValidPhoneNumber(mobile: string): boolean {
   const reg = /^1\d{10}$/;
   return reg.test(mobile);
 }
+
+/**
+ * Alias of {@link isValidPhoneNumber}.
+ *
+ * This helper validates an 11-digit Chinese mobile-shaped number. It does not
+ * detect a browser's device form factor; use `isPhone` for that purpose.
+ *
+ * @category Util
+ */
+export const isMobile = isValidPhoneNumber;
 
 /**
  * Check if the given string is a valid email.
