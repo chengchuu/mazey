@@ -56,7 +56,7 @@ const pages = {
   playground: {
     title: "Mazey Playground - Try Frontend Utility APIs",
     description:
-      "Try Mazey date interval, CAGR, and duration formatting utilities in an interactive browser playground.",
+      "Try Mazey date interval, CAGR, and exact aspect-ratio utilities in an interactive browser playground.",
     url: new URL("playground/", siteUrl).href,
   },
   api: {

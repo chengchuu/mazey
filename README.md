@@ -140,6 +140,7 @@ There are some examples maintained by hand below. For more information, please c
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [Calculate and Formula](#calculate-and-formula)
+  - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
@@ -1345,6 +1346,29 @@ a<br /><br />bc
 ```
 
 ### Calculate and Formula
+
+#### calculateAspectRatio
+
+Calculate the exact simplified aspect ratio of positive safe-integer dimensions. The function reduces the width and height using their greatest common divisor and returns the result with a lowercase `x` separator. It does not approximate the result to a commonly named image or video ratio.
+
+```javascript
+import { calculateAspectRatio } from "mazey";
+
+const portraitRatio = calculateAspectRatio(900, 1200);
+const landscapeRatio = calculateAspectRatio(1920, 1080);
+
+console.log(portraitRatio);
+console.log(landscapeRatio);
+```
+
+Output:
+
+```text
+3x4
+16x9
+```
+
+For example, `calculateAspectRatio(3440, 1440)` returns the mathematically exact ratio `"43x18"`, not the approximate label `"21x9"`. Invalid or unsafe-integer dimensions throw `TypeError`; zero and negative dimensions throw `RangeError`.
 
 #### calculateCAGR
 

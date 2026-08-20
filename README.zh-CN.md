@@ -111,6 +111,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [计算与公式](#计算与公式)
+  - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
@@ -998,6 +999,29 @@ a<br /><br />bc
 ```
 
 ### 计算与公式
+
+#### calculateAspectRatio
+
+根据正安全整数形式的宽度和高度，计算精确的最简宽高比。函数使用最大公约数约分，并使用小写 `x` 连接结果。函数不会将结果近似为常见的图片或视频宽高比。
+
+```javascript
+import { calculateAspectRatio } from "mazey";
+
+const portraitRatio = calculateAspectRatio(900, 1200);
+const landscapeRatio = calculateAspectRatio(1920, 1080);
+
+console.log(portraitRatio);
+console.log(landscapeRatio);
+```
+
+输出：
+
+```text
+3x4
+16x9
+```
+
+例如，`calculateAspectRatio(3440, 1440)` 返回数学意义上精确的 `"43x18"`，而不是近似标签 `"21x9"`。无效或不安全的整数尺寸会抛出 `TypeError`。零或负数尺寸会抛出 `RangeError`。
 
 #### calculateCAGR
 

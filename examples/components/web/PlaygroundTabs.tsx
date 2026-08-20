@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from "react";
 
 import type { KeyboardEvent } from "react";
 
+import { AspectRatioExample } from "./AspectRatioExample";
 import { CAGRExample } from "./CAGRExample";
 import { DateIntervalExample } from "./DateIntervalExample";
-import { DurationExample } from "./DurationExample";
 import { ExamplePanel } from "./ExamplePanel";
 
-export type PlaygroundTabId = "date-interval" | "cagr" | "duration";
+export type PlaygroundTabId = "date-interval" | "cagr" | "aspect-ratio";
 
 const playgroundTabs = [
   { id: "date-interval", label: "Date interval" },
   { id: "cagr", label: "CAGR" },
-  { id: "duration", label: "Duration" },
+  { id: "aspect-ratio", label: "Aspect ratio" },
 ] as const;
 
 export function parsePlaygroundTabHash(hash: string): PlaygroundTabId | null {
@@ -138,11 +138,11 @@ export function PlaygroundTabs(): React.JSX.Element {
           <CAGRExample />
         </ExamplePanel>
         <ExamplePanel
-          id="duration"
-          labelledBy="duration-tab"
-          active={activeTab === "duration"}
+          id="aspect-ratio"
+          labelledBy="aspect-ratio-tab"
+          active={activeTab === "aspect-ratio"}
         >
-          <DurationExample />
+          <AspectRatioExample />
         </ExamplePanel>
       </div>
     </section>

@@ -165,7 +165,7 @@ The playground is a website-only React 19 application mounted once from
 `examples/index.tsx` with `createRoot` and `StrictMode`. Do not export playground
 components from `src/index.ts`.
 
-The current examples are Date interval, CAGR, and Duration. Their tab state,
+The current examples are Date interval, CAGR, and Aspect ratio. Their tab state,
 hash navigation, ARIA relationships, and keyboard handling live in the React
 `PlaygroundTabs` component. Bootstrap supplies CSS classes, but the playground
 does not use Bootstrap's JavaScript Tab component. Preserve the tests that guard
