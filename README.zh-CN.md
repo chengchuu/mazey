@@ -111,6 +111,9 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [longestComSubsequence](#longestcomsubsequence)
 - [浏览器信息](#浏览器信息)
   - [detectVisitorType](#detectvisitortype)
+  - [isPhone](#isphone)
+  - [isDesktop](#isdesktop)
+  - [isTablet](#istablet)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -1144,6 +1147,70 @@ crawler
 `"unknown"` 仅表示没有检测到受支持的爬虫或浏览器自动化信号。User-Agent 可以伪造，WebDriver 信号也可以隐藏或修改。因此，分类可能出现误判或漏判。
 
 > `unknown` 不表示访问者已经通过真人验证。此函数只使用浏览器端启发式规则，不能作为安全边界。请勿单独使用此结果进行身份验证、授权、支付决策、速率限制、欺诈防范或访问控制。验证真实爬虫通常需要服务端请求信息，以及服务提供商规定的验证流程。
+
+#### isPhone
+
+检查当前浏览器是否代表手机或手持设备。此结果不包含平板电脑。
+
+```javascript
+const result = isPhone();
+
+console.log(result);
+```
+
+#### isDesktop
+
+检查当前浏览器是否代表桌面或笔记本电脑。触摸屏 Windows 笔记本电脑仍归类为桌面设备。
+
+```javascript
+const result = isDesktop();
+
+console.log(result);
+```
+
+#### isTablet
+
+检查当前浏览器是否代表平板电脑。此函数支持常规 iPad 和 iPadOS 桌面模式。他还支持不含 `Mobile` 令牌的 Android User-Agent，以及独立的 `Tablet` 令牌。
+
+```javascript
+const result = isTablet();
+
+console.log(result);
+```
+
+可以传入 User-Agent 字符串。此方式适合确定性测试或服务端分类。
+
+```javascript
+const result = isTablet(
+  "Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36"
+);
+
+console.log(result);
+```
+
+输出：
+
+```text
+true
+```
+
+对于已识别的设备，这 3 个函数使用互斥的设备形态分类：
+
+| 设备             | `isPhone` | `isDesktop` | `isTablet` |
+|:-----------------|:-----------|:------------|:-----------|
+| iPhone           | `true`     | `false`     | `false`    |
+| Android 手机     | `true`     | `false`     | `false`    |
+| iPad             | `false`    | `false`     | `true`     |
+| Android 平板电脑 | `false`    | `false`     | `true`     |
+| Windows 笔记本   | `false`    | `true`      | `false`    |
+| MacBook          | `false`    | `true`      | `false`    |
+| 未知设备         | `false`    | `false`     | `false`    |
+
+每个函数都接受可选的 User-Agent 字符串。显式输入不会读取当前浏览器的平台或触摸信号。SSR 环境无法读取浏览器信号且没有显式输入时，这 3 个函数均返回 `false`。
+
+设备分类使用可伪造的启发式规则，不读取视口宽度。这些函数不能作为安全 API，也不能替代响应式 CSS 和功能检测。`getBrowserInfo().platform` 保留原有的宽泛分类，并将 iOS 和 Android 报告为 `"mobile"`。新函数提供更具体的手机、平板电脑或桌面设备分类。
+
+`isPhone` 用于检查设备形态。独立的 `isMobile` API 是 `isValidPhoneNumber` 的直接别名，用于验证 11 位中国手机号码形式的字符串，不会检查浏览器或设备。
 
 #### getBrowserInfo
 

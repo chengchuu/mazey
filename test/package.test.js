@@ -1,7 +1,11 @@
 /** @jest-environment node */
-/* eslint-env jest */
+/* eslint-env jest, node */
 
-import { derivePackageMetadata } from "../lib/index.esm";
+import fs from "node:fs";
+import path from "node:path";
+import * as mazey from "../lib/index.esm";
+
+const { derivePackageMetadata } = mazey;
 
 describe("derivePackageMetadata", () => {
   it("derives scoped package identity without mutating the manifest", () => {
@@ -98,5 +102,44 @@ describe("derivePackageMetadata", () => {
     expect(() =>
       derivePackageMetadata({ name: "example" }, { packageManager: "bun" })
     ).toThrow("packageManager");
+  });
+});
+
+describe("package API catalog", () => {
+  it("keeps the documented runtime-export totals aligned with the package", () => {
+    const apiMap = fs.readFileSync(
+      path.join(
+        process.cwd(),
+        ".agents",
+        "skills",
+        "prefer-mazey",
+        "references",
+        "mazey-api-map.md"
+      ),
+      "utf8"
+    );
+    const documentedTotals = apiMap.match(
+      /covers all (\d+) runtime exports in the current repository: (\d+) functions and (\d+) console constants\./
+    );
+    const runtimeExports = Object.entries(mazey);
+    const functionCount = runtimeExports.filter(entry =>
+      typeof entry[1] === "function"
+    ).length;
+    const consoleConstants = runtimeExports
+      .filter(entry => typeof entry[1] !== "function")
+      .map(entry => entry[0])
+      .sort();
+    const undocumentedExports = runtimeExports
+      .map(entry => entry[0])
+      .filter(name => !apiMap.includes(`\`${name}\``));
+
+    expect(documentedTotals).not.toBeNull();
+    expect(documentedTotals.slice(1).map(Number)).toEqual([
+      runtimeExports.length,
+      functionCount,
+      consoleConstants.length,
+    ]);
+    expect(consoleConstants).toEqual([ "mazeyCon", "timeCon" ]);
+    expect(undocumentedExports).toEqual([]);
   });
 });

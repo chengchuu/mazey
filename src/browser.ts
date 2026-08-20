@@ -29,10 +29,23 @@ type DetectedOperatingSystem =
   | "linux"
   | "";
 
+type DetectedDeviceType = "desktop" | "mobile" | "tablet" | "";
+
 interface OperatingSystemSignals {
   userAgent: string;
   platform: string;
   maxTouchPoints: number;
+}
+
+function isIPadOSDesktopMode(
+  signals: OperatingSystemSignals,
+  normalizedUserAgent = signals.userAgent.trim().toLowerCase()
+): boolean {
+  return (
+    /\bmacintosh\b/.test(normalizedUserAgent) &&
+    signals.platform.toLowerCase() === "macintel" &&
+    signals.maxTouchPoints > 1
+  );
 }
 
 const knownCrawlerUserAgentTokens = Object.freeze([
@@ -143,13 +156,9 @@ function detectOperatingSystem(
 
   if (/\bandroid\b|\badr\b/.test(userAgent)) return "android";
 
-  const isIPadOSDesktop =
-    /\bmacintosh\b/.test(userAgent) &&
-    signals.platform.toLowerCase() === "macintel" &&
-    signals.maxTouchPoints > 1;
   if (
     /\bios\b|\biphone\b|\bipad\b|\bipod\b|\biwatch\b/.test(userAgent) ||
-    isIPadOSDesktop
+    isIPadOSDesktopMode(signals, userAgent)
   ) {
     return "ios";
   }
@@ -162,6 +171,56 @@ function detectOperatingSystem(
   }
   if (/\blinux\b/.test(userAgent)) return "linux";
   return "";
+}
+
+function detectDeviceType(
+  signals: OperatingSystemSignals
+): DetectedDeviceType {
+  const userAgent = signals.userAgent.trim().toLowerCase();
+  if (!userAgent) return "";
+
+  if (/\biwatch\b|\bapple watch\b/.test(userAgent)) return "";
+  if (
+    /\bipad\b|\btablet\b/.test(userAgent) ||
+    isIPadOSDesktopMode(signals, userAgent)
+  ) {
+    return "tablet";
+  }
+
+  const operatingSystem = detectOperatingSystem(signals);
+  if (operatingSystem === "android") {
+    return /\bmobile\b/.test(userAgent) ? "mobile" : "tablet";
+  }
+  if (
+    operatingSystem === "ios" &&
+    /\biphone\b|\bipod\b/.test(userAgent)
+  ) {
+    return "mobile";
+  }
+  if (
+    operatingSystem === "windows" ||
+    operatingSystem === "macos" ||
+    operatingSystem === "linux" ||
+    /\bcros\b/.test(userAgent)
+  ) {
+    return "desktop";
+  }
+  if (/\bmobile\b/.test(userAgent)) return "mobile";
+  return "";
+}
+
+function resolveDeviceType(userAgent?: string): DetectedDeviceType {
+  if (userAgent !== undefined && typeof userAgent !== "string") {
+    throw new TypeError("userAgent must be a string when provided.");
+  }
+  if (userAgent !== undefined) {
+    return detectDeviceType({
+      userAgent,
+      platform: "",
+      maxTouchPoints: 0,
+    });
+  }
+  return detectDeviceType(getDefaultOperatingSystemSignals());
 }
 
 function resolveOperatingSystem(
@@ -178,6 +237,77 @@ function resolveOperatingSystem(
     });
   }
   return detectOperatingSystem(getDefaultOperatingSystemSignals());
+}
+
+/**
+ * Check whether a user agent represents a mobile phone or handset-class
+ * device. Tablet devices are classified separately by {@link isTablet}.
+ *
+ * The classifier recognizes iPhone and iPod user agents, Android user agents
+ * that contain the `Mobile` token, and a bounded `Mobile` token as a fallback
+ * for otherwise unknown clients. Stronger tablet signals take priority.
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current
+ * browser's guarded navigator signals. An explicit string is classified by
+ * itself without current platform or touch information.
+ * @returns `true` for a recognized phone or handset-class device; otherwise
+ * `false`. Returns `false` during SSR when no explicit user agent is available.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Device classification is heuristic and spoofable. Do not use this
+ * helper as a security boundary or as a substitute for responsive CSS or
+ * feature detection. It does not inspect viewport dimensions. The separate
+ * `isMobile` export is an alias of the `isValidPhoneNumber` string validator.
+ * @category Browser Information
+ */
+export function isPhone(userAgent?: string): boolean {
+  return resolveDeviceType(userAgent) === "mobile";
+}
+
+/**
+ * Check whether a user agent represents a desktop or laptop-class device.
+ *
+ * The classifier recognizes Windows, ordinary macOS, Linux, and ChromeOS.
+ * Touch capability does not make a Windows device a tablet. A current browser
+ * with the existing MacIntel multi-touch iPadOS compatibility signals is
+ * excluded from desktop classification.
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current
+ * browser's guarded navigator signals. An explicit string is classified by
+ * itself without current platform or touch information.
+ * @returns `true` for a recognized desktop or laptop-class device; otherwise
+ * `false`. Returns `false` during SSR when no explicit user agent is available.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Device classification is heuristic and spoofable. Do not use this
+ * helper as a security boundary or as a substitute for responsive CSS or
+ * feature detection. It does not inspect viewport dimensions.
+ * @category Browser Information
+ */
+export function isDesktop(userAgent?: string): boolean {
+  return resolveDeviceType(userAgent) === "desktop";
+}
+
+/**
+ * Check whether a user agent represents a tablet device.
+ *
+ * The classifier recognizes conventional iPad user agents, bounded `Tablet`
+ * tokens, and Android user agents without a `Mobile` token. When no explicit
+ * user agent is supplied, it also recognizes modern iPadOS desktop mode from a
+ * Macintosh user agent, `MacIntel` platform, and more than one touch point.
+ * An explicit user agent never borrows current platform or touch signals.
+ *
+ * @param userAgent Optional user-agent string. Defaults to the current
+ * browser's guarded navigator signals. An explicit string is classified by
+ * itself without current platform or touch information.
+ * @returns `true` for a recognized tablet device; otherwise `false`. Returns
+ * `false` during SSR when no explicit user agent is available.
+ * @throws {TypeError} If an explicitly supplied user agent is not a string.
+ * @remarks Device classification is heuristic and spoofable. Do not use this
+ * helper as a security boundary or as a substitute for responsive CSS or
+ * feature detection. It does not inspect viewport dimensions.
+ * @category Browser Information
+ */
+export function isTablet(userAgent?: string): boolean {
+  return resolveDeviceType(userAgent) === "tablet";
 }
 
 /**

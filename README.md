@@ -139,6 +139,9 @@ There are some examples maintained by hand below. For more information, please c
   - [resolveLanguagePreference](#resolvelanguagepreference)
   - [setLanguagePreference](#setlanguagepreference)
   - [detectVisitorType](#detectvisitortype)
+  - [isPhone](#isphone)
+  - [isDesktop](#isdesktop)
+  - [isTablet](#istablet)
   - [isIOS](#isios)
   - [isAndroid](#isandroid)
   - [isMacOS](#ismacos)
@@ -1635,6 +1638,84 @@ or changed, so false positives and false negatives are possible.
 > limiting, fraud prevention, or access control. Genuine crawler verification
 > generally requires server-side request information and provider-specific
 > validation.
+
+#### isPhone
+
+Check whether the current browser represents a phone or handset-class device.
+The result excludes tablets.
+
+```javascript
+const result = isPhone();
+
+console.log(result);
+```
+
+#### isDesktop
+
+Check whether the current browser represents a desktop or laptop-class device.
+Recognized touchscreen Windows laptops remain desktop devices.
+
+```javascript
+const result = isDesktop();
+
+console.log(result);
+```
+
+#### isTablet
+
+Check whether the current browser represents a tablet. The helper recognizes
+conventional iPads, modern iPadOS desktop mode, Android user agents without a
+`Mobile` token, and bounded `Tablet` tokens.
+
+```javascript
+const result = isTablet();
+
+console.log(result);
+```
+
+You can pass a user-agent string for deterministic or server-side
+classification:
+
+```javascript
+const result = isTablet(
+  "Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36"
+);
+
+console.log(result);
+```
+
+Output:
+
+```text
+true
+```
+
+The three helpers use mutually exclusive form-factor classifications for
+recognized devices:
+
+| Device         | `isPhone` | `isDesktop` | `isTablet` |
+|:---------------|:-----------|:------------|:-----------|
+| iPhone         | `true`     | `false`     | `false`    |
+| Android phone  | `true`     | `false`     | `false`    |
+| iPad           | `false`    | `false`     | `true`     |
+| Android tablet | `false`    | `false`     | `true`     |
+| Windows laptop | `false`    | `true`      | `false`    |
+| MacBook        | `false`    | `true`      | `false`    |
+| Unknown        | `false`    | `false`     | `false`    |
+
+Each helper accepts an optional explicit user-agent string. Explicit input does
+not borrow the current browser's platform or touch signals. Without explicit
+input, all three return `false` during SSR when browser signals are unavailable.
+
+Device classification is heuristic and spoofable. It does not use viewport
+width and is not a security API or a replacement for responsive CSS and feature
+detection. `getBrowserInfo().platform` remains a legacy broad grouping that
+reports iOS and Android as `"mobile"`; the new helpers provide a more specific
+phone, tablet, or desktop classification.
+
+`isPhone` checks device form factor. The separate `isMobile` API is a direct
+alias of `isValidPhoneNumber`; it validates an 11-digit Chinese mobile-shaped
+number and does not inspect the browser or device.
 
 #### isIOS
 
