@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 171 runtime exports in the current repository: 169 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 173 runtime exports in the current repository: 171 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -160,6 +160,8 @@ const isMobile: typeof isValidPhoneNumber;
 | `hasClass`           | Test an element class                           | Browser-only      | Logs and returns false for a missing element.                                                                   |
 | `addClass`           | Add one or more classes                         | Browser-only      | Mutates the element; ignores empty names; array path uses `classList`.                                          |
 | `removeClass`        | Remove a class                                  | Browser-only      | Mutates the element and logs for missing input.                                                                 |
+| `hide`               | Hide selector or element targets                | Browser-only      | Accepts one element or iterable/array-like collections, preserves visible inline display, deduplicates targets, and returns the original input. |
+| `show`               | Show selector or element targets                | Browser-only      | Restores display preserved by `hide`; applies a document-aware tag default when CSS still hides an element; returns the original input. |
 | `addStyle`           | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
 | `setImgSizeBySrc`    | Apply image dimensions from URL parameters      | Browser-only      | Mutates image styles; reads `width`/`height`; uses jQuery when present.                                         |
 | `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |

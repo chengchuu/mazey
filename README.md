@@ -121,6 +121,7 @@ There are some examples maintained by hand below. For more information, please c
   - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
+  - [hide and show](#hide-and-show)
   - [isValidCssSelector](#isvalidcssselector)
   - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
@@ -1126,6 +1127,29 @@ hasClass(dom, "test");
 addClass(dom, "test");
 // Remove `class`
 removeClass(dom, "test");
+```
+
+#### hide and show
+
+Hide or show a CSS selector, one element, or an iterable or array-like element
+collection. Both helpers return the original target, so a caller can retain its
+own chaining convention. Duplicate elements are changed only once, and invalid
+selectors or unsupported values are ignored.
+
+`hide()` preserves a visible element's inline `display` value. `show()` restores
+that value, or recovers the element's normal display when a stylesheet would
+otherwise keep it hidden.
+
+```javascript
+import { hide, show } from "mazey";
+
+const notices = document.querySelectorAll(".notice");
+
+hide(notices);
+show(notices);
+
+hide("#temporary-message");
+show(document.querySelector("#temporary-message"));
 ```
 
 #### isValidCssSelector
