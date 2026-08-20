@@ -7,57 +7,17 @@ import type {
 } from "./typing";
 import { getDateTime, mNow } from "./date";
 
-interface CloneCache {
-  get(source: object): unknown;
-  set(source: object, clone: unknown): void;
-}
-
-function createCloneCache(): CloneCache {
-  if (typeof WeakMap !== "undefined") {
-    return new WeakMap<object, unknown>();
-  }
-
-  const sources: object[] = [];
-  const clones: unknown[] = [];
-  return {
-    get(source) {
-      const index = sources.indexOf(source);
-      return index === -1 ? undefined : clones[index];
-    },
-    set(source, clone) {
-      sources.push(source);
-      clones.push(clone);
-    },
-  };
+function createCloneCache(): WeakMap<object, unknown> {
+  return new WeakMap<object, unknown>();
 }
 
 function getRegExpFlags(value: RegExp): string {
-  if (typeof value.flags === "string") {
-    return value.flags;
-  }
-
-  const modernRegExp = value as RegExp & {
-    hasIndices?: boolean;
-    unicodeSets?: boolean;
-  };
-  let flags = "";
-  if (modernRegExp.hasIndices) flags += "d";
-  if (value.global) flags += "g";
-  if (value.ignoreCase) flags += "i";
-  if (value.multiline) flags += "m";
-  if (value.dotAll) flags += "s";
-  if (value.unicode) flags += "u";
-  if (modernRegExp.unicodeSets) flags += "v";
-  if (value.sticky) flags += "y";
-  return flags;
+  return value.flags;
 }
 
 function getCloneKeys(source: object): PropertyKey[] {
   const keys: PropertyKey[] = Object.getOwnPropertyNames(source);
-  if (typeof Object.getOwnPropertySymbols === "function") {
-    return keys.concat(Object.getOwnPropertySymbols(source));
-  }
-  return keys;
+  return keys.concat(Object.getOwnPropertySymbols(source));
 }
 
 const objectConstructorSource = Function.prototype.toString.call(Object);
@@ -92,7 +52,7 @@ function isPlainObjectValue(value: object): boolean {
   if (prototype === null) {
     return true;
   }
-  const constructor = Object.prototype.hasOwnProperty.call(prototype, "constructor")
+  const constructor = Object.hasOwn(prototype, "constructor")
     ? prototype.constructor
     : null;
   return typeof constructor === "function" &&
@@ -143,7 +103,7 @@ export function deepCopy<T>(obj: T): T {
   return cloneValue(obj, createCloneCache());
 }
 
-function cloneValue<T>(value: T, seen: CloneCache): T {
+function cloneValue<T>(value: T, seen: WeakMap<object, unknown>): T {
   if (value === null || typeof value !== "object") {
     return value;
   }
@@ -335,7 +295,7 @@ export function assignDefined<T extends object>(
         const writableTarget = target as unknown as Record<string, unknown>;
         if (
           key === "__proto__" &&
-          !Object.prototype.hasOwnProperty.call(target, key)
+          !Object.hasOwn(target, key)
         ) {
           Object.defineProperty(target, key, {
             configurable: true,
@@ -531,9 +491,9 @@ export function toJavaScriptGlobalName(value: string): string {
 }
 
 /**
- * Remove leading and trailing whitespace or specified characters from string.
+ * Remove leading and trailing whitespace from a string.
  *
- * Note: This method is used to replace the native `String.prototype.trim()`. But it is not necessary to use it in modern browsers.
+ * This established helper delegates to `String.prototype.trim()`.
  *
  * Usage:
  *
@@ -559,13 +519,7 @@ export function toJavaScriptGlobalName(value: string): string {
  * @hidden
  */
 export function mTrim(str: string): string {
-  str = str.replace(/^\s+/, ""); // Remove leading whitespace.
-  let end = str.length - 1;
-  const ws = /\s/;
-  while (ws.test(str.charAt(end))) {
-    end--; // Index of the last non-whitespace character.
-  }
-  return str.slice(0, end + 1);
+  return str.trim();
 }
 
 /**
@@ -1665,7 +1619,7 @@ export function isValidData(data: MazeyObject, attributes: string[], validValue:
     if (
       foundValue === null ||
       (typeof foundValue !== "object" && typeof foundValue !== "function") ||
-      !Object.prototype.hasOwnProperty.call(foundValue, attribute)
+      !Object.hasOwn(foundValue, attribute)
     ) {
       return false;
     }

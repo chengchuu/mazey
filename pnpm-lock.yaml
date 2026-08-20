@@ -11,12 +11,6 @@ importers:
       '@babel/core':
         specifier: ^7.23.2
         version: 7.29.7
-      '@babel/plugin-transform-class-properties':
-        specifier: ^7.22.5
-        version: 7.29.7(@babel/core@7.29.7)
-      '@babel/plugin-transform-object-rest-spread':
-        specifier: ^7.22.15
-        version: 7.29.7(@babel/core@7.29.7)
       '@babel/plugin-transform-runtime':
         specifier: ^7.23.2
         version: 7.29.7(@babel/core@7.29.7)
@@ -30,9 +24,6 @@ importers:
         specifier: ^7.23.2
         version: 7.29.7(@babel/core@7.29.7)
       '@babel/runtime':
-        specifier: ^7.23.2
-        version: 7.29.7
-      '@babel/runtime-corejs3':
         specifier: ^7.23.2
         version: 7.29.7
       '@rollup/plugin-babel':
@@ -77,9 +68,6 @@ importers:
       bootstrap:
         specifier: 5.3.8
         version: 5.3.8(@popperjs/core@2.11.8)
-      core-js:
-        specifier: ^3.33.2
-        version: 3.49.0
       cross-env:
         specifier: ^7.0.3
         version: 7.0.3
@@ -799,10 +787,6 @@ packages:
     engines: {node: '>=6.9.0'}
     peerDependencies:
       '@babel/core': ^7.0.0-0
-
-  '@babel/runtime-corejs3@7.29.7':
-    resolution: {integrity: sha512-ppj9ouYku+RX0ljtgZd+KMO5mkM2bCqg8H2PYAFWnLsHEIKIdRojqbJ2i3eVHrisuxy7nOFCmngTDdWtUCdXUQ==}
-    engines: {node: '>=6.9.0'}
 
   '@babel/runtime@7.29.7':
     resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
@@ -1779,12 +1763,6 @@ packages:
 
   core-js-compat@3.49.0:
     resolution: {integrity: sha512-VQXt1jr9cBz03b331DFDCCP90b3fanciLkgiOoy8SBHy06gNf+vQ1A3WFLqG7I8TipYIKeYK9wxd0tUrvHcOZA==}
-
-  core-js-pure@3.49.0:
-    resolution: {integrity: sha512-XM4RFka59xATyJv/cS3O3Kml72hQXUeGRuuTmMYFxwzc9/7C8OYTaIR/Ji+Yt8DXzsFLNhat15cE/JP15HrCgw==}
-
-  core-js@3.49.0:
-    resolution: {integrity: sha512-es1U2+YTtzpwkxVLwAFdSpaIMyQaq0PBgm3YD1W3Qpsn1NAmO3KSgZfu+oGSWVu6NvLHoHCV/aYcsE5wiB7ALg==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -5254,10 +5232,6 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@babel/runtime-corejs3@7.29.7':
-    dependencies:
-      core-js-pure: 3.49.0
-
   '@babel/runtime@7.29.7': {}
 
   '@babel/template@7.29.7':
@@ -6497,10 +6471,6 @@ snapshots:
   core-js-compat@3.49.0:
     dependencies:
       browserslist: 4.28.7
-
-  core-js-pure@3.49.0: {}
-
-  core-js@3.49.0: {}
 
   core-util-is@1.0.3: {}
 

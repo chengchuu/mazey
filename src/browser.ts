@@ -1055,11 +1055,10 @@ export function isSupportWebp(): Promise<boolean> {
 }
 
 /**
- * Listen for media-query changes with modern and legacy browser APIs.
+ * Listen for media-query changes with the standard browser event API.
  *
- * Modern `addEventListener("change", ...)` support is preferred. Browsers
- * exposing only `addListener` use that legacy API instead. A missing media
- * query returns an inert cleanup function.
+ * A missing media query or unavailable standard event methods return an inert
+ * cleanup function.
  *
  * Usage:
  *
@@ -1096,8 +1095,6 @@ export function listenMediaQueryChanges(
 
   const addEventListener = media.addEventListener;
   const removeEventListener = media.removeEventListener;
-  const addListener = media.addListener;
-  const removeListener = media.removeListener;
   let remove: (() => void) | null = null;
 
   if (
@@ -1107,12 +1104,6 @@ export function listenMediaQueryChanges(
     const eventListener = listener as EventListener;
     addEventListener.call(media, "change", eventListener);
     remove = () => removeEventListener.call(media, "change", eventListener);
-  } else if (
-    typeof addListener === "function" &&
-    typeof removeListener === "function"
-  ) {
-    addListener.call(media, listener);
-    remove = () => removeListener.call(media, listener);
   }
 
   let disposed = false;

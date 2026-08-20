@@ -34,6 +34,17 @@ You can also download and serve the
 [latest browser bundle](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)
 yourself.
 
+## Browser support
+
+Mazey supports Chrome 109+, Edge 109+, Firefox 115+, Safari 16.4+, iOS Safari
+16.4+, Android Chrome 109+, and Samsung Internet 21+. Package output can
+contain ES2022 syntax and does not include JavaScript polyfills. Internet
+Explorer, Opera Mini, KaiOS, the legacy Android Browser, and older browser
+versions are outside this support policy.
+
+Node.js 22 is used for development and continuous integration. Mazey does not
+declare a Node.js runtime compatibility range.
+
 ## Usage
 
 Example: Use a function to verify if a value is a number suitable for standard calculations and comparisons.
@@ -1568,8 +1579,8 @@ Output: `true`
 
 #### listenMediaQueryChanges
 
-Register a media-query change callback using the modern event API or the
-legacy `addListener` fallback. The returned cleanup function is idempotent.
+Register a media-query change callback using the standard `change` event. The
+returned cleanup function is idempotent.
 
 ```javascript
 const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1896,10 +1907,10 @@ if (isStandalonePWA()) {
 
 #### getPerformance
 
-Get page load time(`PerformanceNavigationTiming`).
+Get page-load metrics from `PerformanceNavigationTiming`.
 
-This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
-The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
+This function rejects when the browser does not provide a navigation entry. It
+does not fall back to the deprecated `PerformanceTiming` API.
 
 Usage:
 

@@ -14,14 +14,7 @@ import type { DefineListeners, MazeyFn, MazeyObject } from "./typing";
  * @category Event
  */
 export function cancelBubble(e: Event): void {
-  const ev = e || window.event;
-  if (ev.stopPropagation) {
-    // W3C
-    ev.stopPropagation();
-  } else {
-    // IE
-    ev.cancelBubble = true;
-  }
+  e.stopPropagation();
 }
 
 /**

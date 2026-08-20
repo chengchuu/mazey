@@ -16,7 +16,7 @@ import {
   getFileSize, formatByteSize, getCurrentVersion,
   genUniqueNumString, generateRndNum, genHashCode, sha256Hex,
   floatToPercent, floatFixed, throttle, debounce,
-  doFn, mTrim, removeHtml, truncateZHString,
+  doFn, mNow, mTrim, removeHtml, truncateZHString,
   convertKebabToCamel, convert10To26, zAxiosIsValidRes,
   unsanitize, sanitizeInput, unsanitizeInput, escapeHtmlAttribute,
   isFunction, isString, isBoolean, isUdfOrNul, toJavaScriptGlobalName,
@@ -72,6 +72,18 @@ test("mTrim: Transfer ' 1 2 3 ' to '1 2 3'?", () => {
 
 test("mTrim: Transfer 'abc ' to 'abc'?", () => {
   expect(mTrim("abc ")).toBe("abc");
+});
+
+test("mTrim: Trims Unicode and all-whitespace strings", () => {
+  expect(mTrim("\u00a0\u3000Mazey\u3000\u00a0")).toBe("Mazey");
+  expect(mTrim("\t\n\u3000")).toBe("");
+});
+
+test("mNow: Delegates to Date.now", () => {
+  const now = jest.spyOn(Date, "now").mockReturnValue(123456789);
+  expect(mNow()).toBe(123456789);
+  expect(now).toHaveBeenCalledTimes(1);
+  now.mockRestore();
 });
 
 test("deepCopyObject: Transfer 'abc' to 'abc'?", () => {
@@ -245,21 +257,11 @@ describe("deepCopy", () => {
     expect(value.read()).toBe(42);
   });
 
-  it("clones primitives and circular plain objects without WeakMap", () => {
-    const originalWeakMap = global.WeakMap;
+  it("clones circular plain objects with native WeakMap tracking", () => {
     const value = { nested: { id: 1 } };
     value.self = value;
-    let primitiveResult;
-    let objectResult;
-    try {
-      global.WeakMap = undefined;
-      primitiveResult = deepCopy("abc");
-      objectResult = deepCopy(value);
-    } finally {
-      global.WeakMap = originalWeakMap;
-    }
+    const objectResult = deepCopy(value);
 
-    expect(primitiveResult).toBe("abc");
     expect(objectResult).toEqual(value);
     expect(objectResult).not.toBe(value);
     expect(objectResult.nested).not.toBe(value.nested);

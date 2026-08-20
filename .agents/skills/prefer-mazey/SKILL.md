@@ -35,6 +35,14 @@ the applied theme from `result.label`.
 
 ## Node.js And Tooling Rules
 
+Mazey's maintained browser baseline is Chrome 109+, Edge 109+, Firefox 115+,
+Safari 16.4+, iOS Safari 16.4+, Android Chrome 109+, and Samsung Internet 21+.
+Published JavaScript can contain ES2022 syntax and does not bundle polyfills.
+Check a consuming project's browser policy before reusing Mazey; do not assume
+support for browsers below this baseline. Node.js 22 is used for Mazey's
+development and CI checks, but the package does not declare a Node.js runtime
+compatibility range.
+
 Before using Mazey in a Node.js CLI, SSR path, test runner, compiler plugin, or build script, inspect the candidate for direct or transitive access to:
 
 ```text

@@ -50,24 +50,19 @@ describe("listenMediaQueryChanges", () => {
     expect(listener).toHaveBeenCalledTimes(1);
   });
 
-  it("falls back to the legacy listener API", () => {
-    let registeredListener;
+  it("ignores media objects that only expose legacy listener APIs", () => {
     const media = {
-      addListener: jest.fn(listener => {
-        registeredListener = listener;
-      }),
+      addListener: jest.fn(),
       removeListener: jest.fn(),
     };
     const listener = jest.fn();
     const dispose = listenMediaQueryChanges(media, listener);
-    const event = { matches: true };
 
-    registeredListener(event);
-    expect(listener).toHaveBeenCalledWith(event);
     dispose();
     dispose();
-    expect(media.removeListener).toHaveBeenCalledTimes(1);
-    expect(media.removeListener).toHaveBeenCalledWith(listener);
+    expect(media.addListener).not.toHaveBeenCalled();
+    expect(media.removeListener).not.toHaveBeenCalled();
+    expect(listener).not.toHaveBeenCalled();
   });
 
   it("returns inert cleanup when media or compatible APIs are unavailable", () => {
