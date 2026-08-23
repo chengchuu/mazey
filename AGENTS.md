@@ -147,7 +147,8 @@ Keep the public preference helpers focused on data and storage:
   logic should use only the concrete `value`, which is always `"light"` or
   `"dark"`. The label may be `"System"` when the operating-system preference
   supplied that value.
-- A valid `theme` URL query value is persisted when storage is available.
+- `resolveThemePreference(storageKey)` uses `storageKey` as its URL query name.
+  URL overrides are read-only and must not be persisted.
 - `setThemePreference()` stores only `"system"`, `"light"`, or `"dark"`.
 - `resolveLanguagePreference(storageKey)` checks the fixed `lang` query,
   storage, `navigator.language`, then `en`. It canonicalizes one language and
