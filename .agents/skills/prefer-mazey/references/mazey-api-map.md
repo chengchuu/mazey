@@ -72,7 +72,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function             | Purpose                                           | Runtime   | Notes                                                                                               |
 | -------------------- | ------------------------------------------------- | --------- | --------------------------------------------------------------------------------------------------- |
-| `isNumber`           | Test for a numeric primitive                      | Universal | Rejects strings and, by default, `NaN`/infinities; `isUnFiniteAsNumber` is compatibility-sensitive. |
+| `isNumber`           | Test for a constrained numeric primitive          | Universal | Rejects strings and, by default, `NaN`/infinities; supports `integer` and inclusive `min`/`max` constraints; invalid or reversed bounds return false. |
 | `isJSONString`       | Test whether a string is valid JSON               | Universal | Accepts JSON primitives as well as arrays/objects; rejects non-string input.                        |
 | `parseJsonSafe`      | Parse JSON with a caller-defined fallback         | Universal | Returns parsed primitives, including `null`; parse failures return the supplied fallback unchanged. |
 | `isNonEmptyArray`    | Test for an array with at least one item          | Universal | Returns a boolean; does not inspect item values.                                                    |

@@ -34,6 +34,50 @@ test("isNumber: Is -1/123/Infinity/NaN Number?", () => {
   expect(isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true })).toBe(true);
 });
 
+test("isNumber: Preserve isUnFiniteAsNumber compatibility", () => {
+  expect(isNumber(Infinity, { isUnFiniteAsNumber: true })).toBe(true);
+  expect(isNumber(-Infinity, { isUnFiniteAsNumber: true })).toBe(true);
+  expect(isNumber(NaN, { isUnFiniteAsNumber: true })).toBe(false);
+  expect(isNumber(NaN, {
+    isNaNAsNumber: true,
+    isUnFiniteAsNumber: true,
+  })).toBe(true);
+});
+
+describe("isNumber constraints", () => {
+  test("applies inclusive minimum and maximum bounds independently", () => {
+    expect(isNumber(-5, { min: -5 })).toBe(true);
+    expect(isNumber(-6, { min: -5 })).toBe(false);
+    expect(isNumber(10, { max: 10 })).toBe(true);
+    expect(isNumber(11, { max: 10 })).toBe(false);
+  });
+
+  test("combines integer and inclusive range constraints", () => {
+    const options = { integer: true, min: 1, max: 31 };
+
+    expect(isNumber(1, options)).toBe(true);
+    expect(isNumber(31, options)).toBe(true);
+    expect(isNumber(0, options)).toBe(false);
+    expect(isNumber(32, options)).toBe(false);
+    expect(isNumber(12.5, options)).toBe(false);
+  });
+
+  test("rejects invalid or reversed bounds without throwing", () => {
+    expect(isNumber(5, { min: Number.NaN })).toBe(false);
+    expect(isNumber(5, { max: Number.NaN })).toBe(false);
+    expect(isNumber(5, { min: 10, max: 1 })).toBe(false);
+    expect(isNumber(5, { min: "1" })).toBe(false);
+  });
+
+  test("does not allow constrained NaN or non-integer infinities", () => {
+    expect(isNumber(NaN, { isNaNAsNumber: true, min: 0 })).toBe(false);
+    expect(isNumber(NaN, { isNaNAsNumber: true, integer: true })).toBe(false);
+    expect(isNumber(Infinity, { isInfinityAsNumber: true, min: 0 })).toBe(true);
+    expect(isNumber(Infinity, { isInfinityAsNumber: true, integer: true })).toBe(false);
+    expect(isNumber(Infinity, { isUnFiniteAsNumber: true, max: 100 })).toBe(false);
+  });
+});
+
 test("camelCaseToKebabCase: Transfer 'aBC' to 'a-b-c'?", () => {
   expect(camelCaseToKebabCase("aBC")).toBe("a-b-c");
 });

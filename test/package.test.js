@@ -119,6 +119,19 @@ describe("package API catalog", () => {
     );
   });
 
+  it("publishes the constrained number options", () => {
+    const declarations = fs.readFileSync(
+      path.join(process.cwd(), "lib", "index.d.ts"),
+      "utf8"
+    );
+
+    expect(declarations).toContain("interface IsNumberOptions");
+    expect(declarations).toContain("integer?: boolean");
+    expect(declarations).toContain("min?: number");
+    expect(declarations).toContain("max?: number");
+    expect(declarations).toMatch(/export type \{[^}]*IsNumberOptions[^}]*\}/);
+  });
+
   it("keeps the documented runtime-export totals aligned with the package", () => {
     const apiMap = fs.readFileSync(
       path.join(
