@@ -304,7 +304,8 @@ Load Success: load
 
 #### isNumber
 
-Check whether it is a right number.
+Check whether a value is an allowed numeric primitive. Optional constraints can
+require an integer or an inclusive minimum and maximum.
 
 Usage:
 
@@ -316,14 +317,20 @@ const ret3 = isNumber(Infinity);
 const ret4 = isNumber(Infinity, { isInfinityAsNumber: true });
 const ret5 = isNumber(NaN);
 const ret6 = isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true });
-console.log(ret1, ret2, ret3, ret4, ret5, ret6);
+const ret7 = isNumber(12, { integer: true, min: 1, max: 31 });
+const ret8 = isNumber(12.5, { integer: true, min: 1, max: 31 });
+console.log(ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8);
 ```
 
 Output:
 
 ```text
-true false false true false true
+true false false true false true true false
 ```
+
+`min` and `max` are inclusive and may be used independently. Invalid or
+reversed bounds return `false`. Existing non-finite-number behavior is unchanged
+when `integer`, `min`, and `max` are omitted.
 
 #### isJSONString
 
