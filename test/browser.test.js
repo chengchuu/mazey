@@ -665,6 +665,94 @@ describe("isSafePWAEnv", () => {
     expect(scopeGetter).toHaveBeenCalledTimes(1);
     expect(manifestGetter).toHaveBeenCalledTimes(1);
   });
+
+  function createInjectedEnvironment({
+    secure = true,
+    serviceWorker = {},
+    manifest = true,
+    url = "https://example.com/mazey/",
+  } = {}) {
+    const documentRef = document.implementation.createHTMLDocument("PWA test");
+    if (manifest) {
+      const manifestLink = documentRef.createElement("link");
+      manifestLink.rel = "manifest";
+      manifestLink.href = "/manifest.webmanifest";
+      documentRef.head.appendChild(manifestLink);
+    }
+    const navigatorRef = {};
+    if (serviceWorker !== undefined) {
+      navigatorRef.serviceWorker = serviceWorker;
+    }
+    return {
+      window: {
+        isSecureContext: secure,
+        location: new URL(url),
+        matchMedia: jest.fn().mockReturnValue({ matches: false }),
+      },
+      navigator: navigatorRef,
+      document: documentRef,
+    };
+  }
+
+  it("checks injected PWA capabilities without reading conflicting globals", () => {
+    addManifest();
+    const environment = createInjectedEnvironment({ secure: false });
+
+    expect(isSafePWAEnv({ environment })).toBe(false);
+
+    environment.window.isSecureContext = true;
+    delete environment.navigator.serviceWorker;
+    expect(isSafePWAEnv({ environment })).toBe(false);
+  });
+
+  it("rejects an injected null Service Worker capability", () => {
+    const environment = createInjectedEnvironment({ serviceWorker: null });
+
+    expect(isSafePWAEnv({ environment })).toBe(false);
+  });
+
+  it("uses a valid injected environment when globals are incompatible", () => {
+    Object.defineProperty(window, "isSecureContext", {
+      configurable: true,
+      value: false,
+    });
+    delete navigator.serviceWorker;
+    const environment = createInjectedEnvironment();
+
+    expect(isSafePWAEnv({ environment })).toBe(true);
+  });
+
+  it("supports optional manifests and requires injected documents by default", () => {
+    const environment = createInjectedEnvironment({ manifest: false });
+
+    expect(isSafePWAEnv({ environment })).toBe(false);
+    expect(isSafePWAEnv({ environment, requireManifest: false })).toBe(true);
+
+    delete environment.document;
+    expect(isSafePWAEnv({ environment })).toBe(false);
+    expect(isSafePWAEnv({ environment, requireManifest: false })).toBe(true);
+  });
+
+  it.each([
+    [ "/mazey/", true ],
+    [ "/mazey/playground/", true ],
+    [ "/other/", false ],
+    [ "https://other.example/mazey/", false ],
+  ])("checks injected page URL against scope %p", (scope, expected) => {
+    const environment = createInjectedEnvironment({
+      url: "https://example.com/mazey/playground/",
+    });
+
+    expect(isSafePWAEnv({ environment, scope })).toBe(expected);
+  });
+
+  it("does not fall back to a global document for an injected environment", () => {
+    addManifest();
+    const environment = createInjectedEnvironment();
+    delete environment.document;
+
+    expect(isSafePWAEnv({ environment })).toBe(false);
+  });
 });
 
 describe("isStandalonePWA", () => {
@@ -763,6 +851,84 @@ describe("isStandalonePWA", () => {
     expect(isStandalonePWA()).toBe(true);
     expect(matchMediaGetter).toHaveBeenCalledTimes(1);
     expect(matchMedia).toHaveBeenCalledWith("(display-mode: standalone)");
+  });
+
+  it("detects standalone mode from an injected environment", () => {
+    const windowRef = {
+      isSecureContext: true,
+      location: new URL("https://example.com/"),
+      matchMedia: jest.fn(function () {
+        return { matches: this === windowRef };
+      }),
+    };
+
+    expect(
+      isStandalonePWA({
+        environment: { window: windowRef, navigator: {} },
+      })
+    ).toBe(true);
+    expect(windowRef.matchMedia).toHaveBeenCalledWith(
+      "(display-mode: standalone)"
+    );
+  });
+
+  it("uses the injected iOS standalone signal", () => {
+    const environment = {
+      window: {
+        isSecureContext: true,
+        location: new URL("https://example.com/"),
+        matchMedia: jest.fn().mockReturnValue({ matches: false }),
+      },
+      navigator: { standalone: true },
+    };
+
+    expect(isStandalonePWA({ environment })).toBe(true);
+  });
+
+  it("returns false for an injected ordinary tab", () => {
+    const environment = {
+      window: {
+        isSecureContext: true,
+        location: new URL("https://example.com/"),
+        matchMedia: jest.fn().mockReturnValue({ matches: false }),
+      },
+      navigator: { standalone: false },
+    };
+
+    expect(isStandalonePWA({ environment })).toBe(false);
+  });
+
+  it("uses only injected values when globals report standalone mode", () => {
+    window.matchMedia = jest.fn().mockReturnValue({ matches: true });
+    Object.defineProperty(navigator, "standalone", {
+      configurable: true,
+      value: true,
+    });
+    const environment = {
+      window: {
+        isSecureContext: true,
+        location: new URL("https://example.com/"),
+        matchMedia: jest.fn().mockReturnValue({ matches: false }),
+      },
+      navigator: { standalone: false },
+    };
+
+    expect(isStandalonePWA({ environment })).toBe(false);
+  });
+
+  it("falls back to injected iOS state when injected matchMedia throws", () => {
+    const environment = {
+      window: {
+        isSecureContext: true,
+        location: new URL("https://example.com/"),
+        matchMedia: jest.fn(() => {
+          throw new Error("host failure");
+        }),
+      },
+      navigator: { standalone: true },
+    };
+
+    expect(isStandalonePWA({ environment })).toBe(true);
   });
 });
 

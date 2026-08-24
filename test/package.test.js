@@ -106,6 +106,19 @@ describe("derivePackageMetadata", () => {
 });
 
 describe("package API catalog", () => {
+  it("publishes the injected PWA environment declarations", () => {
+    const declarations = fs.readFileSync(
+      path.join(process.cwd(), "lib", "index.d.ts"),
+      "utf8"
+    );
+
+    expect(declarations).toContain("interface PWAEnvironment");
+    expect(declarations).toContain("environment?: PWAEnvironment");
+    expect(declarations).toMatch(
+      /declare function isStandalonePWA\(options\?: IsStandalonePWAOptions\): boolean;/
+    );
+  });
+
   it("keeps the documented runtime-export totals aligned with the package", () => {
     const apiMap = fs.readFileSync(
       path.join(
