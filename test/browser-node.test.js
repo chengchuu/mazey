@@ -85,10 +85,39 @@ describe("isSafePWAEnv outside a browser", () => {
   it("returns false instead of throwing", () => {
     expect(isSafePWAEnv()).toBe(false);
   });
+
+  it("can inspect a complete injected environment without browser globals", () => {
+    const environment = {
+      window: {
+        isSecureContext: true,
+        location: new URL("https://example.com/app/"),
+        matchMedia: () => ({ matches: false }),
+      },
+      navigator: { serviceWorker: {} },
+      document: {
+        querySelector: () => ({ getAttribute: () => "/manifest.webmanifest" }),
+      },
+    };
+
+    expect(isSafePWAEnv({ environment, scope: "/app/" })).toBe(true);
+  });
 });
 
 describe("isStandalonePWA outside a browser", () => {
   it("returns false instead of throwing", () => {
     expect(isStandalonePWA()).toBe(false);
+  });
+
+  it("can inspect an injected environment without browser globals", () => {
+    const environment = {
+      window: {
+        isSecureContext: true,
+        location: new URL("https://example.com/"),
+        matchMedia: () => ({ matches: true }),
+      },
+      navigator: {},
+    };
+
+    expect(isStandalonePWA({ environment })).toBe(true);
   });
 });

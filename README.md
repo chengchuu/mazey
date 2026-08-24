@@ -1896,7 +1896,10 @@ for PWA functionality that synchronous JavaScript can identify: a secure
 context, Service Worker API support, and, by default, a web app manifest link
 with a non-empty `href`. Pass `{ requireManifest: false }` when only secure
 Service Worker eligibility is needed, or `{ scope: "/app/" }` to require the
-current page to be inside a same-origin path scope.
+current page to be inside a same-origin path scope. Callers that already own
+browser references can pass
+`{ environment: { window, navigator, document } }`; injected objects are used
+exclusively and are never combined with globals.
 
 This check does not validate or request the manifest, verify service worker
 registration, determine whether the app is installed, or guarantee that an
@@ -1910,6 +1913,15 @@ const ret = isSafePWAEnv();
 console.log(ret);
 ```
 
+Site initialization and deterministic tests can use explicit browser objects:
+
+```javascript
+const ret = isSafePWAEnv({
+  scope: "/app/",
+  environment: { window, navigator, document },
+});
+```
+
 Output:
 
 ```text
@@ -1920,12 +1932,20 @@ true
 
 Detect standard standalone display mode with the iOS Safari
 `navigator.standalone` fallback. This is a presentation hint, not proof that
-the app is installed or controlled by a service worker.
+the app is installed or controlled by a service worker. Pass
+`{ environment: { window, navigator } }` to inspect caller-owned browser
+objects without reading globals.
 
 ```javascript
 if (isStandalonePWA()) {
   document.querySelector("[data-install-help]")?.remove();
 }
+```
+
+```javascript
+const standalone = isStandalonePWA({
+  environment: { window, navigator },
+});
 ```
 
 ### Web Performance

@@ -545,6 +545,35 @@ export function detectVisitorType(userAgent?: string): VisitorType {
 }
 
 /**
+ * Browser objects used by Mazey's synchronous PWA capability checks.
+ *
+ * Supply an environment when the caller already owns browser references, such
+ * as a site initializer, iframe integration, or deterministic test. Injected
+ * objects are used exclusively and are never combined with global browser
+ * objects.
+ *
+ * @category Browser Information
+ */
+export interface PWAEnvironment {
+  /** Window capabilities used by PWA scope and display-mode checks. */
+  window: Pick<Window, "isSecureContext" | "location" | "matchMedia">;
+  /** Navigator capabilities used by Service Worker and iOS standalone checks. */
+  navigator: Navigator & { readonly standalone?: boolean };
+  /** Document inspected for a web app manifest when one is required. */
+  document?: Document;
+}
+
+/**
+ * Options for {@link isStandalonePWA}.
+ *
+ * @category Browser Information
+ */
+export interface IsStandalonePWAOptions {
+  /** Browser objects to inspect instead of browser globals. */
+  environment?: PWAEnvironment;
+}
+
+/**
  * Options for {@link isSafePWAEnv}.
  *
  * @category Browser Information
@@ -557,16 +586,21 @@ export interface IsSafePWAEnvOptions {
    * Comparison uses serialized WHATWG URL paths; encoded separators remain encoded.
    */
   scope?: string;
+  /** Browser objects to inspect instead of browser globals. */
+  environment?: PWAEnvironment;
 }
 
-function isCurrentPageWithinScope(scope: string): boolean {
+function isCurrentPageWithinScope(
+  scope: string,
+  windowRef: PWAEnvironment["window"]
+): boolean {
   const normalizedScope = scope.trim();
   if (!normalizedScope || /[?#]/.test(normalizedScope)) {
     return false;
   }
 
   try {
-    const currentUrl = new URL(window.location.href);
+    const currentUrl = new URL(windowRef.location.href);
     const scopeUrl = new URL(normalizedScope, currentUrl);
     if (
       scopeUrl.origin !== currentUrl.origin ||
@@ -586,6 +620,59 @@ function isCurrentPageWithinScope(scope: string): boolean {
     return currentUrl.pathname.startsWith(nestedScopePath);
   } catch (e) {
     return false;
+  }
+}
+
+function getGlobalPWAEnvironment(): PWAEnvironment | null {
+  try {
+    if (typeof window === "undefined" || typeof navigator === "undefined") {
+      return null;
+    }
+    return {
+      window,
+      navigator: navigator as PWAEnvironment["navigator"],
+      document: typeof document === "undefined" ? undefined : document,
+    };
+  } catch (e) {
+    return null;
+  }
+}
+
+function getPWAEnvironment(
+  environment: unknown
+): PWAEnvironment | null {
+  if (environment === undefined) {
+    return getGlobalPWAEnvironment();
+  }
+  if (
+    environment === null ||
+    typeof environment !== "object" ||
+    Array.isArray(environment)
+  ) {
+    return null;
+  }
+
+  try {
+    const windowRef = (environment as PWAEnvironment).window;
+    const navigatorRef = (environment as PWAEnvironment).navigator;
+    const documentRef = (environment as PWAEnvironment).document;
+    if (
+      windowRef === null ||
+      typeof windowRef !== "object" ||
+      navigatorRef === null ||
+      typeof navigatorRef !== "object" ||
+      (documentRef !== undefined &&
+        (documentRef === null || typeof documentRef !== "object"))
+    ) {
+      return null;
+    }
+    return {
+      window: windowRef,
+      navigator: navigatorRef,
+      document: documentRef,
+    };
+  } catch (e) {
+    return null;
   }
 }
 
@@ -618,16 +705,24 @@ function isCurrentPageWithinScope(scope: string): boolean {
  * true
  * ```
  *
- * @remarks Browser-preferred and safe to call during SSR.
- * @param options Optional manifest and URL-scope requirements.
+ * Callers that already own browser references can inject them without changing
+ * globals:
+ *
+ * ```javascript
+ * const ret = isSafePWAEnv({
+ *   scope: "/app/",
+ *   environment: { window, navigator, document },
+ * });
+ * ```
+ *
+ * @remarks Browser-preferred and safe to call during SSR. When `environment`
+ * is provided, only those objects are inspected; missing injected capabilities
+ * return `false` rather than falling back to globals.
+ * @param options Optional manifest, URL-scope, and browser-environment requirements.
  * @returns Whether the detectable minimum PWA prerequisites are satisfied.
  * @category Browser Information
  */
 export function isSafePWAEnv(options: IsSafePWAEnvOptions = {}): boolean {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
-    return false;
-  }
-
   try {
     if (options === null || typeof options !== "object" || Array.isArray(options)) {
       return false;
@@ -635,6 +730,7 @@ export function isSafePWAEnv(options: IsSafePWAEnvOptions = {}): boolean {
 
     const requireManifest = options.requireManifest;
     const scope = options.scope;
+    const environment = options.environment;
     if (
       (requireManifest !== undefined && typeof requireManifest !== "boolean") ||
       (scope !== undefined && typeof scope !== "string")
@@ -642,11 +738,29 @@ export function isSafePWAEnv(options: IsSafePWAEnvOptions = {}): boolean {
       return false;
     }
 
-    if (window.isSecureContext !== true || !("serviceWorker" in navigator)) {
+    const resolvedEnvironment = getPWAEnvironment(environment);
+    if (!resolvedEnvironment) {
+      return false;
+    }
+    const {
+      window: windowRef,
+      navigator: navigatorRef,
+      document: documentRef,
+    } = resolvedEnvironment;
+
+    const serviceWorker = navigatorRef.serviceWorker;
+    if (
+      windowRef.isSecureContext !== true ||
+      serviceWorker === null ||
+      typeof serviceWorker !== "object"
+    ) {
       return false;
     }
 
-    if (scope !== undefined && !isCurrentPageWithinScope(scope)) {
+    if (
+      scope !== undefined &&
+      !isCurrentPageWithinScope(scope, windowRef)
+    ) {
       return false;
     }
 
@@ -654,11 +768,11 @@ export function isSafePWAEnv(options: IsSafePWAEnvOptions = {}): boolean {
       return true;
     }
 
-    if (typeof document === "undefined") {
+    if (!documentRef) {
       return false;
     }
 
-    const manifest = document.querySelector<HTMLLinkElement>("link[rel~=\"manifest\"][href]");
+    const manifest = documentRef.querySelector<HTMLLinkElement>("link[rel~=\"manifest\"][href]");
     return Boolean(manifest?.getAttribute("href")?.trim());
   } catch (e) {
     return false;
@@ -672,21 +786,49 @@ export function isSafePWAEnv(options: IsSafePWAEnvOptions = {}): boolean {
  * `navigator.standalone` compatibility signal. This does not prove that the app
  * is installed, trusted, or controlled by a service worker.
  *
- * @remarks Browser-preferred and safe to call during SSR.
+ * Callers that already own browser references can inject them without changing
+ * globals:
+ *
+ * ```javascript
+ * const standalone = isStandalonePWA({
+ *   environment: { window, navigator },
+ * });
+ * ```
+ *
+ * @remarks Browser-preferred and safe to call during SSR. This is a one-time
+ * synchronous read and does not install listeners. When `environment` is
+ * supplied, only those objects are inspected.
+ * @param options Optional browser environment to inspect instead of globals.
  * @returns `true` in detected standalone presentation; otherwise `false`.
  * @category Browser Information
  */
-export function isStandalonePWA(): boolean {
-  if (typeof window === "undefined" || typeof navigator === "undefined") {
+export function isStandalonePWA(
+  options: IsStandalonePWAOptions = {}
+): boolean {
+  let environment: unknown;
+  try {
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+      return false;
+    }
+    environment = options.environment;
+  } catch (e) {
     return false;
   }
 
-  const appleNavigator = navigator as Navigator & { standalone?: boolean };
+  const resolvedEnvironment = getPWAEnvironment(environment);
+  if (!resolvedEnvironment) {
+    return false;
+  }
+  const {
+    window: windowRef,
+    navigator: navigatorRef,
+  } = resolvedEnvironment;
+
   try {
-    const matchMedia = window.matchMedia;
+    const matchMedia = windowRef.matchMedia;
     if (
       typeof matchMedia === "function" &&
-      matchMedia.call(window, "(display-mode: standalone)").matches
+      matchMedia.call(windowRef, "(display-mode: standalone)").matches
     ) {
       return true;
     }
@@ -695,7 +837,7 @@ export function isStandalonePWA(): boolean {
   }
 
   try {
-    return appleNavigator.standalone === true;
+    return navigatorRef.standalone === true;
   } catch (e) {
     return false;
   }
