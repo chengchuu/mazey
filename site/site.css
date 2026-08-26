@@ -56,6 +56,10 @@ body {
   line-height: 1.65;
 }
 
+.playground-page {
+  min-height: 100dvh;
+}
+
 a {
   text-underline-offset: 0.2em;
 }
