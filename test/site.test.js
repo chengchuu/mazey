@@ -39,6 +39,10 @@ test("project configuration derives deployment identity from package metadata", 
     basePath: "/mazey/",
   });
   expect(projectConfig.pwa.serviceWorkerUrl).toBe("/mazey/service-worker.js");
+  expect(projectConfig.pwa).toMatchObject({
+    name: projectConfig.brand.displayName,
+    shortName: projectConfig.brand.shortName,
+  });
   expect(projectConfig.site.theme.storageKey).toBe("mazey-theme");
   expect(projectConfig.urls.cdn).toBe(
     "https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"
@@ -211,6 +215,30 @@ test("playground primary section uses compact vertical spacing", () => {
   );
   expect(siteCss).toMatch(
     /@media \(max-width: 575\.98px\)\s*{[\s\S]*?\.section-band--compact\s*{[^}]*padding:\s*2rem 0;[^}]*}/
+  );
+});
+
+test("playground layout fills the dynamic viewport above the footer", () => {
+  const playground = fs.readFileSync(
+    path.join(process.cwd(), "examples", "index.html"),
+    "utf8"
+  );
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(playground).toContain(
+    '<body class="playground-page d-flex flex-column">'
+  );
+  expect(playground).toContain(
+    '<main id="main-content" class="d-flex flex-column flex-grow-1">'
+  );
+  expect(playground).toContain(
+    'class="section-band section-band--muted flex-grow-1"'
+  );
+  expect(siteCss).toMatch(
+    /\.playground-page\s*{[^}]*min-height:\s*100dvh;[^}]*}/
   );
 });
 
