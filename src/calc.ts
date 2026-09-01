@@ -1,9 +1,5 @@
-import { deepCopy } from "./util";
-
 /**
- * EN: Computes the longest common substring of two strings.
- *
- * ZH: 计算两个字符串的最长公共子串。
+ * Compute the length of the longest common substring of two strings.
  *
  * Usage:
  *
@@ -28,8 +24,11 @@ import { deepCopy } from "./util";
 export function longestComSubstring(aStr: string, bStr: string): number {
   const aLen = aStr.length;
   const bLen = bStr.length;
-  // Create a two-dimensional array and deep copy it
-  const arr = deepCopy(new Array(aLen).fill(new Array(bLen).fill(0)));
+  if (aLen === 0 || bLen === 0) {
+    return 0;
+  }
+  const arr = Array.from({ length: aLen }, () => new Array(bLen).fill(0));
+  let maxLong = 0;
   for (let i = 0; i < aLen; ++i) {
     for (let j = 0; j < bLen; ++j) {
       if (aStr[i] === bStr[j]) {
@@ -38,13 +37,10 @@ export function longestComSubstring(aStr: string, bStr: string): number {
           baseNum = arr[i - 1][j - 1];
         }
         arr[i][j] = baseNum + 1;
+        maxLong = Math.max(maxLong, arr[i][j]);
       }
     }
   }
-  // Convert the two-dimensional array to a one-dimensional array
-  const arr1 = Array.prototype.concat.apply([], arr);
-  // Get the longest common substring
-  const maxLong = Math.max(...arr1);
   return maxLong;
 }
 
@@ -58,9 +54,7 @@ export function calLongestCommonSubstring(aStr: string, bStr: string): number {
 }
 
 /**
- * EN: Computes the longest common subsequence of two strings.
- *
- * ZH: 计算两个字符串的最长公共子序列。
+ * Compute the length of the longest common subsequence of two strings.
  *
  * Usage:
  *
@@ -77,16 +71,18 @@ export function calLongestCommonSubstring(aStr: string, bStr: string): number {
  * 4
  * ```
  *
- * @param {string} aStr 字符串
- * @param {string} bStr 字符串
- * @returns {number} 长度
+ * @param {string} aStr The first string.
+ * @param {string} bStr The second string.
+ * @returns {number} The length of the longest common subsequence.
  * @category Calculate and Formula
  */
 export function longestComSubsequence(aStr: string, bStr: string): number {
   const aLen = aStr.length;
   const bLen = bStr.length;
-  // Create a two-dimensional array and deep copy it
-  const arr = deepCopy(new Array(aLen).fill(new Array(bLen).fill(0)));
+  if (aLen === 0 || bLen === 0) {
+    return 0;
+  }
+  const arr = Array.from({ length: aLen }, () => new Array(bLen).fill(0));
   for (let i = 0; i < aLen; ++i) {
     for (let j = 0; j < bLen; ++j) {
       if (aStr[i] === bStr[j]) {
@@ -107,11 +103,7 @@ export function longestComSubsequence(aStr: string, bStr: string): number {
       }
     }
   }
-  // Convert the two-dimensional array to a one-dimensional array
-  const arr1 = Array.prototype.concat.apply([], arr);
-  // Get the longest common subsequence
-  const maxLong = Math.max(...arr1);
-  return maxLong;
+  return arr[aLen - 1][bLen - 1];
 }
 
 /**
@@ -124,16 +116,14 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
 }
 
 /**
- * EN: Hit probability (1% ~ 100%).
- *
- * ZH: 百分位概率。
+ * Return whether a random value falls within the given probability.
  *
  * Usage:
  *
  * ```javascript
  * import { isHit } from "mazey";
  *
- * const ret = isHit(0.5); // 0.01 ~ 1 true/false
+ * const ret = isHit(0.5); // A 50% chance of returning true.
  * console.log(ret);
  * ```
  *
@@ -164,8 +154,8 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * 499994 500006
  * ```
  *
- * @param {number} rate 0.1 ~ 1 => 1% ~ 100%
- * @returns {boolean} true 命中
+ * @param {number} rate Probability expressed as a value from 0 to 1.
+ * @returns {boolean} Whether the random value is less than the probability.
  * @category Calculate and Formula
  */
 export function isHit(rate: number): boolean {
