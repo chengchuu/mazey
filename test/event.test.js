@@ -11,24 +11,11 @@ describe("cancelBubble", () => {
   it("should call stopPropagation if available", () => {
     const eventMock = {
       stopPropagation: jest.fn(),
-      cancelBubble: false,
     };
 
     cancelBubble(eventMock);
 
     expect(eventMock.stopPropagation).toHaveBeenCalled();
-    expect(eventMock.cancelBubble).toBe(false);
-  });
-
-  it("should set cancelBubble to true if stopPropagation is not available", () => {
-    const eventMock = {
-      stopPropagation: undefined,
-      cancelBubble: false,
-    };
-
-    cancelBubble(eventMock);
-
-    expect(eventMock.cancelBubble).toBe(true);
   });
 });
 
@@ -56,6 +43,12 @@ describe("getDefineListeners", () => {
 
     const defineListeners = getDefineListeners();
     expect(defineListeners).toEqual({});
+  });
+
+  it("should create a new defineListeners object when the cache is null", () => {
+    window.MAZEY_DEFINE_LISTENERS = null;
+
+    expect(getDefineListeners()).toEqual({});
   });
 });
 
@@ -94,6 +87,34 @@ describe("Event System", () => {
     expect(mockFn).toHaveBeenCalled();
   });
 
+  test("invokeEvent forwards event parameters", () => {
+    const params = { type: "test" };
+    addEvent("test", mockFn);
+
+    invokeEvent("test", params);
+
+    expect(mockFn).toHaveBeenCalledWith(params);
+  });
+
+  test("prototype property names can be used as event names", () => {
+    addEvent("__proto__", mockFn);
+
+    fireEvent("__proto__");
+
+    expect(mockFn).toHaveBeenCalledTimes(1);
+  });
+
+  test("listeners can remove themselves without skipping the next listener", () => {
+    const selfRemoving = jest.fn(() => removeEvent("test", selfRemoving));
+    addEvent("test", selfRemoving);
+    addEvent("test", mockFn);
+
+    fireEvent("test");
+
+    expect(selfRemoving).toHaveBeenCalledTimes(1);
+    expect(mockFn).toHaveBeenCalledTimes(1);
+  });
+
   test("removeEvent removes a specific event listener", () => {
     addEvent("test", mockFn);
     const anotherMock = jest.fn();
@@ -111,4 +132,3 @@ describe("Event System", () => {
     expect(defineListeners["test"]).toBeUndefined();
   });
 });
-

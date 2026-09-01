@@ -1,13 +1,78 @@
 import type {
   ThrottleFunc, DebounceFunc, IsNumberOptions,
   ZResResponse, ZResIsValidResOptions,
-  SimpleObject, SimpleType, MazeyDate,
+  SimpleType,
   MazeyObject, MazeyFnParams, MazeyFnReturn, MazeyFunction,
   RepeatUntilOptions,
 } from "./typing";
+import { getDateTime, mNow } from "./date";
+
+function createCloneCache(): WeakMap<object, unknown> {
+  return new WeakMap<object, unknown>();
+}
+
+function getRegExpFlags(value: RegExp): string {
+  return value.flags;
+}
+
+function getCloneKeys(source: object): PropertyKey[] {
+  const keys: PropertyKey[] = Object.getOwnPropertyNames(source);
+  return keys.concat(Object.getOwnPropertySymbols(source));
+}
+
+const objectConstructorSource = Function.prototype.toString.call(Object);
+
+function getRegExpSource(value: object): string | null {
+  const sourceGetter = Object.getOwnPropertyDescriptor(RegExp.prototype, "source")?.get;
+  if (!sourceGetter) {
+    return null;
+  }
+  try {
+    return sourceGetter.call(value);
+  } catch (e) {
+    return null;
+  }
+}
+
+function hasBuiltinBrand(value: object, prototype: object, property: string): boolean {
+  const getter = Object.getOwnPropertyDescriptor(prototype, property)?.get;
+  if (!getter) {
+    return false;
+  }
+  try {
+    getter.call(value);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function isPlainObjectValue(value: object): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype === null) {
+    return true;
+  }
+  const constructor = Object.hasOwn(prototype, "constructor")
+    ? prototype.constructor
+    : null;
+  return typeof constructor === "function" &&
+    Function.prototype.toString.call(constructor) === objectConstructorSource;
+}
+
+function isCustomInstanceValue(value: object): boolean {
+  const prototype = Object.getPrototypeOf(value);
+  const constructor = prototype?.constructor;
+  if (typeof constructor !== "function") {
+    return false;
+  }
+  return Function.prototype.toString.call(constructor).indexOf("[native code]") === -1;
+}
 
 /**
  * Copy/Clone Object deeply.
+ *
+ * Custom class instances are copied as plain objects containing their own
+ * properties. Unsupported native instances are preserved by reference.
  *
  * Usage:
  *
@@ -32,21 +97,219 @@ import type {
  * @category Util
  */
 export function deepCopy<T>(obj: T): T {
-  // Check whether it is a primitive type
-  if (typeof obj !== "object") {
+  if (obj === null || typeof obj !== "object") {
     return obj;
   }
-  // Check whether its key-value is simple type, string | number | boolean | null | undefined
-  // ...rest
-  const simpleTypes = [ "string", "number", "boolean", "undefined" ];
-  const values = Object.values(obj as SimpleObject);
-  const isSimpleTypeObj = values.every(v => simpleTypes.includes(typeof v));
-  if (isSimpleTypeObj) {
-    return {
-      ...obj,
-    };
+  return cloneValue(obj, createCloneCache());
+}
+
+function cloneValue<T>(value: T, seen: WeakMap<object, unknown>): T {
+  if (value === null || typeof value !== "object") {
+    return value;
   }
-  return JSON.parse(JSON.stringify(obj));
+
+  const source = value as object;
+  const cached = seen.get(source);
+  if (cached !== undefined) {
+    return cached as T;
+  }
+
+  const dateTime = getDateTime(source);
+  if (dateTime !== null) {
+    const result = new Date(dateTime);
+    seen.set(source, result);
+    return result as T;
+  }
+  const regexpSource = getRegExpSource(source);
+  if (regexpSource !== null) {
+    const regexpValue = value as unknown as RegExp;
+    const result = new RegExp(regexpSource, getRegExpFlags(regexpValue));
+    result.lastIndex = regexpValue.lastIndex;
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof ArrayBuffer !== "undefined" &&
+    hasBuiltinBrand(source, ArrayBuffer.prototype, "byteLength")
+  ) {
+    const result = ArrayBuffer.prototype.slice.call(value, 0);
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof SharedArrayBuffer !== "undefined" &&
+    hasBuiltinBrand(source, SharedArrayBuffer.prototype, "byteLength")
+  ) {
+    const result = SharedArrayBuffer.prototype.slice.call(value, 0);
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof ArrayBuffer !== "undefined" &&
+    typeof ArrayBuffer.isView === "function" &&
+    ArrayBuffer.isView(value)
+  ) {
+    const buffer = cloneValue(value.buffer, seen);
+    const isDataView = typeof DataView !== "undefined" &&
+      hasBuiltinBrand(source, DataView.prototype, "byteLength");
+    const result = isDataView
+      ? new DataView(buffer, value.byteOffset, value.byteLength)
+      : new (value.constructor as {
+        new(buffer: ArrayBufferLike, byteOffset: number, length: number): ArrayBufferView;
+      })(buffer, value.byteOffset, (value as unknown as { length: number }).length);
+    seen.set(source, result);
+    return result as T;
+  }
+  if (
+    typeof Map !== "undefined" &&
+    hasBuiltinBrand(source, Map.prototype, "size")
+  ) {
+    const result = new Map();
+    seen.set(source, result);
+    Map.prototype.forEach.call(value, (mapValue, key) => {
+      result.set(cloneValue(key, seen), cloneValue(mapValue, seen));
+    });
+    return result as T;
+  }
+  if (
+    typeof Set !== "undefined" &&
+    hasBuiltinBrand(source, Set.prototype, "size")
+  ) {
+    const result = new Set();
+    seen.set(source, result);
+    Set.prototype.forEach.call(value, setValue => {
+      result.add(cloneValue(setValue, seen));
+    });
+    return result as T;
+  }
+
+  const isArray = Array.isArray(value);
+  const prototype = Object.getPrototypeOf(value);
+  const isPlainObject = isPlainObjectValue(source);
+  const isCustomInstance = !isArray && !isPlainObject && isCustomInstanceValue(source);
+  if (!isArray && !isPlainObject && !isCustomInstance) {
+    // Unsupported native instances may depend on internal slots.
+    seen.set(source, value);
+    return value;
+  }
+
+  const result = isArray
+    ? new Array(value.length)
+    : Object.create(isCustomInstance ? Object.prototype : prototype);
+  seen.set(source, result);
+  getCloneKeys(source).forEach(key => {
+    if (isArray && key === "length") return;
+    const descriptor = Object.getOwnPropertyDescriptor(source, key);
+    if (!descriptor) return;
+    if ("value" in descriptor) {
+      descriptor.value = cloneValue(descriptor.value, seen);
+    }
+    Object.defineProperty(result, key, descriptor);
+  });
+  return result as T;
+}
+
+/**
+ * Recursively freeze an object and its nested enumerable values.
+ *
+ * Primitive values and objects that are already frozen are returned unchanged.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { deepFreeze } from "mazey";
+ *
+ * const config = deepFreeze({
+ *   api: {
+ *     timeout: 5000,
+ *   },
+ * });
+ *
+ * console.log(Object.isFrozen(config));
+ * console.log(Object.isFrozen(config.api));
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * true
+ * true
+ * ```
+ *
+ * @param value The value to freeze.
+ * @returns The original value with its nested enumerable values frozen.
+ * @category Util
+ */
+export function deepFreeze<T>(value: T): T {
+  if (!value || typeof value !== "object" || Object.isFrozen(value)) {
+    return value;
+  }
+
+  // Freeze first so circular references terminate at Object.isFrozen().
+  Object.freeze(value);
+  Object.values(value).forEach(deepFreeze);
+  return value;
+}
+
+/**
+ * Shallowly assign defined properties from one or more sources.
+ *
+ * The target is mutated. Only own enumerable string-keyed properties are
+ * considered, and `undefined` values are skipped. Other falsy values such as
+ * `null`, an empty string, `0`, and `false` are assigned.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { assignDefined } from "mazey";
+ *
+ * const options = assignDefined(
+ *   { retries: 3, verbose: true },
+ *   { retries: undefined, verbose: false },
+ * );
+ *
+ * console.log(options);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * { retries: 3, verbose: false }
+ * ```
+ *
+ * @param target The object to mutate.
+ * @param sources Sources applied from left to right.
+ * @returns The mutated target.
+ * @category Util
+ */
+export function assignDefined<T extends object>(
+  target: T,
+  ...sources: ReadonlyArray<Partial<T> | undefined>
+): T {
+  sources.forEach(source => {
+    if (source === undefined) return;
+
+    Object.keys(source).forEach(key => {
+      const value = (source as Record<string, unknown>)[key];
+      if (value !== undefined) {
+        const writableTarget = target as unknown as Record<string, unknown>;
+        if (
+          key === "__proto__" &&
+          !Object.hasOwn(target, key)
+        ) {
+          Object.defineProperty(target, key, {
+            configurable: true,
+            enumerable: true,
+            value,
+            writable: true,
+          });
+        } else {
+          writableTarget[key] = value;
+        }
+      }
+    });
+  });
+  return target;
 }
 
 /**
@@ -193,9 +456,44 @@ export function camelCase2Underscore(camelCase: string): string {
 }
 
 /**
- * Remove leading and trailing whitespace or specified characters from string.
+ * Convert text to a deterministic uppercase ASCII JavaScript identifier.
  *
- * Note: This method is used to replace the native `String.prototype.trim()`. But it is not necessary to use it in modern browsers.
+ * Characters outside `A-Z`, `a-z`, `0-9`, `_`, and `$` become `_`. A result
+ * beginning with a digit is prefixed with `_`; an empty input therefore returns `_`.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { toJavaScriptGlobalName } from "mazey";
+ *
+ * const globalName = toJavaScriptGlobalName("@scope/my-library");
+ * console.log(globalName);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * _SCOPE_MY_LIBRARY
+ * ```
+ *
+ * @param value Text such as a package name or bundle filename.
+ * @returns An uppercase identifier suitable for an IIFE global name.
+ * @throws TypeError when `value` is not a string.
+ * @category Util
+ */
+export function toJavaScriptGlobalName(value: string): string {
+  if (typeof value !== "string") {
+    throw new TypeError("value must be a string");
+  }
+
+  const identifier = value.replace(/[^A-Za-z0-9_$]/g, "_").toUpperCase();
+  return /^[A-Za-z_$]/.test(identifier) ? identifier : `_${identifier}`;
+}
+
+/**
+ * Remove leading and trailing whitespace from a string.
+ *
+ * This established helper delegates to `String.prototype.trim()`.
  *
  * Usage:
  *
@@ -221,13 +519,7 @@ export function camelCase2Underscore(camelCase: string): string {
  * @hidden
  */
 export function mTrim(str: string): string {
-  str = str.replace(/^\s+/, ""); // 去除头部空格
-  let end = str.length - 1;
-  const ws = /\s/;
-  while (ws.test(str.charAt(end))) {
-    end--; // 最后一个非空格字符的索引
-  }
-  return str.slice(0, end + 1);
+  return str.trim();
 }
 
 /**
@@ -256,10 +548,12 @@ export function mTrim(str: string): string {
  * @category Util
  */
 export function isJSONString(str: string): boolean {
+  if (typeof str !== "string") {
+    return false;
+  }
   try {
-    if (typeof JSON.parse(str) === "object") {
-      return true;
-    }
+    JSON.parse(str);
+    return true;
   } catch (e) {
     /* pass */
   }
@@ -273,6 +567,34 @@ export function isJSONString(str: string): boolean {
  */
 export function isJsonString(str: string): boolean {
   return isJSONString(str);
+}
+
+/**
+ * Parse a JSON string and return a caller-defined fallback when parsing fails.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { parseJsonSafe } from "mazey";
+ *
+ * const data = parseJsonSafe('{"enabled":true}');
+ * const fallback = parseJsonSafe("invalid", {});
+ * ```
+ *
+ * @param value JSON string to parse.
+ * @param fallback Value returned when parsing fails. Defaults to `null`.
+ * @returns The parsed JSON value or the supplied fallback.
+ * @category Util
+ */
+export function parseJsonSafe<T, F = null>(
+  value: string,
+  fallback: F = null as F
+): T | F {
+  try {
+    return JSON.parse(value) as T;
+  } catch (error) {
+    return fallback;
+  }
 }
 
 /**
@@ -301,6 +623,10 @@ export function isJsonString(str: string): boolean {
  * @category Util
  */
 export function genRndNumString(n = 5): string {
+  if (!Number.isFinite(n) || n <= 0) {
+    return "";
+  }
+  n = Math.floor(n);
   let ret = "";
   while (n--) {
     ret += Math.floor(Math.random() * 10);
@@ -318,9 +644,8 @@ export function generateRndNum(n = 5): string {
 }
 
 /**
- * EN: Generate a unique identifier number based on time: `genUniqueNumString()` => `1538324722364123`
- *
- * ZH: 根据时间生成唯一标志的数字：`genUniqueNumString()` => `1538324722364123`。
+ * Generate a numeric identifier by combining the current timestamp with a
+ * random numeric suffix.
  *
  * Usage:
  *
@@ -340,7 +665,8 @@ export function generateRndNum(n = 5): string {
  * 1538324722364123
  * ```
  *
- * @param {number} n 随机数的长度
+ * @param {number} n Length of the random numeric suffix.
+ * @returns {string} A timestamp-based numeric identifier.
  * @category Util
  */
 export function genUniqueNumString(n = 3): string {
@@ -358,41 +684,7 @@ export function generateUniqueNum(n = 3): string {
 }
 
 /**
- * EN: Get timestamp.
- *
- * ZH: 获取时间戳。
- *
- * Usage:
- *
- * ```javascript
- * import { mNow } from "mazey";
- *
- * const ret = mNow();
- * console.log(ret);
- * ```
- *
- * Output:
- *
- * ```text
- * 1585325367122
- * ```
- *
- * @category Util
- */
-export function mNow(): number {
-  let ret = 0;
-  if (Date.now) {
-    ret = Date.now();
-  } else {
-    ret = new Date().getTime();
-  }
-  return ret;
-}
-
-/**
- * EN: Floating point number to percentage 0.2 => 20%
- *
- * ZH: 浮点数转为百分比 0.2 => 20%。
+ * Convert a floating-point ratio to a percentage string.
  *
  * Usage:
  *
@@ -412,8 +704,9 @@ export function mNow(): number {
  * 20.00%
  * ```
  *
- * @param {number} num 浮点数
- * @param {number} fixSize 保留几位浮点数
+ * @param {number} num Floating-point ratio to convert.
+ * @param {number} fixSize Number of decimal places in the percentage.
+ * @returns {string} The percentage string.
  * @category Util
  */
 export function floatToPercent(num: number, fixSize = 0): string {
@@ -427,9 +720,7 @@ export function floatToPercent(num: number, fixSize = 0): string {
 }
 
 /**
- * EN: Keep the specified number of decimal places for floating-point numbers.
- *
- * ZH: 浮点数保留指定位。
+ * Format a number with a fixed number of decimal places.
  *
  * Usage:
  *
@@ -449,16 +740,17 @@ export function floatToPercent(num: number, fixSize = 0): string {
  * 0.20
  * ```
  *
+ * @param num Number or numeric string to format.
+ * @param size Number of decimal places.
+ * @returns The fixed-point string.
  * @category Util
  */
-export function floatFixed(num: string, size = 0): string {
-  return parseFloat(num).toFixed(size);
+export function floatFixed(num: number | string, size = 0): string {
+  return parseFloat(String(num)).toFixed(size);
 }
 
 /**
- * EN: Throttle, used to limit the frequency of function execution over time.
- *
- * ZH: 节流，用于限制函数在一段时间内的执行频率。
+ * Limit how frequently a function can be invoked over time.
  *
  * Usage:
  *
@@ -472,6 +764,11 @@ export function floatFixed(num: string, size = 0): string {
  *
  * Reference: [Lodash](https://lodash.com/docs/4.17.15#throttle)
  *
+ * @param func Function to throttle.
+ * @param wait Minimum interval between invocations, in milliseconds.
+ * @param options.leading Whether to invoke on the leading edge.
+ * @param options.trailing Whether to invoke on the trailing edge.
+ * @returns The throttled function.
  * @category Util
  */
 export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(func: T, wait: number, options: { leading?: boolean; trailing?: boolean } = {}): ThrottleFunc<T> {
@@ -515,9 +812,8 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
 }
 
 /**
- * EN: Debounce, used to delay the execution of a function until a specified time has passed since the last invocation.
- *
- * ZH: 防抖，用于在最后一次调用后的指定时间内延迟函数的执行。
+ * Delay function execution until the specified time has passed since the last
+ * invocation.
  *
  * Usage:
  *
@@ -529,6 +825,10 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
  * }, 1000, true);
  * ```
  *
+ * @param func Function to debounce.
+ * @param wait Delay after the last invocation, in milliseconds.
+ * @param immediate Whether to invoke on the leading edge instead.
+ * @returns The debounced function.
  * @category Util
  */
 export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(func: T, wait: number, immediate?: boolean): DebounceFunc<T> {
@@ -568,82 +868,8 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
   };
 }
 
-const defaultGetFriendlyIntervalOptions = {
-  type: "d",
-};
-
 /**
- * EN: Get interval time.
- *
- * ZH: 获取间隔时间。
- *
- * Usage:
- *
- * ```javascript
- * import { getFriendlyInterval } from "mazey";
- *
- * const ret1 = getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" });
- * const ret2 = getFriendlyInterval(1585325367000, 1681786440000, { type: "text" });
- * const ret3 = getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", { type: "text" });
- * console.log(ret1);
- * console.log(ret2);
- * console.log(ret3);
- * ```
- *
- * Output:
- *
- * ```text
- * 1116
- * 1116 天 10 时 44 分 33 秒
- * 1116 天 10 时 44 分 33 秒
- * ```
- *
- * @param {number/Date} start 开始时间戳 1585325367122
- * @param {number/Date} end 结束时间戳 1585325367122
- * @param {string} options.type 返回类型 d: 2(天) text: 2 天 4 时...
- * @returns {string/number} 取决于 type
- * @category Util
- */
-export function getFriendlyInterval(start: number | string | Date = 0, end: number | string | Date = 0, options: { type?: string } = defaultGetFriendlyIntervalOptions): number | string {
-  options = Object.assign(defaultGetFriendlyIntervalOptions, options);
-  const { type } = options;
-  const dec = decodeURIComponent;
-  if (!isNumber(start)) start = new Date(start).getTime();
-  if (!isNumber(end)) end = new Date(end).getTime();
-  const t = Number(end) - Number(start);
-  let ret = "";
-  let [ d, h, m, s ] = new Array(4).fill(0);
-  const zhD = dec("%20%E5%A4%A9%20"); // " 天 "
-  const zhH = dec("%20%E6%97%B6%20"); // " 时 "
-  const zhM = dec("%20%E5%88%86%20"); // " 分 "
-  const zhS = dec("%20%E7%A7%92"); // " 秒"
-  if (t >= 0) {
-    d = Math.floor(t / 1000 / 60 / 60 / 24);
-    h = Math.floor(t / 1000 / 60 / 60);
-    m = Math.floor(t / 1000 / 60);
-    s = Math.floor(t / 1000);
-    switch (type) {
-      case "d":
-        ret = d;
-        break;
-      case "text":
-        d = Math.floor(t / 1000 / 60 / 60 / 24);
-        h = Math.floor((t / 1000 / 60 / 60) % 24);
-        m = Math.floor((t / 1000 / 60) % 60);
-        s = Math.floor((t / 1000) % 60);
-        ret = d + zhD + h + zhH + m + zhM + s + zhS;
-        break;
-      default:
-        ret = s;
-    }
-  }
-  return ret;
-}
-
-/**
- * EN: Check whether it is a right number.
- *
- * ZH: 判断是否有效数字。
+ * Check whether a value is a number allowed by the supplied options.
  *
  * Usage:
  *
@@ -657,23 +883,32 @@ export function getFriendlyInterval(start: number | string | Date = 0, end: numb
  * const ret4 = isNumber(Infinity, { isInfinityAsNumber: true });
  * const ret5 = isNumber(NaN);
  * const ret6 = isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true });
- * console.log(ret1, ret2, ret3, ret4, ret5, ret6);
+ * const ret7 = isNumber(12, { integer: true, min: 1, max: 31 });
+ * const ret8 = isNumber(12.5, { integer: true, min: 1, max: 31 });
+ * console.log(ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8);
  * ```
  *
  * Output:
  *
  * ```text
- * true false false true false true
+ * true false false true false true true false
  * ```
  *
- * @param {*} num 被判断的值
- * @param {boolean} options.isNaNAsNumber 是否 NaN 算数字（默认不算）
- * @param {boolean} options.isInfinityAsNumber 是否 无限 算数字（默认不算）
- * @returns {boolean} true 是数字
+ * @param {*} num Value to check.
+ * @param options Controls non-finite values and optional integer or inclusive range constraints.
+ * @returns {boolean} Whether the value is an allowed number.
+ * @remarks Invalid bounds, reversed bounds, and `NaN` combined with an integer or range constraint return `false`. Omitting the new constraints preserves the existing non-finite-number behavior.
  * @category Util
  */
 export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
-  const { isNaNAsNumber = false, isInfinityAsNumber = false, isUnFiniteAsNumber = false } = options;
+  const {
+    isNaNAsNumber = false,
+    isInfinityAsNumber = false,
+    isUnFiniteAsNumber = false,
+    integer = false,
+    min,
+    max,
+  } = options;
   if (typeof num !== "number") {
     return false;
   }
@@ -687,13 +922,29 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
   if (!isNaNAsNumber && isNaN(num)) {
     return false;
   }
+  if (min !== undefined && (typeof min !== "number" || Number.isNaN(min))) {
+    return false;
+  }
+  if (max !== undefined && (typeof max !== "number" || Number.isNaN(max))) {
+    return false;
+  }
+  if (min !== undefined && max !== undefined && min > max) {
+    return false;
+  }
+  if (integer === true && !Number.isInteger(num)) {
+    return false;
+  }
+  if ((min !== undefined || max !== undefined) && Number.isNaN(num)) {
+    return false;
+  }
+  if ((min !== undefined && num < min) || (max !== undefined && num > max)) {
+    return false;
+  }
   return true;
 }
 
 /**
- * EN: Invoke effective function.
- *
- * ZH: 执行有效函数。
+ * Invoke a value only when it is a function.
  *
  * Usage:
  *
@@ -705,10 +956,12 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
  * });
  * ```
  *
- * @param {function} fn 等待被执行的未知是否有效的函数
+ * @param {function} fn Potential function to invoke.
+ * @param params Arguments passed to the function.
+ * @returns The function result, or `null` when `fn` is not callable.
  * @category Util
  */
-export function invokeFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
+export function invokeFn(fn: MazeyFunction | null | undefined, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
   let ret: ReturnType<MazeyFunction> | null = null;
   if (fn && typeof fn === "function") {
     ret = fn(...params);
@@ -721,7 +974,7 @@ export function invokeFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>
  *
  * @hidden
  */
-export function doFn(fn: MazeyFunction, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
+export function doFn(fn: MazeyFunction | null | undefined, ...params: Parameters<MazeyFunction>): ReturnType<MazeyFunction> | null {
   return invokeFn(fn, ...params);
 }
 
@@ -1029,8 +1282,8 @@ export function newLine(str: string): string {
  * hello world
  * ```
  *
- * @param {string} str 带 HTML 标签的字符串
- * @returns {string} 字符串
+ * @param {string} str A string that may contain HTML tags.
+ * @returns {string} The string with HTML tags removed.
  * @category Util
  */
 export function removeHTML(str: string, options: { removeNewLine?: boolean } = {}): string {
@@ -1070,6 +1323,69 @@ export function clearHTML(str: string, options: { removeNewLine?: boolean } = {}
  */
 export function clearHtml(str: string, options: { removeNewLine?: boolean } = {}): string {
   return removeHTML(str, options);
+}
+
+/**
+ * Escape a string for use inside a quoted HTML attribute.
+ *
+ * By default, the function escapes ampersands, angle brackets, double quotes,
+ * and single quotes. Set `preserveEntities` to retain syntactically valid
+ * named, decimal, and hexadecimal character references that already appear in
+ * source markup. Bare or malformed ampersands are still escaped. Forward
+ * slashes are never escaped.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { escapeHtmlAttribute } from "mazey";
+ *
+ * const rawValue = escapeHtmlAttribute(
+ *   'https://example.com/?q="Mazey"&page=1'
+ * );
+ * const markupValue = escapeHtmlAttribute(
+ *   "Mazey &amp; TypeScript",
+ *   { preserveEntities: true }
+ * );
+ *
+ * console.log(rawValue);
+ * console.log(markupValue);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * https://example.com/?q=&quot;Mazey&quot;&amp;page=1
+ * Mazey &amp; TypeScript
+ * ```
+ *
+ * @param value Text to escape for a quoted HTML attribute.
+ * @param options Escaping options. Existing character references are escaped unless `preserveEntities` is `true`.
+ * @returns The escaped attribute value.
+ * @throws {TypeError} If `value` is not a string.
+ * @remarks This function performs context-specific escaping only. It does not validate URLs, sanitize arbitrary HTML, or make an unsafe attribute name or surrounding markup safe.
+ * @category Util
+ */
+export function escapeHtmlAttribute(
+  value: string,
+  options: { preserveEntities?: boolean } = {}
+): string {
+  if (typeof value !== "string") {
+    throw new TypeError("value must be a string.");
+  }
+
+  const ampersandPattern = options.preserveEntities
+    ? /&(?!(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]+);)/gi
+    : /&/g;
+  const replacements: Record<string, string> = {
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  };
+
+  return value
+    .replace(ampersandPattern, "&amp;")
+    .replace(/[<>"']/g, character => replacements[character]);
 }
 
 /**
@@ -1158,9 +1474,8 @@ export function unsanitize(str: string): string {
 }
 
 /**
- * EN: Truncate string, Chinese characters count as 2 bytes.
- *
- * ZH: 截取字符串，中文算 2 个字节。
+ * Truncate a string by weighted length, counting non-ASCII characters as two
+ * units.
  *
  * Usage:
  *
@@ -1177,14 +1492,14 @@ export function unsanitize(str: string): string {
  * hello
  * ```
  *
- * @param {string} str 要截取的字符串
- * @param {number} len
- * @param {boolean} options.hasDot
- * @param {string} options.dotText
- * @returns {string} 返回截取后的字符串
+ * @param {string} str String to truncate.
+ * @param {number} len Maximum weighted length.
+ * @param {boolean} options.hasDot Whether to append truncation text.
+ * @param {string} options.dotText Text appended when truncation occurs.
+ * @returns {string} The truncated string.
  * @category Util
  */
-export function cutZHString(str: string, len: number, options: { hasDot?: boolean, dotText?: string } = { hasDot: false, dotText: "..." }): string {
+export function cutZHString(str: string | null | undefined, len: number, options: { hasDot?: boolean, dotText?: string } = { hasDot: false, dotText: "..." }): string {
   options = Object.assign({ hasDot: false, dotText: "..." }, options);
   if (str == "" || !str) {
     return "";
@@ -1231,14 +1546,15 @@ export function cutZHString(str: string, len: number, options: { hasDot?: boolea
  *
  * ```text
  * hello
+ * ```
  *
- * @param {string} str 要截取的字符串
- * @param {number} len
- * @param {boolean} hasDot
- * @returns {string} 返回截取后的字符串
+ * @param {string} str String to truncate.
+ * @param {number} len Maximum weighted length.
+ * @param {boolean} hasDot Whether to append the default truncation text.
+ * @returns {string} The truncated string.
  * @hidden
  */
-export function truncateZHString(str: string, len: number, hasDot = false): string {
+export function truncateZHString(str: string | null | undefined, len: number, hasDot = false): string {
   return cutZHString(str, len, { hasDot });
 }
 
@@ -1247,7 +1563,7 @@ export function truncateZHString(str: string, len: number, hasDot = false): stri
  *
  * @hidden
  */
-export function cutCHSString(str: string, len: number, hasDot = false): string {
+export function cutCHSString(str: string | null | undefined, len: number, hasDot = false): string {
   return truncateZHString(str, len, hasDot);
 }
 
@@ -1261,18 +1577,16 @@ export function cutCHSString(str: string, len: number, hasDot = false): string {
  */
 export function zAxiosIsValidRes(
   res: ZResResponse | undefined,
-  options: ZResIsValidResOptions = {
+  options: ZResIsValidResOptions | null = {
     validStatusRange: [ 200, 300 ],
     validCode: [ 0 ],
   }
 ): boolean {
-  const { validStatusRange, validCode } = Object.assign(
-    {
-      validStatusRange: [ 200, 300 ],
-      validCode: [ 0 ],
-    },
-    options
-  );
+  const normalizedOptions = options || {};
+  const {
+    validStatusRange = [ 200, 300 ],
+    validCode = [ 0 ],
+  } = normalizedOptions;
   if (validStatusRange.length !== 2) {
     console.error("valid validStatusRange is required");
   }
@@ -1324,63 +1638,110 @@ export function zAxiosIsValidRes(
  * @category Util
  */
 export function isValidData(data: MazeyObject, attributes: string[], validValue: SimpleType): boolean {
-  let ret = false;
-  if (typeof data !== "object") {
-    return ret;
+  if (data === null || typeof data !== "object") {
+    return false;
   }
-  const foundRet = attributes.reduce((foundValue, curr) => {
-    if (typeof foundValue[curr] !== "undefined") {
-      foundValue = foundValue[curr];
-    } else {
-      return Object.create(null);
+
+  let foundValue = data;
+  for (const attribute of attributes) {
+    if (
+      foundValue === null ||
+      (typeof foundValue !== "object" && typeof foundValue !== "function") ||
+      !Object.hasOwn(foundValue, attribute)
+    ) {
+      return false;
     }
-    return foundValue;
-  }, data);
-  if (foundRet === validValue) {
-    ret = true;
+    foundValue = foundValue[attribute];
   }
-  return ret;
+  return foundValue === validValue;
 }
 
 /**
- * EN: Semantic file size, convert bytes into a readable file size.
+ * Options for formatting a byte count.
  *
- * ZH: 语义化文件大小，把字节转换成正常文件大小。
+ * @category Util
+ */
+export interface FormatByteSizeOptions {
+  /** Unit scale. Defaults to `1024`. */
+  base?: 1000 | 1024;
+  /** Decimal places for rounded values. Must be an integer from 0 to 20. Defaults to `1`. */
+  fractionDigits?: number;
+  /** Returned for negative, non-finite, or otherwise invalid input. Defaults to an empty string. */
+  invalidValue?: string;
+}
+
+const byteSizeUnits = [ "B", "KB", "MB", "GB", "TB" ];
+
+/**
+ * Format a non-negative byte count using `B`, `KB`, `MB`, `GB`, or `TB`.
+ *
+ * Scaling defaults to 1024 with one fractional digit. Byte values omit
+ * insignificant trailing zeroes, while scaled values retain the requested
+ * number of fractional digits. Values beyond terabytes remain expressed in
+ * `TB`.
  *
  * Usage:
  *
  * ```javascript
- * import { getFileSize } from "mazey";
+ * import { formatByteSize } from "mazey";
  *
- * const ret = getFileSize(1024);
- * console.log(ret);
+ * formatByteSize(0);       // "0 B"
+ * formatByteSize(1536);    // "1.5 KB"
+ * formatByteSize(1500000, { base: 1000, fractionDigits: 2 }); // "1.50 MB"
  * ```
  *
- * Output:
- *
- * ```text
- * 1 KB
- * ```
- *
+ * @param bytes Byte count to format.
+ * @param options Formatting options.
+ * @returns A formatted byte-size string, or `invalidValue` for invalid input.
  * @category Util
  */
-export function getFileSize(size: number): string {
-  const toCeilStr: (v: number) => string = n => String(Math.ceil(n));
-  if (!size || size < 0) return "";
-  const num = 1024.0; // byte
-  if (size < num) {
-    return size + " B";
+export function formatByteSize(
+  bytes: number,
+  options: FormatByteSizeOptions = {},
+): string {
+  const {
+    base = 1024,
+    fractionDigits = 1,
+    invalidValue = "",
+  } = options;
+  if (
+    !Number.isFinite(bytes) ||
+    bytes < 0 ||
+    (base !== 1000 && base !== 1024) ||
+    !Number.isInteger(fractionDigits) ||
+    fractionDigits < 0 ||
+    fractionDigits > 20
+  ) {
+    return invalidValue;
   }
-  if (size < Math.pow(num, 2)) {
-    return toCeilStr(size / num) + " KB";
-  } // kb
-  if (size < Math.pow(num, 3)) {
-    return toCeilStr(size / Math.pow(num, 2)) + " MB";
-  } // M
-  if (size < Math.pow(num, 4)) {
-    return toCeilStr(size / Math.pow(num, 3)) + " G";
-  } // G
-  return toCeilStr(size / Math.pow(num, 4)) + " T";
+
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= base && unitIndex < byteSizeUnits.length - 1) {
+    value /= base;
+    unitIndex += 1;
+  }
+
+  if (unitIndex === 0) {
+    return `${Number(value.toFixed(fractionDigits))} ${byteSizeUnits[unitIndex]}`;
+  }
+  return `${value.toFixed(fractionDigits)} ${byteSizeUnits[unitIndex]}`;
+}
+
+/**
+ * Deprecated alias of `formatByteSize`.
+ *
+ * @deprecated Use `formatByteSize` instead.
+ * @param size Byte count to format.
+ * @param options Formatting options.
+ * @returns The result of `formatByteSize`.
+ * @category Util
+ */
+export function getFileSize(
+  size: number,
+  options: FormatByteSizeOptions = {},
+): string {
+  return formatByteSize(size, options);
 }
 
 /**
@@ -1418,64 +1779,51 @@ export function genHashCode(str: string): number {
 }
 
 /**
- * Return the formatted date string in the given format.
+ * Generate a lowercase SHA-256 hexadecimal digest with the Web Crypto API.
  *
  * Usage:
  *
  * ```javascript
- * import { formatDate } from "mazey";
+ * import { sha256Hex } from "mazey";
  *
- * const ret1 = formatDate();
- * const ret2 = formatDate("Tue Jan 11 2022 14:12:26 GMT+0800 (China Standard Time)", "yyyy-MM-dd hh:mm:ss a");
- * const ret3 = formatDate(1641881235000, "yyyy-MM-dd hh:mm:ss a");
- * const ret4 = formatDate(new Date(2014, 1, 11), "MM/dd/yyyy");
- * console.log("Default formatDate value:", ret1);
- * console.log("String formatDate value:", ret2);
- * console.log("Number formatDate value:", ret3);
- * console.log("Date formatDate value:", ret4);
+ * const digest = await sha256Hex("hello world");
+ * console.log(digest);
  * ```
  *
  * Output:
  *
  * ```text
- * Default formatDate value: 2023-01-11
- * String formatDate value: 2022-01-11 02:12:26 PM
- * Number formatDate value: 2022-01-11 02:07:15 PM
- * Date formatDate value: 02/11/2014
+ * b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
  * ```
  *
- * @param {MazeyDate} dateIns Original Date
- * @param {string} format Format String
- * @returns {string} Return the formatted date string.
+ * @remarks Requires Web Crypto. String input also requires `TextEncoder`.
+ * @param input Text or binary data to hash.
+ * @returns A promise that resolves to the lowercase hexadecimal digest.
+ * @throws When the required platform API is unavailable. Digest failures are propagated.
  * @category Util
  */
-export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
-  if (!dateIns) {
-    dateIns = new Date();
+export async function sha256Hex(input: string | BufferSource): Promise<string> {
+  const cryptoApi = typeof crypto === "undefined" ? null : crypto;
+  if (!cryptoApi?.subtle || typeof cryptoApi.subtle.digest !== "function") {
+    throw new Error("Web Crypto API is not available.");
   }
-  const tempDate = new Date(dateIns);
-  const hours = tempDate.getHours();
-  const o: {
-    [key: string]: string | number;
-  } = {
-    yyyy: tempDate.getFullYear(),
-    MM: tempDate.getMonth() + 1,
-    dd: tempDate.getDate() < 10 ? "0" + tempDate.getDate() : tempDate.getDate(),
-    HH: hours < 10 ? "0" + hours : hours,
-    hh: ((hours % 12) || 12) < 10 ? "0" + ((hours % 12) || 12) : (hours % 12) || 12,
-    mm: tempDate.getMinutes() < 10 ? "0" + tempDate.getMinutes() : tempDate.getMinutes(),
-    ss: tempDate.getSeconds() < 10 ? "0" + tempDate.getSeconds() : tempDate.getSeconds(),
-    a: hours < 12 ? "AM" : "PM",
-  };
-  let tempFormat = format || "yyyy-MM-dd";
-  Object.keys(o).forEach(key => {
-    let value = o[key];
-    if (key === "MM" && Number(value) <= 9) {
-      value = `0${value}`;
+
+  let data: BufferSource = input as BufferSource;
+  if (typeof input === "string") {
+    if (typeof TextEncoder === "undefined") {
+      throw new Error("TextEncoder is not available.");
     }
-    tempFormat = tempFormat.replace(key, String(value));
-  });
-  return tempFormat;
+    data = new TextEncoder().encode(input);
+  }
+
+  const hashBuffer = await cryptoApi.subtle.digest("SHA-256", data);
+  let digest = "";
+  const bytes = new Uint8Array(hashBuffer);
+  for (let index = 0; index < bytes.length; index++) {
+    const hexByte = bytes[index].toString(16);
+    digest += hexByte.length === 1 ? `0${hexByte}` : hexByte;
+  }
+  return digest;
 }
 
 /**
@@ -1484,12 +1832,12 @@ export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
  * Usage:
  *
  * ```javascript
- * import { isMobile } from "mazey";
+ * import { isValidPhoneNumber } from "mazey";
  *
- * const ret1 = isMobile("13800138000");
- * const ret2 = isMobile("1380013800");
- * const ret3 = isMobile("138001380000");
- * const ret4 = isMobile("1380013800a");
+ * const ret1 = isValidPhoneNumber("13800138000");
+ * const ret2 = isValidPhoneNumber("1380013800");
+ * const ret3 = isValidPhoneNumber("138001380000");
+ * const ret4 = isValidPhoneNumber("1380013800a");
  * console.log(ret1, ret2, ret3, ret4);
  * ```
  *
@@ -1507,6 +1855,16 @@ export function isValidPhoneNumber(mobile: string): boolean {
   const reg = /^1\d{10}$/;
   return reg.test(mobile);
 }
+
+/**
+ * Alias of {@link isValidPhoneNumber}.
+ *
+ * This helper validates an 11-digit Chinese mobile-shaped number. It does not
+ * detect a browser's device form factor; use `isPhone` for that purpose.
+ *
+ * @category Util
+ */
+export const isMobile = isValidPhoneNumber;
 
 /**
  * Check if the given string is a valid email.
@@ -1562,6 +1920,10 @@ export function isValidEmail(email: string): boolean {
  * @category Util
  */
 export function convert10To26(num: number): string {
+  if (!Number.isFinite(num) || num <= 0) {
+    return "";
+  }
+  num = Math.floor(num);
   let result = "";
   while (num > 0) {
     let remainder = num % 26;
@@ -1607,11 +1969,7 @@ export function getCurrentVersion(): string {
  * ```
  *
  * @param callback The callback function to fire.
- * @param options An object containing the options for the function.
- * @param options.interval The interval between each firing of the callback function, in milliseconds. Defaults to 1000.
- * @param options.times The maximum number of times to fire the callback function. Defaults to 10.
- * @param options.context The context to use when calling the callback function. Defaults to null.
- * @param options.args An array of arguments to pass to the callback function.
+ * @param options Controls the interval, maximum invocation count, callback context, and callback arguments.
  * @param condition A function that takes the result of the callback function as its argument and returns a boolean value indicating whether the condition has been met. Defaults to a function that always returns true.
  * @category Util
  */
@@ -1623,6 +1981,25 @@ export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => Ma
   }
 ): void {
   const { interval = 1000, times = 10, context, args } = options;
+  if (typeof callback !== "function") {
+    console.error("Expected a function.");
+    return;
+  }
+
+  if (!Number.isFinite(interval) || interval < 0) {
+    console.error("Expected a non-negative number for interval.");
+    return;
+  }
+
+  if (!Number.isFinite(times) || times < 0) {
+    console.error("Expected a non-negative number for times.");
+    return;
+  }
+
+  if (times === 0) {
+    return;
+  }
+
   let count = 0;
 
   const clearAndInvokeNext = () => {
@@ -1634,18 +2011,6 @@ export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => Ma
       clearAndInvokeNext();
     }, interval);
   };
-
-  if (typeof callback !== "function") {
-    console.error("Expected a function.");
-  }
-
-  if (typeof interval !== "number" || interval < 0) {
-    console.error("Expected a non-negative number for interval.");
-  }
-
-  if (typeof times !== "number" || times < 0) {
-    console.error("Expected a non-negative number for times.");
-  }
 
   clearAndInvokeNext();
 }

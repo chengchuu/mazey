@@ -6,6 +6,8 @@ import {
   genStyleString, getDomain, getBrowserInfo,
   setClass, setImgSizeBySrc, addClass,
   newLine, hasClass, removeClass, addStyle,
+  extractElementText, getPageMeta, hide, isValidCssSelector,
+  resolveElementTarget, show,
 } from "../lib/index.esm";
 
 test("newLine: Transfer 'a\nb\nc' to 'a<br />b<br />c'?", () => {
@@ -148,6 +150,13 @@ describe("setClass", () => {
     expect(element.className).toContain(className);
     expect(element.className).toContain("existing-class");
   });
+
+  it("ignores empty class names", () => {
+    const element = document.createElement("div");
+
+    expect(() => addClass(element, [ "", "valid" ])).not.toThrow();
+    expect(element.className).toBe("valid");
+  });
 });
 
 describe("removeClass", () => {
@@ -256,6 +265,31 @@ describe("setImgSizeBySrc", () => {
     expect(image.style.width).toBeFalsy();
     expect(image.style.height).toBeFalsy();
   });
+
+  it("does not mistake text containing width or height for query parameters", () => {
+    document.body.innerHTML = "<img src=\"image-maxwidth=100px-height=200px.jpg\" />";
+
+    expect(setImgSizeBySrc()).toBe(true);
+    const image = document.getElementsByTagName("img")[0];
+    expect(image.style.width).toBe("");
+    expect(image.style.height).toBe("");
+  });
+});
+
+describe("getPageMeta", () => {
+  beforeEach(() => {
+    document.head.innerHTML = "";
+  });
+
+  it("matches meta names exactly without interpolating them into a selector", () => {
+    const meta = document.createElement("meta");
+    meta.name = "quoted\"name";
+    meta.content = "safe value";
+    document.head.appendChild(meta);
+
+    expect(getPageMeta("quoted\"name")).toBe("safe value");
+    expect(getPageMeta("quoted")).toBe("");
+  });
 });
 
 describe("addClass", () => {
@@ -297,5 +331,246 @@ describe("addClass", () => {
     mockElement.className = "test1 test2";
     addClass(mockElement, [ "test1", "test3" ]);
     expect(mockElement.className).toBe("test1 test2 test3");
+  });
+});
+
+describe("isValidCssSelector", () => {
+  it("validates supported selectors without throwing", () => {
+    expect(isValidCssSelector(".message > img[alt]")).toBe(true);
+    expect(isValidCssSelector("[")).toBe(false);
+    expect(isValidCssSelector(123)).toBe(false);
+  });
+
+  it("allows empty selectors only when requested", () => {
+    expect(isValidCssSelector("")).toBe(false);
+    expect(isValidCssSelector("   ")).toBe(false);
+    expect(isValidCssSelector("", { allowEmpty: true })).toBe(true);
+  });
+
+  it("uses a caller-provided query root", () => {
+    const root = document.createDocumentFragment();
+    const child = document.createElement("div");
+    child.className = "child";
+    root.appendChild(child);
+
+    expect(isValidCssSelector(".child", { root })).toBe(true);
+    expect(isValidCssSelector("[", { root })).toBe(false);
+  });
+});
+
+describe("resolveElementTarget", () => {
+  let root;
+  let target;
+
+  beforeEach(() => {
+    root = document.createDocumentFragment();
+    target = document.createElement("div");
+    target.id = "target";
+    root.appendChild(target);
+  });
+
+  it("resolves direct elements and selectors against the supplied root", () => {
+    expect(resolveElementTarget(target, { root })).toBe(target);
+    expect(resolveElementTarget("#target", { root })).toBe(target);
+    expect(resolveElementTarget("#outside", { root })).toBeNull();
+  });
+
+  it("returns null for invalid selectors without throwing", () => {
+    expect(resolveElementTarget("[", { root })).toBeNull();
+  });
+
+  it("uses the default only for an undefined target", () => {
+    expect(
+      resolveElementTarget(undefined, { root, defaultElement: target })
+    ).toBe(target);
+    expect(
+      resolveElementTarget(null, { root, defaultElement: target })
+    ).toBeNull();
+    expect(
+      resolveElementTarget("#missing", { root, defaultElement: target })
+    ).toBeNull();
+    expect(
+      resolveElementTarget(undefined, { root, defaultElement: {} })
+    ).toBeNull();
+  });
+
+  it("resolves component-like and adapter-unwrapped values", () => {
+    expect(resolveElementTarget({ $el: target }, { root })).toBe(target);
+
+    const elementRef = { value: { $el: target } };
+    const unwrap = jest.fn(value => value.value);
+    expect(resolveElementTarget(elementRef, { root, unwrap })).toBe(target);
+    expect(unwrap).toHaveBeenCalledTimes(1);
+    expect(unwrap).toHaveBeenCalledWith(elementRef);
+  });
+
+  it("rejects unsupported values and invalid component elements", () => {
+    expect(resolveElementTarget({ nodeType: 1 }, { root })).toBeNull();
+    expect(resolveElementTarget({ $el: null }, { root })).toBeNull();
+    expect(resolveElementTarget(42, { root })).toBeNull();
+  });
+});
+
+describe("hide and show", () => {
+  beforeEach(() => {
+    document.head.innerHTML = "";
+    document.body.innerHTML = "";
+  });
+
+  it("mutates a direct element and returns the original target", () => {
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+
+    expect(hide(element)).toBe(element);
+    expect(element.style.display).toBe("none");
+    expect(show(element)).toBe(element);
+    expect(element.style.display).toBe("");
+  });
+
+  it("resolves selectors and restores a visible inline display value", () => {
+    document.body.innerHTML = `
+      <span class="notice" style="display: inline-block"></span>
+      <span class="notice"></span>
+    `;
+    const target = ".notice";
+    const elements = Array.from(document.querySelectorAll(target));
+
+    expect(hide(target)).toBe(target);
+    expect(elements.map(element => element.style.display)).toEqual([
+      "none",
+      "none",
+    ]);
+
+    expect(show(target)).toBe(target);
+    expect(elements.map(element => element.style.display)).toEqual([
+      "inline-block",
+      "",
+    ]);
+  });
+
+  it("preserves the original display value across repeated hide calls", () => {
+    const element = document.createElement("span");
+    element.style.display = "inline-flex";
+    document.body.appendChild(element);
+
+    hide(element);
+    hide(element);
+    show(element);
+
+    expect(element.style.display).toBe("inline-flex");
+  });
+
+  it("supports iterable and array-like collections", () => {
+    const first = document.createElement("div");
+    const second = document.createElement("div");
+    document.body.append(first, second);
+    const iterable = new Set([ first, second ]);
+    const arrayLike = { 0: first, 1: second, length: 2 };
+
+    expect(hide(iterable)).toBe(iterable);
+    expect(first.style.display).toBe("none");
+    expect(second.style.display).toBe("none");
+    expect(show(arrayLike)).toBe(arrayLike);
+    expect(first.style.display).toBe("");
+    expect(second.style.display).toBe("");
+  });
+
+  it("recovers document defaults when a stylesheet keeps elements hidden", () => {
+    document.head.innerHTML = "<style>button, span, tr { display: none; }</style>";
+    document.body.innerHTML = `
+      <button id="action" style="display: none"></button>
+      <span id="message" style="display: none"></span>
+      <table><tbody><tr id="row" style="display: none"><td></td></tr></tbody></table>
+    `;
+    const action = document.querySelector("#action");
+    const message = document.querySelector("#message");
+    const row = document.querySelector("#row");
+
+    show([ action, message, row ]);
+
+    expect(action.style.display).toBe("inline-block");
+    expect(message.style.display).toBe("inline");
+    expect(row.style.display).toBe("table-row");
+  });
+
+  it("does not instantiate a custom element while recovering its display", () => {
+    let connectionCount = 0;
+    class VisibilityTestElement extends HTMLElement {
+      connectedCallback() {
+        connectionCount += 1;
+      }
+    }
+    customElements.define("mazey-visibility-test", VisibilityTestElement);
+    document.head.innerHTML = "<style>mazey-visibility-test { display: none; }</style>";
+    const element = document.createElement("mazey-visibility-test");
+    element.style.display = "none";
+    document.body.appendChild(element);
+
+    show(element);
+
+    expect(element.style.display).toBe("inline");
+    expect(connectionCount).toBe(1);
+  });
+
+  it("ignores invalid targets and invalid selectors", () => {
+    const invalidObject = { value: document.createElement("div") };
+
+    expect(hide("[")).toBe("[");
+    expect(show("[")).toBe("[");
+    expect(hide(null)).toBeNull();
+    expect(show(undefined)).toBeUndefined();
+    expect(hide(invalidObject)).toBe(invalidObject);
+    expect(show(42)).toBe(42);
+  });
+
+  it("deduplicates repeated elements before mutation", () => {
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    const observer = new MutationObserver(() => {});
+    observer.observe(element, { attributes: true, attributeFilter: [ "style" ] });
+
+    hide([ element, element ]);
+
+    expect(observer.takeRecords()).toHaveLength(1);
+    observer.disconnect();
+  });
+});
+
+describe("extractElementText", () => {
+  it("replaces images, removes excluded descendants, and normalizes text", () => {
+    const element = document.createElement("article");
+    element.innerHTML = `
+      Hello&nbsp;
+      <img src="wave.png" alt="wave" />
+      <span data-exclude>secret</span>
+      <strong>world</strong>
+    `;
+
+    expect(
+      extractElementText(element, { excludeSelector: "[data-exclude]" })
+    ).toBe("Hello wave world");
+    expect(element.querySelector("img")).not.toBeNull();
+    expect(element.querySelector("[data-exclude]")).not.toBeNull();
+  });
+
+  it("can preserve whitespace and omit image alternative text", () => {
+    const element = document.createElement("div");
+    element.innerHTML = " Before <img alt=\"icon\" /> After ";
+
+    const text = extractElementText(element, {
+      normalizeWhitespace: false,
+      replaceImagesWithAlt: false,
+    });
+
+    expect(text).toBe(" Before  After ");
+  });
+
+  it("ignores an invalid exclusion selector", () => {
+    const element = document.createElement("div");
+    element.textContent = "kept";
+
+    expect(extractElementText(element, { excludeSelector: "[" })).toBe(
+      "kept"
+    );
   });
 });
