@@ -1,7 +1,6 @@
 /**
  * @author Cheng
  */
-import $ from "jquery";
 import { DefineListeners, BrowserInfo } from "../src/typing";
 
 declare global {
@@ -39,7 +38,6 @@ declare global {
   }
 
   interface ErrorEvent {
-    type?: string;
     time?: number;
     readonly message: string;
     readonly filename: string; // Deprecated, but still supported.
@@ -58,12 +56,10 @@ declare global {
 
   interface Window {
     // VAR
-    MAZEY_DEFINE_LISTENERS: {
-      [key: string]: DefineListeners;
-    };
-    MAZEY_BROWSER_INFO: BrowserInfo;
+    MAZEY_DEFINE_LISTENERS?: DefineListeners;
+    MAZEY_BROWSER_INFO?: BrowserInfo;
     // LIB
-    $: typeof $;
-    jQuery: typeof $;
+    $?: any;
+    jQuery?: any;
   }
 }

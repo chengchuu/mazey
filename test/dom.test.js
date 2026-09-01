@@ -6,6 +6,7 @@ import {
   genStyleString, getDomain, getBrowserInfo,
   setClass, setImgSizeBySrc, addClass,
   newLine, hasClass, removeClass, addStyle,
+  getPageMeta,
 } from "../lib/index.esm";
 
 test("newLine: Transfer 'a\nb\nc' to 'a<br />b<br />c'?", () => {
@@ -148,6 +149,13 @@ describe("setClass", () => {
     expect(element.className).toContain(className);
     expect(element.className).toContain("existing-class");
   });
+
+  it("ignores empty class names", () => {
+    const element = document.createElement("div");
+
+    expect(() => addClass(element, [ "", "valid" ])).not.toThrow();
+    expect(element.className).toBe("valid");
+  });
 });
 
 describe("removeClass", () => {
@@ -255,6 +263,31 @@ describe("setImgSizeBySrc", () => {
     const image = document.getElementsByTagName("img")[0];
     expect(image.style.width).toBeFalsy();
     expect(image.style.height).toBeFalsy();
+  });
+
+  it("does not mistake text containing width or height for query parameters", () => {
+    document.body.innerHTML = "<img src=\"image-maxwidth=100px-height=200px.jpg\" />";
+
+    expect(setImgSizeBySrc()).toBe(true);
+    const image = document.getElementsByTagName("img")[0];
+    expect(image.style.width).toBe("");
+    expect(image.style.height).toBe("");
+  });
+});
+
+describe("getPageMeta", () => {
+  beforeEach(() => {
+    document.head.innerHTML = "";
+  });
+
+  it("matches meta names exactly without interpolating them into a selector", () => {
+    const meta = document.createElement("meta");
+    meta.name = "quoted\"name";
+    meta.content = "safe value";
+    document.head.appendChild(meta);
+
+    expect(getPageMeta("quoted\"name")).toBe("safe value");
+    expect(getPageMeta("quoted")).toBe("");
   });
 });
 

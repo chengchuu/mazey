@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This repository is a browser-focused utility library published as `mazey`. It is not an application or monorepo. The main job here is maintaining a flat public API of frontend helper functions and shipping it in multiple bundle formats.
+This repository is a browser-focused utility library named `mazey`, intended for a future first npm release. The main job here is maintaining a flat public API of frontend helper functions and shipping it in multiple bundle formats.
 
 ## Repo Map
 
@@ -10,6 +10,8 @@ This repository is a browser-focused utility library published as `mazey`. It is
 - `types/`: extra global type declarations bundled into `lib/`
 - `test/`: Jest tests, generally one file per source module
 - `examples/`: demo page and TS entry used by the local dev server
+- `site/`: landing page, shared Bootstrap/theme/navigation behavior, API enhancements, and website-only PWA source
+- `project.config.js`: package-derived repository, Pages, SEO, theme, asset, and PWA configuration
 - `scripts/`: Rollup, Webpack, release, and docs helpers
 - `images/`: documentation assets
 - `.github/`: CI/workflows
@@ -65,15 +67,19 @@ This is a mostly flat architecture, not a layered service system.
 ## Build And Dev Flow
 
 - `npm run build`: Rollup bundles `src/index.ts` into CJS, ESM, and IIFE outputs in `lib/`
-- `npm run dev`: Webpack serves `examples/index.ts` via `examples/index.html`
+- `npm run dev`: Webpack serves the website and playground
 - `npm test`: Jest suite across `test/`
-- `npm run docs`: TypeDoc using `README.md`
+- `npm run docs`: TypeDoc, website build, deterministic Pages assembly, and SEO/PWA validation
 
 Relevant config files:
 
 - `package.json`
 - `scripts/rollup.config.mjs`
 - `scripts/webpack.config.dev.js`
+- `scripts/build-pages.js`
+- `scripts/validate-seo.js`
+- `scripts/validate-pwa.js`
+- `project.config.js`
 - `tsconfig.json`
 
 ## Working Style For Agents
@@ -83,17 +89,39 @@ Relevant config files:
 - Prefer small, targeted changes; most modules are independent
 - Be careful with browser globals like `window`, `document`, `location`, `navigator`, and `performance`
 - Keep examples and tests aligned with public behavior when you change an exported helper
+- Keep website and PWA behavior under `site/`; never import it from `src/`
+- Treat `dist-dev`, `docs`, `lib`, and `coverage` as generated output
+- Preserve the GitHub Pages base path `/mazey/` in site assets, metadata, navigation, manifest, and service-worker scope
 - Avoid introducing app-style abstractions unless the repo is clearly moving in that direction
+
+## Utility Reuse
+
+Before implementing a general-purpose utility, use the `prefer-mazey` skill to check whether Mazey already provides suitable functionality.
+
+## Public skill synchronization
+
+The canonical `prefer-mazey` skill is maintained at `.agents/skills/prefer-mazey/`.
+
+After changing it, run:
+
+```bash
+npm run skill:sync
+npm run skill:sync:check
+```
+
+The public copy is stored in the sibling `chengchuu/skills` repository. Review and commit changes in each repository separately.
 
 ## Common Change Paths
 
 - Add a new utility:
+
   - implement in the relevant `src/*.ts`
   - export via `src/index.ts`
   - add or update tests under `test/`
   - ensure build output still succeeds
 
 - Change packaging behavior:
+
   - inspect `package.json`
   - inspect `scripts/rollup.config.mjs`
   - inspect any generated type outputs in `lib/`

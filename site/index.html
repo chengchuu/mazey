@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= ROOT_TITLE %></title>
+    <meta name="description" content="<%= ROOT_DESCRIPTION %>" />
+    <link rel="canonical" href="<%= SITE_URL %>" />
+    <link rel="sitemap" type="application/xml" href="<%= SITEMAP_URL %>" />
+    <link rel="icon" href="<%= FAVICON_URL %>" type="image/png" />
+    <% if (MANIFEST_URL) { %>
+    <link rel="manifest" href="<%= MANIFEST_URL %>" />
+    <% } %>
+    <meta
+      name="theme-color"
+      content="<%= THEME_COLOR_LIGHT %>"
+      data-theme-color
+      data-theme-color-light="<%= THEME_COLOR_LIGHT %>"
+      data-theme-color-dark="<%= THEME_COLOR_DARK %>"
+    />
+    <style>
+      :root {
+        --project-theme-primary: <%= THEME_COLOR_PRIMARY %>;
+        --project-theme-primary-hover: <%= THEME_PRIMARY_HOVER %>;
+        --project-theme-primary-active: <%= THEME_PRIMARY_ACTIVE %>;
+        --project-theme-primary-soft: <%= THEME_PRIMARY_SOFT %>;
+        --project-theme-primary-rgb: <%= THEME_PRIMARY_RGB %>;
+        --project-theme-primary-hover-rgb: <%= THEME_PRIMARY_HOVER_RGB %>;
+        --project-theme-primary-dark: <%= THEME_PRIMARY_DARK %>;
+        --project-theme-primary-dark-hover: <%= THEME_PRIMARY_DARK_HOVER %>;
+        --project-theme-primary-dark-active: <%= THEME_PRIMARY_DARK_ACTIVE %>;
+        --project-theme-primary-dark-soft: <%= THEME_PRIMARY_DARK_SOFT %>;
+        --project-theme-primary-dark-rgb: <%= THEME_PRIMARY_DARK_RGB %>;
+        --project-theme-primary-dark-hover-rgb: <%= THEME_PRIMARY_DARK_HOVER_RGB
+          %>;
+        --project-theme-light: <%= THEME_COLOR_LIGHT %>;
+        --project-theme-dark: <%= THEME_COLOR_DARK %>;
+      }
+    </style>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="<%= DISPLAY_NAME %>" />
+    <meta property="og:title" content="<%= ROOT_TITLE %>" />
+    <meta property="og:description" content="<%= ROOT_DESCRIPTION %>" />
+    <meta property="og:url" content="<%= SITE_URL %>" />
+    <meta property="og:image" content="<%= OPEN_GRAPH_IMAGE_URL %>" />
+    <meta property="og:image:type" content="<%= OPEN_GRAPH_IMAGE_TYPE %>" />
+    <meta property="og:image:width" content="<%= OPEN_GRAPH_IMAGE_WIDTH %>" />
+    <meta property="og:image:height" content="<%= OPEN_GRAPH_IMAGE_HEIGHT %>" />
+    <meta property="og:image:alt" content="<%= OPEN_GRAPH_IMAGE_ALT %>" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="<%= ROOT_TITLE %>" />
+    <meta name="twitter:description" content="<%= ROOT_DESCRIPTION %>" />
+    <meta name="twitter:image" content="<%= OPEN_GRAPH_IMAGE_URL %>" />
+    <meta name="twitter:image:alt" content="<%= OPEN_GRAPH_IMAGE_ALT %>" />
+    <script type="application/ld+json">
+      <%= ROOT_JSON_LD %>
+    </script>
+    <script>
+      (() => {
+        try {
+          const key = <%= THEME_STORAGE_KEY_JSON %>;
+          const stored = localStorage.getItem(key);
+          const value = stored === "light" || stored === "dark" ? stored : "system";
+          const theme = value === "system"
+            ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : value;
+          const resolved = theme === "dark" ? "dark" : "light";
+          document.documentElement.dataset.bsTheme = resolved;
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.style.colorScheme = resolved;
+          const meta = document.querySelector('meta[name="theme-color"][data-theme-color]');
+          if (meta) meta.content = resolved === "dark"
+            ? meta.dataset.themeColorDark
+            : meta.dataset.themeColorLight;
+          localStorage.setItem("tsd-theme", value === "system" ? "os" : value);
+        } catch {}
+      })();
+    </script>
+  </head>
+  <body id="top">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header class="site-header">
+      <nav
+        class="navbar navbar-expand-xl site-navbar"
+        aria-label="Primary navigation"
+        data-site-navbar
+      >
+        <div class="container">
+          <a class="navbar-brand d-flex align-items-center gap-2" href="./">
+            <img
+              class="brand-logo"
+              src="<%= LOGO_URL %>"
+              width="32"
+              height="32"
+              alt=""
+            />
+            <span><%= DISPLAY_NAME %></span>
+          </a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            aria-controls="primary-navigation"
+            aria-expanded="false"
+            aria-label="Toggle project navigation"
+            data-nav-toggle
+          >
+            <span class="navbar-toggler-icon" aria-hidden="true"></span>
+          </button>
+          <div id="primary-navigation" class="navbar-collapse" data-mobile-nav>
+            <ul class="navbar-nav ms-auto align-items-xl-center gap-xl-1">
+              <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="./">Home</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./playground/">Playground</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#install">Install</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="#usage">Usage</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="./api/">API</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="<%= GITHUB_URL %>">GitHub</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="<%= NPM_URL %>">npm</a>
+              </li>
+            </ul>
+            <label class="theme-control ms-xl-3">
+              <span>Theme</span>
+              <select
+                class="form-select form-select-sm w-auto"
+                data-theme-select
+                aria-label="Choose website theme"
+              >
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="container">
+          <img
+            class="hero-logo"
+            src="<%= LOGO_URL %>"
+            width="72"
+            height="72"
+            alt="<%= DISPLAY_NAME %> rabbit logo"
+          />
+          <h1 id="hero-title">
+            Practical TypeScript utilities for frontend work
+          </h1>
+          <p class="lead">
+            Mazey provides focused helpers for URLs, dates, validation, objects,
+            DOM operations, browser storage, resource loading, events, browser
+            detection, and web performance. Import the functions you need from
+            the package root.
+          </p>
+          <div class="hero-actions" aria-label="Project actions">
+            <a class="btn btn-primary btn-lg" href="./playground/"
+              >Open playground</a
+            >
+            <a class="btn btn-outline-secondary btn-lg" href="./api/"
+              >Browse API documentation</a
+            >
+            <a class="btn btn-outline-secondary btn-lg" href="<%= GITHUB_URL %>"
+              >View source</a
+            >
+            <a class="btn btn-outline-secondary btn-lg" href="<%= NPM_URL %>"
+              >View on npm</a
+            >
+          </div>
+          <div class="install-command" aria-label="npm installation command">
+            <code><%= INSTALL_COMMAND %></code>
+            <button class="btn" type="button" data-copy-install>
+              Copy command
+            </button>
+          </div>
+          <p
+            class="copy-status"
+            role="status"
+            aria-live="polite"
+            data-copy-status
+          ></p>
+          <p
+            class="pwa-status"
+            role="status"
+            aria-live="polite"
+            data-pwa-status
+          ></p>
+        </div>
+      </section>
+
+      <section class="section-band" aria-labelledby="capabilities-title">
+        <div class="container">
+          <div class="section-heading">
+            <h2 id="capabilities-title">One flat API, several frontend jobs</h2>
+            <p>
+              Mazey keeps reusable functions available through a single package
+              entry while documenting browser-only behavior and
+              Node.js-compatible utilities separately.
+            </p>
+          </div>
+          <div class="row g-3">
+            <article class="col-md-4">
+              <div class="feature-card p-4">
+                <span class="feature-marker" aria-hidden="true">1</span>
+                <h3>Data and formatting</h3>
+                <p class="mb-0 text-muted-custom">
+                  Validate numbers and strings, clone or freeze values, format
+                  dates and durations, and convert identifier styles.
+                </p>
+              </div>
+            </article>
+            <article class="col-md-4">
+              <div class="feature-card p-4">
+                <span class="feature-marker" aria-hidden="true">2</span>
+                <h3>Browser utilities</h3>
+                <p class="mb-0 text-muted-custom">
+                  Work with URLs, DOM classes and styles, storage, cookies,
+                  resource loading, browser information, and custom events.
+                </p>
+              </div>
+            </article>
+            <article class="col-md-4">
+              <div class="feature-card p-4">
+                <span class="feature-marker" aria-hidden="true">3</span>
+                <h3>Typed package formats</h3>
+                <p class="mb-0 text-muted-custom">
+                  Rollup publishes CommonJS, ESM, browser IIFE, and TypeScript
+                  declaration output while the website remains a separate
+                  build-time concern.
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="install"
+        class="section-band section-band--muted"
+        aria-labelledby="install-title"
+      >
+        <div class="container">
+          <div class="section-heading">
+            <h2 id="install-title">Install</h2>
+            <p>
+              Install from npm for module projects, or use the browser bundle
+              from a CDN.
+            </p>
+          </div>
+          <div class="row g-4">
+            <article class="col-lg-6">
+              <h3 class="h5">npm and TypeScript</h3>
+              <p class="text-muted-custom">
+                Published declarations are included, so a separate types package
+                is not required.
+              </p>
+              <pre class="code-sample"><code><%= INSTALL_COMMAND %></code></pre>
+            </article>
+            <article class="col-lg-6">
+              <h3 class="h5">Browser IIFE</h3>
+              <p class="text-muted-custom">
+                Load the latest published browser bundle without updating the
+                URL for each release.
+              </p>
+              <pre
+                class="code-sample"
+              ><code>&lt;script src="<%= CDN_URL %>"&gt;&lt;/script&gt;
+&lt;script&gt;
+  const value = <%= IIFE_GLOBAL %>.formatDurationFromMs(90000);
+&lt;/script&gt;</code></pre>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section id="usage" class="section-band" aria-labelledby="usage-title">
+        <div class="container">
+          <div class="row g-4 align-items-start">
+            <div class="col-lg-5">
+              <h2 id="usage-title">Usage</h2>
+              <p class="text-muted-custom">
+                Choose utilities only when their behavior and browser
+                requirements match your project. Browser-only functions should
+                stay behind browser runtime boundaries.
+              </p>
+              <a href="./api/">Read the complete typed API documentation</a>
+            </div>
+            <div class="col-lg-7">
+              <pre class="code-sample"><code>import {
+  convertCamelToKebab,
+  formatDurationFromMs,
+  isValidEmail,
+} from "mazey";
+
+formatDurationFromMs(90000); // "1.5 minutes"
+convertCamelToKebab("helloWorld"); // "hello-world"
+isValidEmail("dev@example.com"); // true</code></pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="section-band section-band--muted"
+        aria-labelledby="playground-title"
+      >
+        <div class="container">
+          <div class="row g-4 align-items-center">
+            <div class="col-lg-8">
+              <h2 id="playground-title">Run public APIs in your browser</h2>
+              <p class="text-muted-custom">
+                The playground exercises the same package-root utilities used by
+                consumers and reports invalid input without hiding its
+                explanatory content behind JavaScript.
+              </p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+              <a class="btn btn-primary btn-lg" href="./playground/"
+                >Try Mazey utilities</a
+              >
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        id="install-project-website"
+        class="section-band"
+        aria-labelledby="install-app-title"
+        data-pwa-install-help
+      >
+        <div class="container">
+          <div class="section-heading mb-0">
+            <h2 id="install-app-title">Install the documentation website</h2>
+            <p>
+              Supporting browsers may offer an app installation prompt. The
+              installed experience includes the website, playground, and API
+              documentation; it does not alter the npm package or grant
+              additional browser capabilities.
+            </p>
+            <div class="mt-3" data-pwa-install-container hidden>
+              <button
+                class="btn btn-outline-secondary btn-lg"
+                type="button"
+                data-pwa-install
+                hidden
+              >
+                Install app
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <aside
+      class="pwa-update-notice"
+      aria-label="Website update"
+      data-pwa-update
+      hidden
+    >
+      <span
+        >A new version of the <%= DISPLAY_NAME %> website is available.</span
+      >
+      <button class="btn btn-primary btn-sm" type="button" data-pwa-update-now>
+        Update now
+      </button>
+    </aside>
+
+    <footer class="site-footer">
+      <div class="container d-lg-flex justify-content-between gap-4">
+        <p class="mb-3 mb-lg-0">
+          <strong>Mazey</strong><br />MIT-licensed frontend utility library.
+        </p>
+        <nav aria-label="Footer navigation">
+          <ul class="list-inline d-flex flex-wrap gap-3">
+            <li><a href="./playground/">Playground</a></li>
+            <li><a href="./api/">API documentation</a></li>
+            <li><a href="./sitemap.xml">Sitemap</a></li>
+            <li><a href="<%= LICENSE_URL %>">License</a></li>
+          </ul>
+        </nav>
+      </div>
+    </footer>
+  </body>
+</html>
