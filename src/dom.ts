@@ -26,14 +26,14 @@ export function hasClass(obj: MazeyElement, cls: string): boolean {
     mazeyCon.error("The element is not exist.");
     return false;
   }
-  const oriCls = obj.className; // 获取对象的 class 值
-  const oriClsArr = oriCls.split(/\s+/); // 分隔空格转换成数组
+  const oriCls = obj.className; // Read the element's current class value.
+  const oriClsArr = oriCls.split(/\s+/); // Split the class value on whitespace.
   for (let i = 0; i < oriClsArr.length; i++) {
     if (oriClsArr[i] === cls) {
-      return true; // 若匹配到 class 则返回 True
+      return true; // Return true when the class matches.
     }
   }
-  return false; // 否则返回 False
+  return false; // Return false when no class matches.
 }
 
 /**
@@ -78,10 +78,11 @@ export function addClass(ele: MazeyElement, cls: string | string[]): void {
   }
   if (Array.isArray(cls)) {
     cls.forEach((item) => {
-      ele.classList.add(item);
+      if (item) ele.classList.add(item);
     });
     return;
   }
+  if (!cls) return;
   const oriCls = ele.className;
   // Should not add duplicate classes.
   const oriClsArr = oriCls.split(/\s+/);
@@ -92,12 +93,12 @@ export function addClass(ele: MazeyElement, cls: string | string[]): void {
   }
   // Origin logic
   let space = "";
-  let newCls = ""; // 获取对象的 class 值
+  let newCls = ""; // Build the updated class value.
   if (oriCls !== "") {
-    space = " "; // 若原来的 class 不为空，跟一个空格
+    space = " "; // Separate the new class from existing classes.
   }
-  newCls = oriCls + space + cls; // 将新的 class 加进去
-  ele.className = newCls; // 替换新 class
+  newCls = oriCls + space + cls; // Append the new class.
+  ele.className = newCls; // Replace the element's class value.
 }
 
 /**
@@ -134,18 +135,16 @@ export function removeClass(obj: MazeyElement, cls: string): void {
     return;
   }
   const oriCls = obj.className;
-  let newCls; // 获取对象的 class 值
-  newCls = " " + oriCls + " "; // 前后加空格
-  newCls = newCls.replace(/(\s+)/gi, " "); // 将多余的空格替换成一个空格
-  newCls = newCls.replace(" " + cls + " ", " "); // 将加了前后空格的 cls 替换成空格 " "
-  newCls = newCls.replace(/(^\s+)|(\s+$)/g, ""); // 去掉前后空格
+  let newCls; // Build the updated class value.
+  newCls = " " + oriCls + " "; // Pad the class value with spaces.
+  newCls = newCls.replace(/(\s+)/gi, " "); // Collapse consecutive whitespace.
+  newCls = newCls.replace(" " + cls + " ", " "); // Remove the requested class.
+  newCls = newCls.replace(/(^\s+)|(\s+$)/g, ""); // Trim surrounding whitespace.
   obj.className = newCls;
 }
 
 /**
- * EN: Add `<style>` in `<head>`.
- *
- * ZH: 添加样式标签; style: 样式标签内的字符串; id: `<style>` 标签的 `id`; 返回: 添加成功/失败。
+ * Add a `<style>` element to the document `<head>`.
  *
  * Usage:
  *
@@ -211,34 +210,38 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  * <style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
  * ```
  *
+ * @param style CSS text to add to the document.
+ * @param options.id Optional `<style>` element ID. An existing element with
+ * the same ID is updated instead of duplicated.
+ * @returns Whether non-empty CSS text was added or updated.
  * @category DOM
  */
 export function addStyle(style: string, options: { id?: string } = { id: "" }): boolean {
   if (!style) {
     return false;
   }
-  // 创建 style 文档碎片
+  // Create a document fragment for the style element.
   const styleFrag = document.createDocumentFragment();
   let idDom: HTMLElement | null = null;
   let domId = "";
   // Custom Style
   const customStyle = document.createElement("style");
-  // 如果需要 ID
+  // Reuse an existing element when an ID is provided.
   if (options.id) {
     domId = `${options.id}`;
     idDom = document.getElementById(domId);
-    // 如果 Dom 不存在，插入 style
+    // Insert the style element when the ID does not exist.
     if (!idDom) {
       customStyle.setAttribute("id", options.id);
       customStyle.innerHTML = style;
       styleFrag.appendChild(customStyle);
       document.head.appendChild(styleFrag);
     } else {
-      // 如果 Dom 存在，直接更新
+      // Update the existing element in place.
       idDom.innerHTML = style;
     }
   } else {
-    // 不需要 ID，直接添加新标签
+    // Add a new style element when no ID is provided.
     customStyle.innerHTML = style;
     styleFrag.appendChild(customStyle);
     document.head.appendChild(styleFrag);
@@ -287,8 +290,8 @@ export function setImgSizeBySrc(): boolean {
       const canMatch = src && typeof src === "string" && src.length;
       if (!canMatch) return;
       // Use regular expressions to extract the `width` and `height` values from the `src` attribute
-      const width = src.match(/width=([0-9]+[a-z%]*)/);
-      const height = src.match(/height=([0-9]+[a-z%]*)/);
+      const width = src.match(/[?&]width=([0-9]+[a-z%]*)/);
+      const height = src.match(/[?&]height=([0-9]+[a-z%]*)/);
       // Set the width and height of the image using jQuery's `width()` and `height()` methods
       if (width && isNonEmptyArray(width) && width[1]) $this.width(width[1]);
       if (height && isNonEmptyArray(height) && height[1]) $this.height(height[1]);
@@ -307,8 +310,8 @@ export function setImgSizeBySrc(): boolean {
         const canMatch = src && typeof src === "string" && src.length;
         if (!canMatch) return;
         // Use regular expressions to extract the `width` and `height` values from the `src` attribute
-        const width = src.match(/width=([0-9]+[a-z%]*)/);
-        const height = src.match(/height=([0-9]+[a-z%]*)/);
+        const width = src.match(/[?&]width=([0-9]+[a-z%]*)/);
+        const height = src.match(/[?&]height=([0-9]+[a-z%]*)/);
         // Set the width and height of the image using the `style.width` and `style.height` properties
         if (width && isNonEmptyArray(width) && width[1]) $this.style.width = width[1];
         if (height && isNonEmptyArray(height) && height[1]) $this.style.height = height[1];
@@ -418,6 +421,215 @@ export function genStyleString(selector: string, styleArray: Array<string>): str
  * @category DOM
  */
 export function getPageMeta(name: string): string {
-  if (!document.querySelector) return "";
-  return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || "";
+  const metaTags = document.getElementsByTagName("meta");
+  for (let i = 0; i < metaTags.length; i++) {
+    if (metaTags[i].getAttribute("name") === name) {
+      return metaTags[i].getAttribute("content") || "";
+    }
+  }
+  return "";
+}
+
+/**
+ * Check whether a value is a CSS selector supported by the supplied query
+ * root without allowing selector syntax errors to escape.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { isValidCssSelector } from "mazey";
+ *
+ * isValidCssSelector(".message > img"); // true
+ * isValidCssSelector("["); // false
+ * isValidCssSelector("", { allowEmpty: true }); // true
+ * ```
+ *
+ * @remarks Browser only unless a compatible `ParentNode` is supplied.
+ * @param selector Value to validate as a CSS selector.
+ * @param options.allowEmpty Whether an empty or whitespace-only string is accepted. Defaults to `false`.
+ * @param options.root Query root used to validate browser support. Defaults to `document` when available.
+ * @returns Whether the selector is accepted by the query root.
+ * @category DOM
+ */
+export function isValidCssSelector(
+  selector: unknown,
+  options: { allowEmpty?: boolean; root?: ParentNode } = {}
+): boolean {
+  if (typeof selector !== "string") return false;
+  const normalizedSelector = selector.trim();
+  if (!normalizedSelector) return options.allowEmpty === true;
+
+  const root = options.root ||
+    (typeof document === "undefined" ? null : document);
+  if (!root) return false;
+
+  try {
+    root.querySelector(normalizedSelector);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+/**
+ * Options for resolving an element target.
+ *
+ * @category DOM
+ */
+export interface ResolveElementTargetOptions {
+  /** Query root used to resolve selector targets. */
+  root: ParentNode;
+  /** Element returned when `target` is `undefined`. Defaults to `null`. */
+  defaultElement?: Element | null;
+  /** Optional adapter for ref-like or framework-specific target wrappers. */
+  unwrap?: (value: unknown) => unknown;
+}
+
+function isElementTarget(value: unknown): value is Element {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    (value as Node).nodeType === 1 &&
+    typeof (value as Element).nodeName === "string" &&
+    typeof (value as Element).getAttribute === "function"
+  );
+}
+
+/**
+ * Resolve an element from a direct element, a selector, an optionally
+ * unwrapped value, or a component-like object containing an `$el` element.
+ * Selector queries are scoped to the supplied root. Invalid selectors,
+ * unmatched selectors, `null`, and unsupported values return `null`.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { resolveElementTarget } from "mazey";
+ *
+ * const element = resolveElementTarget("#dialog", {
+ *   root: document,
+ *   defaultElement: document.documentElement,
+ * });
+ * console.log(element?.id);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * dialog
+ * ```
+ *
+ * Ref-like values can be supported without coupling Mazey to a framework:
+ *
+ * ```javascript
+ * const elementRef = { value: document.querySelector("#dialog") };
+ * const element = resolveElementTarget(elementRef, {
+ *   root: document,
+ *   unwrap: value => value?.value,
+ * });
+ * ```
+ *
+ * @remarks Browser only unless compatible DOM objects are supplied. The
+ * function does not query or mutate the DOM when given a direct element.
+ * `defaultElement` is used only when `target` is `undefined`; an explicit
+ * `null` target resolves to `null`.
+ * @param target Direct element, selector, wrapped value, component-like value, or `undefined`.
+ * @param options Query root, optional default element, and optional unwrap adapter.
+ * @returns The resolved element, or `null` when the target cannot be resolved.
+ * @category DOM
+ */
+export function resolveElementTarget(
+  target: unknown,
+  options: ResolveElementTargetOptions
+): Element | null {
+  if (target === undefined) {
+    return isElementTarget(options.defaultElement)
+      ? options.defaultElement
+      : null;
+  }
+
+  let value = options.unwrap ? options.unwrap(target) : target;
+  if (value == null) return null;
+
+  if (typeof value === "string") {
+    try {
+      return options.root.querySelector(value);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  if (typeof value === "object" && "$el" in value) {
+    value = (value as { $el?: unknown }).$el;
+  }
+
+  return isElementTarget(value) ? value : null;
+}
+
+/**
+ * Extract text from a cloned element without modifying the original DOM.
+ * Images can be replaced by their `alt` text, selected descendants can be
+ * removed, and whitespace can be normalized before returning the text.
+ *
+ * Invalid exclusion selectors are ignored.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { extractElementText } from "mazey";
+ *
+ * const element = document.querySelector(".message");
+ * const text = extractElementText(element, {
+ *   excludeSelector: ".message-actions",
+ * });
+ * ```
+ *
+ * @remarks Browser only.
+ * @param element Element whose cloned contents are read.
+ * @param options.excludeSelector Selector for descendants to remove from the clone.
+ * @param options.replaceImagesWithAlt Whether images with an `alt` attribute are replaced by that text. Defaults to `true`.
+ * @param options.normalizeWhitespace Whether whitespace is collapsed and trimmed. Defaults to `true`.
+ * @returns Extracted text from the cloned element.
+ * @category DOM
+ */
+export function extractElementText(
+  element: Element,
+  options: {
+    excludeSelector?: string;
+    replaceImagesWithAlt?: boolean;
+    normalizeWhitespace?: boolean;
+  } = {}
+): string {
+  const {
+    excludeSelector = "",
+    replaceImagesWithAlt = true,
+    normalizeWhitespace = true,
+  } = options;
+  const clone = element.cloneNode(true) as Element;
+
+  if (replaceImagesWithAlt) {
+    Array.from(clone.querySelectorAll("img[alt]")).forEach(imageElement => {
+      const imageText = imageElement.getAttribute("alt") || "";
+      imageElement.parentNode?.replaceChild(
+        clone.ownerDocument.createTextNode(imageText),
+        imageElement
+      );
+    });
+  }
+
+  const normalizedExcludeSelector = excludeSelector.trim();
+  if (
+    normalizedExcludeSelector &&
+    isValidCssSelector(normalizedExcludeSelector, { root: clone })
+  ) {
+    Array.from(clone.querySelectorAll(normalizedExcludeSelector)).forEach(
+      excludedElement => excludedElement.parentNode?.removeChild(excludedElement)
+    );
+  }
+
+  const innerText = (clone as HTMLElement).innerText;
+  const text = innerText || clone.textContent || "";
+  return normalizeWhitespace
+    ? text.replace(/\u00a0/g, " ").replace(/\s+/g, " ").trim()
+    : text;
 }
