@@ -1,13 +1,50 @@
 {
   "root": true,
   "parser": "@typescript-eslint/parser",
-  "plugins": [
-    "@typescript-eslint"
-  ],
+  "plugins": ["@typescript-eslint"],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended"
+  ],
+  "overrides": [
+    {
+      "files": ["project.config.js", "scripts/**/*.js", "scripts/**/*.mjs"],
+      "env": {
+        "node": true
+      },
+      "rules": {
+        "@typescript-eslint/no-var-requires": "off"
+      }
+    },
+    {
+      "files": [
+        "project.config.js",
+        "examples/index.ts",
+        "scripts/build-pages.js",
+        "scripts/preview-pages.js",
+        "scripts/project-config-utils.js",
+        "scripts/validate-pwa.js",
+        "scripts/validate-seo.js",
+        "scripts/webpack.config.dev.js",
+        "site/**/*.js",
+        "site/**/*.ts",
+        "test/playground.test.js",
+        "test/pwa.test.js",
+        "test/service-worker.test.js",
+        "test/site.test.js",
+        "test/theme.test.js"
+      ],
+      "rules": {
+        "array-bracket-spacing": ["warn", "never"],
+        "indent": "off",
+        "quotes": [
+          "warn",
+          "double",
+          { "allowTemplateLiterals": true, "avoidEscape": true }
+        ]
+      }
+    }
   ],
   "rules": {
     "semi": ["warn", "always"],
@@ -31,8 +68,11 @@
     "@typescript-eslint/no-non-null-assertion": "off",
     "@typescript-eslint/no-explicit-any": "off",
     "@typescript-eslint/triple-slash-reference": "off",
-    "object-curly-newline": ["warn", {
-      "ImportDeclaration": { "multiline": true, "minProperties": 4 }
-    }]
+    "object-curly-newline": [
+      "warn",
+      {
+        "ImportDeclaration": { "multiline": true, "minProperties": 4 }
+      }
+    ]
   }
 }

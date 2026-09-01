@@ -4,12 +4,64 @@ import type {
 } from "./typing";
 import { isNonEmptyArray } from "./util";
 
-let pwaSupport = "";
+/**
+ * Options for {@link isSafePWAEnv}.
+ *
+ * @category Browser Information
+ */
+export interface IsSafePWAEnvOptions {
+  /** Require a non-empty web app manifest link. Defaults to `true`. */
+  requireManifest?: boolean;
+  /**
+   * Require the current page path to be within this same-origin URL scope.
+   * Comparison uses serialized WHATWG URL paths; encoded separators remain encoded.
+   */
+  scope?: string;
+}
+
+function isCurrentPageWithinScope(scope: string): boolean {
+  const normalizedScope = scope.trim();
+  if (!normalizedScope || /[?#]/.test(normalizedScope)) {
+    return false;
+  }
+
+  try {
+    const currentUrl = new URL(window.location.href);
+    const scopeUrl = new URL(normalizedScope, currentUrl);
+    if (
+      scopeUrl.origin !== currentUrl.origin ||
+      scopeUrl.search !== "" ||
+      scopeUrl.hash !== ""
+    ) {
+      return false;
+    }
+
+    if (currentUrl.pathname === scopeUrl.pathname) {
+      return true;
+    }
+
+    const nestedScopePath = scopeUrl.pathname.endsWith("/")
+      ? scopeUrl.pathname
+      : `${scopeUrl.pathname}/`;
+    return currentUrl.pathname.startsWith(nestedScopePath);
+  } catch (e) {
+    return false;
+  }
+}
 
 /**
- * EN: Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
+ * Detect whether the current browser document provides the minimum
+ * JavaScript-detectable prerequisites for PWA functionality.
  *
- * ZH: 判断是否是安全的 PWA 环境。
+ * This function checks for a secure context, Service Worker API support,
+ * and, by default, a web app manifest link with a non-empty `href`. Options
+ * can make the manifest optional or require the current path to be within a
+ * same-origin scope.
+ *
+ * It does not validate or request the manifest, verify service worker
+ * registration, determine whether the app is installed, or guarantee that an
+ * installation prompt is available. Browser-specific installation policies
+ * may impose additional requirements.
  *
  * Usage:
  *
@@ -26,54 +78,87 @@ let pwaSupport = "";
  * true
  * ```
  *
- * @environment Browser
- * @returns {boolean} true 是
+ * @remarks Browser-preferred and safe to call during SSR.
+ * @param options Optional manifest and URL-scope requirements.
+ * @returns Whether the detectable minimum PWA prerequisites are satisfied.
  * @category Browser Information
  */
-export function isSafePWAEnv(): boolean {
-  if (pwaSupport) {
-    return pwaSupport === "pwa";
-  }
-  // 判断是否支持 async await
-  function isSupportAsyncAwait() {
-    let isSupportAsyncAwaitFunc;
-    try {
-      const fn = new Function("return async function(){};");
-      isSupportAsyncAwaitFunc = fn();
-      // 由于 async 函数的构造器不是全局对象，所以我们需要由下面代码来获取 async 函数的构造器
-      // 具体可以查看以下 MDN 上有关于 AsyncFunction 的说明
-      // 地址：https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncFunction
-      return Object.getPrototypeOf(isSupportAsyncAwaitFunc).constructor != null;
-    } catch (e) {
-      return false;
-    }
-  }
-  // 判断是否支持 Promise
-  function isSupportPromise() {
-    if (typeof Promise !== "undefined" && Promise.toString().indexOf("[native code]") !== -1) {
-      return true;
-    }
+export function isSafePWAEnv(options: IsSafePWAEnvOptions = {}): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
     return false;
   }
-  // HTTPS
-  function isHttps() {
-    return window.location.protocol === "https:";
+
+  try {
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+      return false;
+    }
+
+    const requireManifest = options.requireManifest;
+    const scope = options.scope;
+    if (
+      (requireManifest !== undefined && typeof requireManifest !== "boolean") ||
+      (scope !== undefined && typeof scope !== "string")
+    ) {
+      return false;
+    }
+
+    if (window.isSecureContext !== true || !("serviceWorker" in navigator)) {
+      return false;
+    }
+
+    if (scope !== undefined && !isCurrentPageWithinScope(scope)) {
+      return false;
+    }
+
+    if (requireManifest === false) {
+      return true;
+    }
+
+    if (typeof document === "undefined") {
+      return false;
+    }
+
+    const manifest = document.querySelector<HTMLLinkElement>("link[rel~=\"manifest\"][href]");
+    return Boolean(manifest?.getAttribute("href")?.trim());
+  } catch (e) {
+    return false;
   }
-  // 浏览器信息
-  const BrowserType = getBrowserInfo();
-  if (
-    "serviceWorker" in navigator &&
-    isSupportAsyncAwait() &&
-    isSupportPromise() &&
-    Boolean(window.fetch) && Boolean(window.indexedDB) && Boolean(window.caches) &&
-    !BrowserType["shell"] &&
-    isHttps()
-  ) {
-    pwaSupport = "pwa";
-    return true;
+}
+
+/**
+ * Detect whether the current page is displayed as a standalone PWA.
+ *
+ * Checks the standard `display-mode: standalone` media query and the iOS Safari
+ * `navigator.standalone` compatibility signal. This does not prove that the app
+ * is installed, trusted, or controlled by a service worker.
+ *
+ * @remarks Browser-preferred and safe to call during SSR.
+ * @returns `true` in detected standalone presentation; otherwise `false`.
+ * @category Browser Information
+ */
+export function isStandalonePWA(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
   }
-  pwaSupport = "no-pwa";
-  return false;
+
+  const appleNavigator = navigator as Navigator & { standalone?: boolean };
+  try {
+    const matchMedia = window.matchMedia;
+    if (
+      typeof matchMedia === "function" &&
+      matchMedia.call(window, "(display-mode: standalone)").matches
+    ) {
+      return true;
+    }
+  } catch (e) {
+    // Fall through to the iOS compatibility signal.
+  }
+
+  try {
+    return appleNavigator.standalone === true;
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
@@ -118,7 +203,7 @@ export function isSafePWAEnv(): boolean {
  * const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app"].includes(shell);
  * ```
  *
- * @environment Browser
+ * @remarks Browser only.
  * @returns Browser information
  * @category Browser Information
  */
@@ -234,7 +319,7 @@ export function getBrowserInfo(): BrowserInfo {
     let supporter = "";
     if (testUa(/applewebkit/g)) {
       engine = "webkit"; // webkit engine
-      if (testUa(/edge/g)) {
+      if (testUa(/edg(?:a|ios)?\//g) || testUa(/edge\//g)) {
         supporter = "edge"; // Edge browser
       } else if (testUa(/opr/g)) {
         supporter = "opera"; // Opera browser
@@ -286,7 +371,7 @@ export function getBrowserInfo(): BrowserInfo {
     } else if (supporter === "iexplore") {
       supporterVs = testVs(/(msie [\d._]+)|(rv:[\d._]+)/g);
     } else if (supporter === "edge") {
-      supporterVs = testVs(/edge\/[\d._]+/g);
+      supporterVs = testVs(/(?:edge|edg|edga|edgios)\/[\d._]+/g);
     }
     browserInfo = {
       ...browserInfo,
@@ -369,7 +454,7 @@ export function getBrowserInfo(): BrowserInfo {
  * ["windows", "desktop", "webkit", "chrome"]
  * ```
  *
- * @environment Browser
+ * @remarks Browser only.
  * @param {string} prefix
  * @returns {array} Browser attributes
  * @category Browser Information

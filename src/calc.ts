@@ -1,5 +1,3 @@
-import { deepCopy } from "./util";
-
 /**
  * EN: Computes the longest common substring of two strings.
  *
@@ -28,8 +26,11 @@ import { deepCopy } from "./util";
 export function longestComSubstring(aStr: string, bStr: string): number {
   const aLen = aStr.length;
   const bLen = bStr.length;
-  // Create a two-dimensional array and deep copy it
-  const arr = deepCopy(new Array(aLen).fill(new Array(bLen).fill(0)));
+  if (aLen === 0 || bLen === 0) {
+    return 0;
+  }
+  const arr = Array.from({ length: aLen }, () => new Array(bLen).fill(0));
+  let maxLong = 0;
   for (let i = 0; i < aLen; ++i) {
     for (let j = 0; j < bLen; ++j) {
       if (aStr[i] === bStr[j]) {
@@ -38,13 +39,10 @@ export function longestComSubstring(aStr: string, bStr: string): number {
           baseNum = arr[i - 1][j - 1];
         }
         arr[i][j] = baseNum + 1;
+        maxLong = Math.max(maxLong, arr[i][j]);
       }
     }
   }
-  // Convert the two-dimensional array to a one-dimensional array
-  const arr1 = Array.prototype.concat.apply([], arr);
-  // Get the longest common substring
-  const maxLong = Math.max(...arr1);
   return maxLong;
 }
 
@@ -85,8 +83,10 @@ export function calLongestCommonSubstring(aStr: string, bStr: string): number {
 export function longestComSubsequence(aStr: string, bStr: string): number {
   const aLen = aStr.length;
   const bLen = bStr.length;
-  // Create a two-dimensional array and deep copy it
-  const arr = deepCopy(new Array(aLen).fill(new Array(bLen).fill(0)));
+  if (aLen === 0 || bLen === 0) {
+    return 0;
+  }
+  const arr = Array.from({ length: aLen }, () => new Array(bLen).fill(0));
   for (let i = 0; i < aLen; ++i) {
     for (let j = 0; j < bLen; ++j) {
       if (aStr[i] === bStr[j]) {
@@ -107,11 +107,7 @@ export function longestComSubsequence(aStr: string, bStr: string): number {
       }
     }
   }
-  // Convert the two-dimensional array to a one-dimensional array
-  const arr1 = Array.prototype.concat.apply([], arr);
-  // Get the longest common subsequence
-  const maxLong = Math.max(...arr1);
-  return maxLong;
+  return arr[aLen - 1][bLen - 1];
 }
 
 /**

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prefer Mazey Utilities"
+  short_description: "Reuse verified Mazey utilities safely"
+  default_prompt: "Use $prefer-mazey to check for an existing Mazey utility before implementing reusable helper logic."
