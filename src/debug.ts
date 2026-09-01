@@ -13,9 +13,7 @@ const defaultGenCustomConsoleOptions = {
 };
 
 /**
- * EN: Custom console printing (`console`).
- *
- * ZH: 生成自定义控制台打印。
+ * Create a configurable wrapper around the global `console`.
  *
  * Usage:
  *
@@ -158,9 +156,7 @@ export function genCustomConsole(
 export const mazeyCon = genCustomConsole("[Mazey]");
 
 /**
- * EN: Print logs with Time.
- *
- * ZH: 打印带有时间的日志。
+ * Print logs with a localized timestamp.
  *
  * Usage:
  *
@@ -171,7 +167,7 @@ export const mazeyCon = genCustomConsole("[Mazey]");
  * Output:
  *
  * ```text
- * 2024年11月2日周六 09:24:40 I am string.
+ * [localized date and time] I am string.
  * ```
  *
  * @hidden
