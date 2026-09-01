@@ -1,181 +1,216 @@
+import Tab from "bootstrap/js/dist/tab";
+
 import {
-  getUrlParam, updateQueryParam, getHashQueryParam, getDomain,
-  camelCaseToKebabCase, camelCase2Underscore, timeCon,
-  generateRndNum, genHashCode, inRate, genCustomConsole,
-  isNonEmptyArray, isValidData, isSupportWebp, isNumber,
-  getFileSize, getScriptQueryParam,
-  debounce, formatDate,
-  getFriendlyInterval, getBrowserInfo,
-  repeatUntilConditionMet,
-  loadScript, loadScriptIfUndefined,
-  deepCopyObject, deepCopy,
-  setCookie, getCookie, delCookie,
-  getFCP, getFP, getLCP, getFID,
-  getCLS, getTTFB, getPerformance,
-  longestComSubsequence,
-} from "../src/index";
+  calculateCAGR,
+  floatToPercent,
+  formatDate,
+  formatDurationFromMs,
+  formatLocalDateTime,
+  getDateDifference,
+  parseLocalDateTime,
+} from "../src";
 
-// Sync
-console.log("[v1]Is Infinity number?", isNumber(Infinity, { isInfinityAsNumber: true }));
-console.log("Is NaN number?", isNumber(NaN, { isNaNAsNumber: true, isUnFiniteAsNumber: true }));
-console.log("Did ttt exist?", getHashQueryParam("ttt"));
-console.log("What is t3?", getUrlParam("http://example.com/?t1=1&t2=2&t3=3&t4=4", "t3"));
-console.log("Can query param update successfully?", updateQueryParam("http://example.com/?t1=1&t2=2&t3=3&t4=4", "t3", "three"));
-console.log("What is domain?", getDomain("http://example.com/?t1=1&t2=2&t3=3&t4=4"));
-console.log("Get KebabCase:", camelCaseToKebabCase("aBC"));
-console.log("Get Underscore:", camelCase2Underscore("bBC"));
-console.log("Get a string with random number:", generateRndNum(7));
-console.log("Is non-empty array?", isNonEmptyArray([ "a", 123 ]));
-console.log("Get file size:", getFileSize(2000));
-console.log("Generate a Hash from a string:", genHashCode("123"));
+const initializedTabTriggers = new WeakSet<HTMLElement>();
 
-const genLog = genCustomConsole("GenLog:", {
-  isClosed: false,
-  showWrap: false,
-  showDate: true,
-  locales: "zh-CN",
-});
-genLog.log("test?");
-const genLogWithString = genCustomConsole("[GenLogWithString]", {
-  isStringifyObject: true,
-});
-genLogWithString.log({ a: 1, b: 2 });
-timeCon.log("test?");
-timeCon.log({ a: 1, b: 2 });
-console.log("Default formatDate value:", formatDate());
-console.log("String formatDate value:", formatDate("Tue Jan 11 2022 14:12:26 GMT+0800 (China Standard Time)", "yyyy-MM-dd hh:mm:ss"));
-console.log("Number formatDate value:", formatDate(1641881235000, "yyyy-MM-dd hh:mm:ss"));
-console.log("Date formatDate value:", formatDate(new Date(2014, 1, 11), "MM/dd/yyyy"));
+type PlaygroundWindow = Pick<Window, "history" | "location">;
 
-const validData = {
-  ["a"]: {
-    ["b"]: {
-      ["c"]: 413,
-    },
-  },
-};
-const isValidDataResA = isValidData(validData, [ "a", "b", "c" ], 2333);
-const isValidDataResB = isValidData(validData, [ "a", "b", "c" ], 413);
-const isValidDataResC = isValidData(validData, [ "d", "d" ], 413);
-console.log("isValidDataResA:", isValidDataResA);
-console.log("isValidDataResB:", isValidDataResB);
-console.log("isValidDataResC:", isValidDataResC);
-console.log("getFriendlyInterval:", getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" }));
-console.log("getFriendlyInterval:", getFriendlyInterval(1585325367000, 1681786440000, { type: "text" }));
-console.log(
-  "getFriendlyInterval:",
-  getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", {
-    type: "text",
-  })
-);
-console.log("getBrowserInfo:", getBrowserInfo());
-console.log("getBrowserInfo again:", getBrowserInfo());
+function getTabHash(trigger: HTMLElement): string | null {
+  const target = trigger.getAttribute("data-bs-target");
+  return target?.startsWith("#") && target.length > 1 ? target : null;
+}
 
-const conFn = () => {
-  const ret = inRate(0.3);
-  console.log("conFn", ret, Date.now());
-  return ret;
-};
-repeatUntilConditionMet(conFn);
-loadScriptIfUndefined("$", "https://i.mazey.net/lib/jquery/3.1.1/jquery.min.js")
-  .then(res => {
-    console.log("loadScriptIfUndefined success", res);
-  })
-  .catch(err => {
-    console.log("loadScriptIfUndefined fail", err);
-  });
-const loadScriptOptions = {
-  id: "load-aug",
-  callback: function() {
-    /* pass */
-  },
-  timeout: 5000,
-  isDefer: true,
-  isAsync: true,
-  isCrossOrigin: true,
-  attributes: { onece: "onece-9977", class: "diy-script" },
-  cssUrl: "swiper.min.css",
-};
-loadScript("//i.mazey.net/lib/swiper/9.3.2/swiper.min.js", {
-  ...loadScriptOptions,
-});
+function replaceTabHash(windowRef: PlaygroundWindow, hash: string): void {
+  if (windowRef.location.hash === hash) return;
+  try {
+    windowRef.history.replaceState(null, "", hash);
+  } catch {
+    // History may be unavailable in restricted browser environments.
+  }
+}
 
-const obj = {
-  a: 1,
-  b: {
-    c: 2,
-    d: { e: 3 },
-  },
-};
-const obj2 = deepCopyObject(obj);
-console.log("deepCopyObject obj2", obj2);
-const simpleObj = { a: 1, b: 2 };
-const simpleObj2 = deepCopy(simpleObj);
-console.log("deepCopyObject simpleObj2", simpleObj2);
-setCookie("test1", "testValue1");
-console.log("getCookie test1", getCookie("test1"));
-setCookie("test2", "testValue2");
-console.log("getCookie test2", getCookie("test2"));
-setCookie("test3", "testValue3", 1);
-console.log("getCookie test3", getCookie("test3"));
-console.log("delCookie test2", delCookie("test2"));
-console.log("delCookie test2 again", delCookie("test2"));
-console.log("getCookie test1", getCookie("test1"));
-console.log("All Cookie", document.cookie);
-console.log("getScriptQueryParams id", getScriptQueryParam("id", "jquery"));
-console.log("getScriptQueryParams _", getScriptQueryParam("_", ""));
-console.log("getScriptQueryParams empty", getScriptQueryParam("empty"));
+export function parseDurationInput(value: string): number | null {
+  if (!value.trim()) return null;
+  const duration = Number(value);
+  return Number.isFinite(duration) && duration >= 0 ? duration : null;
+}
 
-const longestSS = longestComSubsequence("fish", "finish");
-console.log("longestComSubsequence:", longestSS);
-
-// Async
-(async () => {
-  console.log("Detect webp support:", await isSupportWebp());
-  // Debounce
-  console.log("Test debounce - begin");
-  const c = debounce(
-    () => {
-      console.log("Test debounce - fun myself");
-    },
-    3000,
-    true
+export function initializePlaygroundTabs(
+  root: ParentNode = document,
+  windowRef: PlaygroundWindow = window
+): void {
+  const triggers = Array.from(
+    root.querySelectorAll<HTMLElement>('[data-bs-toggle="tab"]')
   );
-  console.log("Test debounce - invoke first");
-  c();
-  setTimeout(() => {
-    c();
-    console.log("Test debounce - 2000ms second");
-  }, 2000);
-  setTimeout(() => {
-    c();
-    console.log("Test debounce - 10000ms third");
-  }, 10000);
-  console.log("Test debounce - end");
-  getCLS().then(cls => {
-    console.log("getCLS", cls);
-  });
-  getFID().then(fid => {
-    console.log("getFID", fid);
-  });
-  getPerformance(false).then(performance => {
-    console.log("getPerformance", performance);
-  });
-  // Await
-  const fcp = await getFCP();
-  console.log("getFCP", fcp);
-  const fp = await getFP();
-  console.log("getFP", fp);
-  const lcp = await getLCP();
-  console.log("getLCP", lcp);
-  const ttfb = await getTTFB();
-  console.log("getTTFB", ttfb);
-})();
 
-// Event
-$("#btn").on("click", () => {
-  console.log("click");
-  getFID().then(fid => {
-    console.log("Event getFID", fid);
+  triggers.forEach((trigger) => {
+    Tab.getOrCreateInstance(trigger);
+    if (initializedTabTriggers.has(trigger)) return;
+
+    trigger.addEventListener("shown.bs.tab", () => {
+      trigger.scrollIntoView?.({
+        block: "nearest",
+        inline: "nearest",
+      });
+      const hash = getTabHash(trigger);
+      if (hash) replaceTabHash(windowRef, hash);
+    });
+    initializedTabTriggers.add(trigger);
   });
-});
+
+  const hash = windowRef.location.hash;
+  const hashTrigger = triggers.find((trigger) => getTabHash(trigger) === hash);
+  if (hashTrigger) {
+    Tab.getOrCreateInstance(hashTrigger).show();
+  }
+}
+
+export function initializeDateTimeExample(
+  root: ParentNode = document,
+  now: () => Date = () => new Date()
+): void {
+  const form = root.querySelector<HTMLFormElement>("[data-date-time-form]");
+  const startInput = root.querySelector<HTMLInputElement>(
+    "[data-date-time-start]"
+  );
+  const endInput = root.querySelector<HTMLInputElement>("[data-date-time-end]");
+  const resetButton = root.querySelector<HTMLButtonElement>(
+    "[data-date-time-reset]"
+  );
+  const error = root.querySelector<HTMLElement>("[data-date-time-error]");
+  const result = root.querySelector<HTMLElement>("[data-date-time-result]");
+
+  if (!form || !startInput || !endInput || !resetButton || !error || !result) {
+    return;
+  }
+
+  const run = (): void => {
+    error.textContent = "";
+    result.textContent = "";
+    const start = parseLocalDateTime(startInput.value);
+    const end = parseLocalDateTime(endInput.value);
+
+    if (!start || !end) {
+      error.textContent = "Enter a valid start and end date and time.";
+      return;
+    }
+    if (start.getTime() > end.getTime()) {
+      error.textContent =
+        "The start date and time must not be later than the end date and time.";
+      return;
+    }
+
+    result.textContent = String(
+      getDateDifference(start, end, { type: "text" })
+    );
+  };
+
+  const reset = (): void => {
+    const currentValue = formatLocalDateTime(now(), { precision: "second" });
+    startInput.value = currentValue;
+    endInput.value = currentValue;
+    error.textContent = "";
+    run();
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    run();
+  });
+  resetButton.addEventListener("click", reset);
+  reset();
+}
+
+export function initializeCAGRExample(
+  root: ParentNode = document,
+  now: () => Date = () => new Date()
+): void {
+  const form = root.querySelector<HTMLFormElement>("[data-cagr-form]");
+  const startInput = root.querySelector<HTMLInputElement>("[data-cagr-start]");
+  const endInput = root.querySelector<HTMLInputElement>("[data-cagr-end]");
+  const returnInput =
+    root.querySelector<HTMLInputElement>("[data-cagr-return]");
+  const error = root.querySelector<HTMLElement>("[data-cagr-error]");
+  const percentageResult = root.querySelector<HTMLElement>(
+    "[data-cagr-percentage-result]"
+  );
+  const decimalResult = root.querySelector<HTMLElement>(
+    "[data-cagr-decimal-result]"
+  );
+  if (
+    !form ||
+    !startInput ||
+    !endInput ||
+    !returnInput ||
+    !error ||
+    !percentageResult ||
+    !decimalResult
+  ) {
+    return;
+  }
+
+  const run = (): void => {
+    error.textContent = "";
+    percentageResult.textContent = "";
+    decimalResult.textContent = "";
+    try {
+      const cagr = calculateCAGR(
+        startInput.value,
+        endInput.value,
+        returnInput.value
+      );
+      percentageResult.textContent = floatToPercent(cagr, 2);
+      decimalResult.textContent = String(cagr);
+    } catch (cause) {
+      error.textContent =
+        cause instanceof Error
+          ? `The CAGR example could not run: ${cause.message}`
+          : "The CAGR example could not run because of an unexpected error.";
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    run();
+  });
+  endInput.value = formatDate(now(), "yyyy-MM-dd");
+  run();
+}
+
+export function initializeDurationExample(root: ParentNode = document): void {
+  const form = root.querySelector<HTMLFormElement>("[data-duration-form]");
+  const input = root.querySelector<HTMLInputElement>("[data-duration]");
+  const error = root.querySelector<HTMLElement>("[data-duration-error]");
+  const result = root.querySelector<HTMLElement>("[data-duration-result]");
+  if (!form || !input || !error || !result) return;
+
+  const run = (): void => {
+    error.textContent = "";
+    result.textContent = "";
+    const duration = parseDurationInput(input.value);
+    if (duration === null) {
+      error.textContent =
+        "Enter a finite duration of zero milliseconds or more.";
+      return;
+    }
+
+    try {
+      result.textContent = formatDurationFromMs(duration);
+    } catch (cause) {
+      error.textContent =
+        cause instanceof Error
+          ? `The duration example could not run: ${cause.message}`
+          : "The duration example could not run because of an unexpected error.";
+    }
+  };
+
+  form.addEventListener("submit", (event) => {
+    event.preventDefault();
+    run();
+  });
+  run();
+}
+
+initializePlaygroundTabs();
+initializeDateTimeExample();
+initializeCAGRExample();
+initializeDurationExample();
