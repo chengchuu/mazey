@@ -1,9 +1,151 @@
-import { deepCopy } from "./util";
+import type { MazeyDate } from "./typing";
+import { toValidDate } from "./date";
+
+export type InvestmentReturnRate = number | string;
+
+const millisecondsPerDay = 24 * 60 * 60 * 1000;
+
+function parseInvestmentReturnRate(value: InvestmentReturnRate): number {
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) {
+      throw new TypeError(
+        "totalReturnRate must be a finite number or percentage string."
+      );
+    }
+    return value;
+  }
+
+  if (typeof value !== "string") {
+    throw new TypeError(
+      "totalReturnRate must be a finite number or percentage string."
+    );
+  }
+
+  const normalized = value.trim();
+  if (!normalized) {
+    throw new TypeError("totalReturnRate must not be empty.");
+  }
+
+  const percentageText = normalized.endsWith("%")
+    ? normalized.slice(0, -1).trim()
+    : normalized;
+  if (!percentageText) {
+    throw new TypeError(
+      "totalReturnRate must be a valid percentage string."
+    );
+  }
+
+  const percentage = Number(percentageText);
+  if (!Number.isFinite(percentage)) {
+    throw new TypeError(
+      "totalReturnRate must be a valid percentage string."
+    );
+  }
+  return percentage / 100;
+}
 
 /**
- * EN: Computes the longest common substring of two strings.
+ * Calculate an investment's Compound Annual Growth Rate (CAGR).
  *
- * ZH: 计算两个字符串的最长公共子串。
+ * Numeric total returns use decimal ratios. For example, `0.202` represents
+ * `20.2%`. String total returns use percentage values, so `"20.2%"` and
+ * `"20.2"` both represent `20.2%`. A trailing percent sign is optional, and
+ * the complete trimmed string must be a finite JavaScript number. Scientific
+ * notation such as `"2.02e1%"` is accepted.
+ *
+ * The returned CAGR is a decimal ratio and is not rounded. The calculation
+ * uses:
+ *
+ * `CAGR = (1 + totalReturn)^(365 / durationInDays) - 1`
+ *
+ * Usage:
+ *
+ * ```typescript
+ * import {
+ *   calculateCAGR,
+ *   floatToPercent,
+ * } from "mazey";
+ *
+ * const cagr = calculateCAGR(
+ *   "2022-04-01",
+ *   "2025-10-01",
+ *   "20.2%"
+ * );
+ * const equivalentCagr = calculateCAGR(
+ *   "2022-04-01",
+ *   "2025-10-01",
+ *   0.202
+ * );
+ * const negativeCagr = calculateCAGR(
+ *   "2022-04-01",
+ *   "2025-10-01",
+ *   "-15.5%"
+ * );
+ *
+ * console.log({
+ *   cagr,
+ *   equivalentCagr,
+ *   negativeCagr,
+ *   percentage: floatToPercent(cagr, 2),
+ * });
+ * ```
+ *
+ * Possible output:
+ *
+ * ```text
+ * {
+ *   cagr: 0.053908...,
+ *   equivalentCagr: 0.053908...,
+ *   negativeCagr: -0.046926...,
+ *   percentage: "5.39%"
+ * }
+ * ```
+ *
+ * @param startDate Start date as a supported structured string, millisecond timestamp, or `Date`.
+ * @param endDate End date in the same accepted forms. It must be strictly later than `startDate`.
+ * @param totalReturnRate Total period return. Numbers are decimal ratios; strings are percentage values.
+ * @returns The unrounded CAGR as a decimal ratio.
+ * @throws {TypeError} If either date or the total return is invalid.
+ * @throws {RangeError} If the dates are not increasing, the total return is at most `-1`, or the result is not finite.
+ * @remarks Duration uses the exact elapsed milliseconds, including time of day, converted to fractional days. A financial year is always fixed at 365 days. Input `Date` objects are copied and never mutated.
+ * @category Calculate and Formula
+ */
+export function calculateCAGR(
+  startDate: MazeyDate,
+  endDate: MazeyDate,
+  totalReturnRate: InvestmentReturnRate
+): number {
+  const normalizedStartDate = toValidDate(startDate);
+  if (!normalizedStartDate) {
+    throw new TypeError("startDate must be a valid date.");
+  }
+
+  const normalizedEndDate = toValidDate(endDate);
+  if (!normalizedEndDate) {
+    throw new TypeError("endDate must be a valid date.");
+  }
+
+  const durationMs =
+    normalizedEndDate.getTime() - normalizedStartDate.getTime();
+  if (durationMs <= 0) {
+    throw new RangeError("endDate must be later than startDate.");
+  }
+
+  const totalReturn = parseInvestmentReturnRate(totalReturnRate);
+  if (totalReturn <= -1) {
+    throw new RangeError("totalReturnRate must be greater than -1.");
+  }
+
+  const durationInDays = durationMs / millisecondsPerDay;
+  const cagr = Math.pow(1 + totalReturn, 365 / durationInDays) - 1;
+  if (!Number.isFinite(cagr)) {
+    throw new RangeError("calculated CAGR must be finite.");
+  }
+  return cagr;
+}
+
+/**
+ * Compute the length of the longest common substring of two strings.
  *
  * Usage:
  *
@@ -28,8 +170,11 @@ import { deepCopy } from "./util";
 export function longestComSubstring(aStr: string, bStr: string): number {
   const aLen = aStr.length;
   const bLen = bStr.length;
-  // Create a two-dimensional array and deep copy it
-  const arr = deepCopy(new Array(aLen).fill(new Array(bLen).fill(0)));
+  if (aLen === 0 || bLen === 0) {
+    return 0;
+  }
+  const arr = Array.from({ length: aLen }, () => new Array(bLen).fill(0));
+  let maxLong = 0;
   for (let i = 0; i < aLen; ++i) {
     for (let j = 0; j < bLen; ++j) {
       if (aStr[i] === bStr[j]) {
@@ -38,13 +183,10 @@ export function longestComSubstring(aStr: string, bStr: string): number {
           baseNum = arr[i - 1][j - 1];
         }
         arr[i][j] = baseNum + 1;
+        maxLong = Math.max(maxLong, arr[i][j]);
       }
     }
   }
-  // Convert the two-dimensional array to a one-dimensional array
-  const arr1 = Array.prototype.concat.apply([], arr);
-  // Get the longest common substring
-  const maxLong = Math.max(...arr1);
   return maxLong;
 }
 
@@ -58,9 +200,7 @@ export function calLongestCommonSubstring(aStr: string, bStr: string): number {
 }
 
 /**
- * EN: Computes the longest common subsequence of two strings.
- *
- * ZH: 计算两个字符串的最长公共子序列。
+ * Compute the length of the longest common subsequence of two strings.
  *
  * Usage:
  *
@@ -77,16 +217,18 @@ export function calLongestCommonSubstring(aStr: string, bStr: string): number {
  * 4
  * ```
  *
- * @param {string} aStr 字符串
- * @param {string} bStr 字符串
- * @returns {number} 长度
+ * @param {string} aStr The first string.
+ * @param {string} bStr The second string.
+ * @returns {number} The length of the longest common subsequence.
  * @category Calculate and Formula
  */
 export function longestComSubsequence(aStr: string, bStr: string): number {
   const aLen = aStr.length;
   const bLen = bStr.length;
-  // Create a two-dimensional array and deep copy it
-  const arr = deepCopy(new Array(aLen).fill(new Array(bLen).fill(0)));
+  if (aLen === 0 || bLen === 0) {
+    return 0;
+  }
+  const arr = Array.from({ length: aLen }, () => new Array(bLen).fill(0));
   for (let i = 0; i < aLen; ++i) {
     for (let j = 0; j < bLen; ++j) {
       if (aStr[i] === bStr[j]) {
@@ -107,11 +249,7 @@ export function longestComSubsequence(aStr: string, bStr: string): number {
       }
     }
   }
-  // Convert the two-dimensional array to a one-dimensional array
-  const arr1 = Array.prototype.concat.apply([], arr);
-  // Get the longest common subsequence
-  const maxLong = Math.max(...arr1);
-  return maxLong;
+  return arr[aLen - 1][bLen - 1];
 }
 
 /**
@@ -124,16 +262,14 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
 }
 
 /**
- * EN: Hit probability (1% ~ 100%).
- *
- * ZH: 百分位概率。
+ * Return whether a random value falls within the given probability.
  *
  * Usage:
  *
  * ```javascript
  * import { isHit } from "mazey";
  *
- * const ret = isHit(0.5); // 0.01 ~ 1 true/false
+ * const ret = isHit(0.5); // A 50% chance of returning true.
  * console.log(ret);
  * ```
  *
@@ -164,8 +300,8 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * 499994 500006
  * ```
  *
- * @param {number} rate 0.1 ~ 1 => 1% ~ 100%
- * @returns {boolean} true 命中
+ * @param {number} rate Probability expressed as a value from 0 to 1.
+ * @returns {boolean} Whether the random value is less than the probability.
  * @category Calculate and Formula
  */
 export function isHit(rate: number): boolean {

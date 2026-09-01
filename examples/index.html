@@ -1,26 +1,562 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Test Page</title>
-  <link rel="shortcut icon" type="image/png" href="https://mazey.cn/fav/logo-dark-circle-transparent-144x144.png">
-  <link type="text/css" href="//i.mazey.net/lib/bootstrap/3.4.1/css/bootstrap.min.css" rel="stylesheet" />
-  <style>
-    .box {
-      color: #333;
-    }
-  </style>
-</head>
-<body>
-    <div class="container">
-      <div class="box">
-        <span>Box</span>
+<html lang="en" data-bs-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title><%= PLAYGROUND_TITLE %></title>
+    <meta name="description" content="<%= PLAYGROUND_DESCRIPTION %>" />
+    <link rel="canonical" href="<%= PLAYGROUND_URL %>" />
+    <link rel="icon" href="<%= FAVICON_URL %>" type="image/png" />
+    <% if (MANIFEST_URL) { %>
+    <link rel="manifest" href="<%= MANIFEST_URL %>" />
+    <% } %>
+    <meta
+      name="theme-color"
+      content="<%= THEME_COLOR_PRIMARY %>"
+      data-theme-color
+      data-theme-color-light="<%= THEME_COLOR_LIGHT %>"
+      data-theme-color-dark="<%= THEME_COLOR_DARK %>"
+    />
+    <style>
+      :root {
+        --project-theme-primary: <%= THEME_COLOR_PRIMARY %>;
+        --project-theme-primary-hover: <%= THEME_PRIMARY_HOVER %>;
+        --project-theme-primary-active: <%= THEME_PRIMARY_ACTIVE %>;
+        --project-theme-primary-soft: <%= THEME_PRIMARY_SOFT %>;
+        --project-theme-primary-rgb: <%= THEME_PRIMARY_RGB %>;
+        --project-theme-primary-hover-rgb: <%= THEME_PRIMARY_HOVER_RGB %>;
+        --project-theme-primary-dark: <%= THEME_PRIMARY_DARK %>;
+        --project-theme-primary-dark-hover: <%= THEME_PRIMARY_DARK_HOVER %>;
+        --project-theme-primary-dark-active: <%= THEME_PRIMARY_DARK_ACTIVE %>;
+        --project-theme-primary-dark-soft: <%= THEME_PRIMARY_DARK_SOFT %>;
+        --project-theme-primary-dark-rgb: <%= THEME_PRIMARY_DARK_RGB %>;
+        --project-theme-primary-dark-hover-rgb: <%= THEME_PRIMARY_DARK_HOVER_RGB
+          %>;
+        --project-theme-light: <%= THEME_COLOR_LIGHT %>;
+        --project-theme-dark: <%= THEME_COLOR_DARK %>;
+      }
+    </style>
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="<%= DISPLAY_NAME %>" />
+    <meta property="og:title" content="<%= PLAYGROUND_TITLE %>" />
+    <meta property="og:description" content="<%= PLAYGROUND_DESCRIPTION %>" />
+    <meta property="og:url" content="<%= PLAYGROUND_URL %>" />
+    <meta property="og:image" content="<%= OPEN_GRAPH_IMAGE_URL %>" />
+    <meta property="og:image:type" content="<%= OPEN_GRAPH_IMAGE_TYPE %>" />
+    <meta property="og:image:width" content="<%= OPEN_GRAPH_IMAGE_WIDTH %>" />
+    <meta property="og:image:height" content="<%= OPEN_GRAPH_IMAGE_HEIGHT %>" />
+    <meta property="og:image:alt" content="<%= OPEN_GRAPH_IMAGE_ALT %>" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="<%= PLAYGROUND_TITLE %>" />
+    <meta name="twitter:description" content="<%= PLAYGROUND_DESCRIPTION %>" />
+    <meta name="twitter:image" content="<%= OPEN_GRAPH_IMAGE_URL %>" />
+    <meta name="twitter:image:alt" content="<%= OPEN_GRAPH_IMAGE_ALT %>" />
+    <script type="application/ld+json">
+      <%= PLAYGROUND_JSON_LD %>
+    </script>
+    <script>
+      (() => {
+        try {
+          const key = <%= THEME_STORAGE_KEY_JSON %>;
+          const query = new URL(location.href).searchParams.get("theme");
+          let stored = null;
+          if (query !== "light" && query !== "dark") {
+            try { stored = localStorage.getItem(key); } catch {}
+          }
+          const value = query === "light" || query === "dark"
+            ? query
+            : stored === "system" || stored === "light" || stored === "dark"
+              ? stored
+              : "system";
+          const resolved = value === "system"
+            ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
+            : value;
+          document.documentElement.dataset.bsTheme = resolved;
+          document.documentElement.dataset.theme = resolved;
+          document.documentElement.style.colorScheme = resolved;
+          const meta = document.querySelector('meta[name="theme-color"][data-theme-color]');
+          if (meta) meta.content = resolved === "dark"
+            ? meta.dataset.themeColorDark
+            : meta.dataset.themeColorLight;
+          localStorage.setItem("tsd-theme", value === "system" ? "os" : value);
+        } catch {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">Skip to playground controls</a>
+    <header class="site-header">
+      <nav
+        class="navbar navbar-expand-xl site-navbar"
+        aria-label="Primary navigation"
+        data-site-navbar
+      >
+        <div class="container">
+          <a class="navbar-brand d-flex align-items-center gap-2" href="../">
+            <img
+              class="brand-logo"
+              src="<%= LOGO_URL %>"
+              width="32"
+              height="32"
+              alt=""
+            />
+            <span><%= DISPLAY_NAME %></span>
+          </a>
+          <button
+            class="navbar-toggler"
+            type="button"
+            aria-controls="playground-navigation"
+            aria-expanded="false"
+            aria-label="Toggle project navigation"
+            data-nav-toggle
+          >
+            <span class="navbar-toggler-icon" aria-hidden="true"></span>
+          </button>
+          <div
+            id="playground-navigation"
+            class="navbar-collapse"
+            data-mobile-nav
+          >
+            <ul class="navbar-nav ms-auto align-items-xl-center gap-xl-1">
+              <li class="nav-item"><a class="nav-link" href="../">Home</a></li>
+              <li class="nav-item">
+                <a class="nav-link" aria-current="page" href="./">Playground</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="../#install">Install</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="../#usage">Usage</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="../api/">API</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="<%= GITHUB_URL %>">GitHub</a>
+              </li>
+              <li class="nav-item">
+                <a class="nav-link" href="<%= NPM_URL %>">npm</a>
+              </li>
+            </ul>
+            <label class="theme-control ms-xl-3">
+              <span>Theme</span>
+              <select
+                class="form-select form-select-sm w-auto"
+                data-theme-select
+                aria-label="Choose playground theme"
+              >
+                <option value="system">System</option>
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main id="main-content">
+      <section class="section-band" aria-labelledby="playground-title">
+        <div class="container">
+          <div class="section-heading">
+            <h1 id="playground-title">Mazey utility playground</h1>
+          </div>
+          <section
+            id="playground-examples"
+            class="playground-panel mb-4"
+            aria-labelledby="playground-examples-title"
+          >
+            <h2 id="playground-examples-title" class="visually-hidden">
+              Interactive utility examples
+            </h2>
+
+            <ul
+              class="nav nav-tabs playground-tabs flex-nowrap overflow-x-auto text-nowrap px-3 pt-3"
+              role="tablist"
+            >
+              <li class="nav-item" role="presentation">
+                <button
+                  id="date-interval-tab"
+                  class="nav-link active"
+                  type="button"
+                  role="tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#date-interval"
+                  aria-controls="date-interval"
+                  aria-selected="true"
+                >
+                  Date interval
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  id="cagr-tab"
+                  class="nav-link"
+                  type="button"
+                  role="tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#cagr"
+                  aria-controls="cagr"
+                  aria-selected="false"
+                >
+                  CAGR
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  id="duration-tab"
+                  class="nav-link"
+                  type="button"
+                  role="tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#duration"
+                  aria-controls="duration"
+                  aria-selected="false"
+                >
+                  Duration
+                </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button
+                  id="identifier-tab"
+                  class="nav-link"
+                  type="button"
+                  role="tab"
+                  data-bs-toggle="tab"
+                  data-bs-target="#identifier"
+                  aria-controls="identifier"
+                  aria-selected="false"
+                >
+                  Identifier
+                </button>
+              </li>
+            </ul>
+
+            <div class="tab-content p-4">
+              <div
+                id="date-interval"
+                class="tab-pane fade show active"
+                role="tabpanel"
+                aria-labelledby="date-interval-tab"
+              >
+                <h3 class="h4">Calculate date and time interval</h3>
+                <p>
+                  Calculate the interval from the start date and time to the end
+                  date and time using <code>getDateDifference</code>.
+                </p>
+                <form data-date-time-form novalidate>
+                  <div class="row g-4">
+                    <div class="col-lg-6">
+                      <label class="form-label" for="date-time-start"
+                        >Start date and time</label
+                      >
+                      <input
+                        id="date-time-start"
+                        class="form-control"
+                        type="datetime-local"
+                        step="1"
+                        required
+                        data-date-time-start
+                      />
+                    </div>
+                    <div class="col-lg-6">
+                      <label class="form-label" for="date-time-end"
+                        >End date and time</label
+                      >
+                      <input
+                        id="date-time-end"
+                        class="form-control"
+                        type="datetime-local"
+                        step="1"
+                        required
+                        data-date-time-end
+                      />
+                    </div>
+                  </div>
+                  <div class="d-flex flex-wrap gap-2 mt-4">
+                    <button class="btn btn-primary" type="submit">
+                      Calculate interval
+                    </button>
+                    <button
+                      class="btn btn-outline-secondary"
+                      type="button"
+                      data-date-time-reset
+                    >
+                      Reset to current time
+                    </button>
+                  </div>
+                  <p
+                    class="alert alert-danger playground-error mt-3 mb-0"
+                    role="alert"
+                    data-date-time-error
+                  ></p>
+                  <div
+                    class="playground-output mt-3"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <strong>Interval</strong><br />
+                    <code data-date-time-result>0 seconds</code>
+                  </div>
+                </form>
+              </div>
+
+              <div
+                id="cagr"
+                class="tab-pane fade"
+                role="tabpanel"
+                aria-labelledby="cagr-tab"
+              >
+                <h3 class="h4">Calculate an investment CAGR</h3>
+                <p>
+                  Annualize a complete-period return using
+                  <code>calculateCAGR</code> and a fixed 365-day year.
+                </p>
+                <form data-cagr-form novalidate>
+                  <div class="row g-4">
+                    <div class="col-lg-6">
+                      <label class="form-label" for="cagr-start"
+                        >Start date</label
+                      >
+                      <input
+                        id="cagr-start"
+                        class="form-control"
+                        type="date"
+                        value="2022-04-01"
+                        required
+                        data-cagr-start
+                      />
+                    </div>
+                    <div class="col-lg-6">
+                      <label class="form-label" for="cagr-end">End date</label>
+                      <input
+                        id="cagr-end"
+                        class="form-control"
+                        type="date"
+                        value="2025-10-01"
+                        required
+                        data-cagr-end
+                      />
+                    </div>
+                    <div class="col-lg-6">
+                      <label class="form-label" for="cagr-return"
+                        >Total return</label
+                      >
+                      <input
+                        id="cagr-return"
+                        class="form-control"
+                        type="text"
+                        value="20.2%"
+                        maxlength="100"
+                        required
+                        data-cagr-return
+                      />
+                      <div class="form-text">
+                        Enter a percentage value such as 20.2%, 20.2, or -15.5%.
+                      </div>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary mt-4" type="submit">
+                    Calculate CAGR
+                  </button>
+                  <p
+                    class="alert alert-danger playground-error mt-3 mb-0"
+                    role="alert"
+                    data-cagr-error
+                  ></p>
+                  <div
+                    class="playground-output mt-3"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <strong>Decimal CAGR</strong><br />
+                    <code data-cagr-decimal-result></code><br />
+                    <strong>Formatted CAGR</strong><br />
+                    <code data-cagr-percentage-result></code>
+                  </div>
+                </form>
+              </div>
+
+              <div
+                id="duration"
+                class="tab-pane fade"
+                role="tabpanel"
+                aria-labelledby="duration-tab"
+              >
+                <h3 class="h4">Format a duration</h3>
+                <p>
+                  Convert milliseconds into a concise readable duration using
+                  <code>formatDurationFromMs</code>.
+                </p>
+                <form data-duration-form novalidate>
+                  <label class="form-label" for="duration-ms"
+                    >Duration in milliseconds</label
+                  >
+                  <input
+                    id="duration-ms"
+                    class="form-control"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value="90000"
+                    required
+                    data-duration
+                  />
+                  <div class="form-text">
+                    Example: 90000 becomes 1.5 minutes.
+                  </div>
+                  <button class="btn btn-primary mt-4" type="submit">
+                    Run example
+                  </button>
+                  <p
+                    class="alert alert-danger playground-error mt-3 mb-0"
+                    role="alert"
+                    data-duration-error
+                  ></p>
+                  <div
+                    class="playground-output mt-3"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <strong>Formatted duration</strong><br />
+                    <code data-duration-result>1.5 minutes</code>
+                  </div>
+                </form>
+              </div>
+
+              <div
+                id="identifier"
+                class="tab-pane fade"
+                role="tabpanel"
+                aria-labelledby="identifier-tab"
+              >
+                <h3 class="h4">Convert an identifier</h3>
+                <p>
+                  Convert a camel-case identifier to kebab case using
+                  <code>convertCamelToKebab</code>.
+                </p>
+                <form data-identifier-form novalidate>
+                  <label class="form-label" for="identifier-value"
+                    >Camel-case identifier</label
+                  >
+                  <input
+                    id="identifier-value"
+                    class="form-control"
+                    type="text"
+                    value="helloWorld"
+                    maxlength="100"
+                    data-identifier
+                  />
+                  <div class="form-text">
+                    Example: helloWorld becomes hello-world.
+                  </div>
+                  <button class="btn btn-primary mt-4" type="submit">
+                    Run example
+                  </button>
+                  <p
+                    class="alert alert-danger playground-error mt-3 mb-0"
+                    role="alert"
+                    data-identifier-error
+                  ></p>
+                  <div
+                    class="playground-output mt-3"
+                    role="status"
+                    aria-live="polite"
+                    aria-atomic="true"
+                  >
+                    <strong>Converted identifier</strong><br />
+                    <code data-identifier-result>hello-world</code>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section
+        class="section-band section-band--muted"
+        aria-labelledby="continue-title"
+      >
+        <div class="container">
+          <h2 id="continue-title">Continue exploring Mazey</h2>
+          <p>
+            These examples cover universal utilities that are safe to call in a
+            browser. Other Mazey APIs interact with the DOM, storage, cookies,
+            resource loading, browser detection, and performance APIs; review
+            their runtime requirements before use.
+          </p>
+          <ul>
+            <li><a href="../">Return to the project home page</a></li>
+            <li><a href="../api/">Read the complete API documentation</a></li>
+            <li>
+              <a href="<%= GITHUB_URL %>"
+                >Inspect the source and tests on GitHub</a
+              >
+            </li>
+            <li>
+              <a href="<%= NPM_URL %>">Open the Mazey npm package page</a>
+            </li>
+          </ul>
+        </div>
+      </section>
+    </main>
+
+    <aside
+      class="pwa-update-notice"
+      aria-label="Website update"
+      data-pwa-update
+      hidden
+    >
+      <span
+        >A new version of the <%= DISPLAY_NAME %> website is available.</span
+      >
+      <button class="btn btn-primary btn-sm" type="button" data-pwa-update-now>
+        Update now
+      </button>
+    </aside>
+    <noscript>
+      <div class="container py-4">
+        <p class="alert alert-warning">
+          JavaScript is required for the interactive utility examples. You can
+          still read the
+          <a href="../api/">API documentation</a> or return to the
+          <a href="../">project home page</a>.
+        </p>
       </div>
-      <div class="s"></div>
-      <button id="btn">Button</button>
-    </div>
-    <script type="text/javascript" src="//i.mazey.net/lib/vue/2.6.12/vue.min.js?_=qwer"></script>
-    <script type="text/javascript" src="//i.mazey.net/lib/jquery/2.1.1/jquery.min.js?id=233&_=asdfg"></script>
-    <script type="text/javascript" src="//i.mazey.net/lib/bootstrap/3.4.1/js/bootstrap.min.js"></script>
-</body>
+    </noscript>
+    <footer class="site-footer">
+      <div class="container d-lg-flex justify-content-between gap-4">
+        <p>
+          <strong>Mazey playground</strong><br />Runs public utility APIs in
+          your browser.
+        </p>
+        <nav aria-label="Footer navigation">
+          <ul class="list-inline d-flex flex-wrap gap-3">
+            <li><a href="../">Home</a></li>
+            <li><a href="../api/">API documentation</a></li>
+            <li data-pwa-install-container hidden>
+              <button
+                class="pwa-footer-install"
+                type="button"
+                data-pwa-install
+                hidden
+              >
+                Install app
+              </button>
+            </li>
+          </ul>
+        </nav>
+        <span
+          class="visually-hidden"
+          role="status"
+          aria-live="polite"
+          data-pwa-status
+        ></span>
+      </div>
+    </footer>
+  </body>
 </html>

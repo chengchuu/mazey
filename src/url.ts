@@ -1,7 +1,179 @@
 import type {
-  MultiValueUrlParams, SingleValueUrlParams, URLChangeTrigger, URLChangeInfo,
+  SingleValueUrlParams, URLChangeTrigger, URLChangeInfo,
   OnURLChangeOptions, URLChangeSubscriber, PatchedHistory,
 } from "./typing";
+
+function decodeQueryComponent(value: string): string {
+  try {
+    return decodeURIComponent(value.replace(/\+/g, " "));
+  } catch (e) {
+    return value;
+  }
+}
+
+function getQueryEntries(url: string): Array<[string, string]> {
+  const hashIndex = url.indexOf("#");
+  const withoutHash = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const queryIndex = withoutHash.indexOf("?");
+  const isAbsoluteOrRelativeUrl = /^(?:[a-z][a-z\d+.-]*:)?\/\//i.test(withoutHash) || withoutHash.charAt(0) === "/";
+  const query = queryIndex === -1
+    ? (isAbsoluteOrRelativeUrl ? "" : withoutHash)
+    : withoutHash.slice(queryIndex + 1);
+
+  if (!query) {
+    return [];
+  }
+
+  return query.split("&").reduce<Array<[string, string]>>((entries, part) => {
+    if (!part || part.indexOf("=") === -1) {
+      return entries;
+    }
+    const separatorIndex = part.indexOf("=");
+    entries.push([
+      decodeQueryComponent(part.slice(0, separatorIndex)),
+      decodeQueryComponent(part.slice(separatorIndex + 1)),
+    ]);
+    return entries;
+  }, []);
+}
+
+function getQueryValues(url: string, param: string): string[] {
+  return getQueryEntries(url)
+    .filter(([ key ]) => key === param)
+    .map(([ , value ]) => value);
+}
+
+/**
+ * Canonical identity fields returned by {@link parseGitHubRepository}.
+ *
+ * @category URL
+ */
+export interface GitHubRepositoryDetails {
+  owner: string;
+  name: string;
+  slug: string;
+  url: string;
+}
+
+const githubOwnerPattern = /^(?=.{1,39}$)(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/;
+const githubRepositoryPattern = /^(?=.{1,100}$)(?!\.{1,2}$)[A-Za-z0-9_.-]+$/;
+
+function invalidGitHubRepository(): Error {
+  return new Error("The value does not identify one supported GitHub repository");
+}
+
+function hasAsciiControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code <= 31 || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function createGitHubRepositoryDetails(owner: string, rawName: string): GitHubRepositoryDetails {
+  const name = rawName.replace(/\.git$/i, "");
+  if (!githubOwnerPattern.test(owner) || !githubRepositoryPattern.test(name)) {
+    throw invalidGitHubRepository();
+  }
+
+  const slug = `${owner}/${name}`;
+  return {
+    owner,
+    name,
+    slug,
+    url: `https://github.com/${slug}`,
+  };
+}
+
+/**
+ * Parse a GitHub repository shorthand or transport URL.
+ *
+ * Accepted values include `owner/name`, `github:owner/name`, SCP-style SSH,
+ * and `git`, `ssh`, `http`, or `https` GitHub URLs with an optional `git+`
+ * prefix and terminal `.git` suffix. Owner and repository names intentionally
+ * use a strict subset of GitHub's ASCII naming rules, including documented
+ * length bounds, and percent-encoded input is rejected.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { parseGitHubRepository } from "mazey";
+ *
+ * const repository = parseGitHubRepository("git@github.com:acme/widget.git");
+ * console.log(repository.slug, repository.url);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * acme/widget https://github.com/acme/widget
+ * ```
+ *
+ * @param value A GitHub `owner/name` shorthand, SCP form, or supported Git URL.
+ * @returns Canonical owner, repository name, slug, and HTTPS URL.
+ * @throws TypeError when `value` is not a string.
+ * @throws Error when the value is malformed or does not identify one GitHub repository.
+ * @category URL
+ */
+export function parseGitHubRepository(value: string): GitHubRepositoryDetails {
+  if (typeof value !== "string") {
+    throw new TypeError("value must be a string");
+  }
+
+  const input = value.trim();
+  if (!input || /[%\\?#]/.test(input) || hasAsciiControlCharacter(input)) {
+    throw invalidGitHubRepository();
+  }
+
+  const shorthand = input.match(/^(?:github:)?([^/:\s]+)\/([^/\s]+)$/i);
+  if (shorthand) {
+    return createGitHubRepositoryDetails(shorthand[1], shorthand[2]);
+  }
+
+  const scp = input.match(/^git@([^:\s]+):([^/\s]+)\/([^/\s]+)$/);
+  if (scp && scp[1].toLowerCase() === "github.com") {
+    return createGitHubRepositoryDetails(scp[2], scp[3]);
+  }
+
+  const normalizedUrl = input.replace(/^git\+(?=(?:git|ssh|https?):\/\/)/i, "");
+  const authority = normalizedUrl.match(/^[a-z][a-z\d+.-]*:\/\/([^/?#]+)/i);
+  if (!authority || /(^|\/)\.{1,2}(?:\/|$)/.test(normalizedUrl.slice(authority[0].length))) {
+    throw invalidGitHubRepository();
+  }
+
+  const hostWithPort = authority[1].slice(authority[1].lastIndexOf("@") + 1);
+  if (hostWithPort.indexOf(":") !== -1 || typeof URL !== "function") {
+    throw invalidGitHubRepository();
+  }
+
+  let repositoryUrl: URL;
+  try {
+    repositoryUrl = new URL(normalizedUrl);
+  } catch (e) {
+    throw invalidGitHubRepository();
+  }
+
+  const protocol = repositoryUrl.protocol.toLowerCase();
+  const hostname = repositoryUrl.hostname.toLowerCase().replace(/^www\./, "");
+  if (
+    ![ "git:", "ssh:", "http:", "https:" ].includes(protocol) ||
+    hostname !== "github.com" ||
+    (repositoryUrl.username !== "" && repositoryUrl.username !== "git") ||
+    repositoryUrl.password !== "" ||
+    repositoryUrl.search !== "" ||
+    repositoryUrl.hash !== ""
+  ) {
+    throw invalidGitHubRepository();
+  }
+
+  const pathMatch = repositoryUrl.pathname.match(/^\/([^/]+)\/([^/]+)\/?$/);
+  if (!pathMatch) {
+    throw invalidGitHubRepository();
+  }
+  return createGitHubRepositoryDetails(pathMatch[1], pathMatch[2]);
+}
 
 /**
  * Get the query param's value of the current Web URL(`location.search`).
@@ -29,12 +201,7 @@ import type {
  * @category URL
  */
 export function getQueryParam(param: string): string {
-  const reg = new RegExp("(^|&)" + param + "=([^&]*)(&|$)");
-  const r = location.search.substring(1).match(reg);
-  if (r !== null) {
-    return decodeURIComponent(r[2]);
-  }
-  return "";
+  return getQueryValues(location.search, param)[0] || "";
 }
 
 /**
@@ -66,11 +233,15 @@ export function getAllQueryParams(url: string = ""): SingleValueUrlParams {
     url = location.search;
   }
   const result: SingleValueUrlParams = {};
-  url.replace(/\??(\w+)=([^&]*)&?/g, function(_: string, key: string, val: string): string {
-    if (result[ key ] === undefined) {
-      result[ key ] = decodeURIComponent(val);
+  getQueryEntries(url).forEach(([ key, value ]) => {
+    if (!Object.prototype.hasOwnProperty.call(result, key)) {
+      Object.defineProperty(result, key, {
+        configurable: true,
+        enumerable: true,
+        value,
+        writable: true,
+      });
     }
-    return "";
   });
   return result;
 }
@@ -102,22 +273,7 @@ export function getAllQueryParams(url: string = ""): SingleValueUrlParams {
  * @category URL
  */
 export function getUrlParam(url: string, param: string, options: { returnArray?: boolean } = {}): string | string[] | null {
-  let res: string | string[] | null = null;
-  if (url.includes("#")) {
-    const urlObj = new URL(url);
-    res = urlObj.searchParams.getAll(param);
-  } else {
-    const result: MultiValueUrlParams = {};
-    url.replace(/\??(\w+)=([^&]*)&?/g, function(_: string, key: string, val: string): string {
-      if (result[ key ] !== undefined) {
-        result[ key ].push(val);
-      } else {
-        result[ key ] = [ val ];
-      }
-      return "";
-    });
-    res = result[ param ] || [];
-  }
+  const res = getQueryValues(url, param);
   if (options.returnArray) {
     return res;
   } else {
@@ -157,19 +313,34 @@ export function getUrlParam(url: string, param: string, options: { returnArray?:
  * @category URL
  */
 export function updateQueryParam(url: string, param: string, value: string): string {
-  if (url.includes("#")) {
-    const urlObj = new URL(url);
-    urlObj.searchParams.set(param, value);
-    return urlObj.toString();
-  } else {
-    const re = new RegExp("([?&])" + param + "=.*?(&|$)", "i");
-    const separator = url.indexOf("?") !== -1 ? "&" : "?";
-    if (url.match(re)) {
-      return url.replace(re, "$1" + param + "=" + value + "$2");
+  const hashIndex = url.indexOf("#");
+  const hash = hashIndex === -1 ? "" : url.slice(hashIndex);
+  const withoutHash = hashIndex === -1 ? url : url.slice(0, hashIndex);
+  const queryIndex = withoutHash.indexOf("?");
+  const base = queryIndex === -1 ? withoutHash : withoutHash.slice(0, queryIndex);
+  const query = queryIndex === -1 ? "" : withoutHash.slice(queryIndex + 1);
+  const encodedParam = encodeURIComponent(param);
+  const encodedValue = encodeURIComponent(value);
+  let replaced = false;
+  const parts = query ? query.split("&").filter(Boolean) : [];
+  const updatedParts = parts.reduce<string[]>((result, part) => {
+    const separatorIndex = part.indexOf("=");
+    const key = separatorIndex === -1 ? part : part.slice(0, separatorIndex);
+    if (decodeQueryComponent(key) === param) {
+      if (!replaced) {
+        result.push(`${encodedParam}=${encodedValue}`);
+        replaced = true;
+      }
     } else {
-      return url + separator + param + "=" + value;
+      result.push(part);
     }
+    return result;
+  }, []);
+
+  if (!replaced) {
+    updatedParts.push(`${encodedParam}=${encodedValue}`);
   }
+  return `${base}?${updatedParts.join("&")}${hash}`;
 }
 
 /**
@@ -202,9 +373,7 @@ export function getHashQueryParam(param: string): string {
   if (hashs.length === 1) {
     return "";
   }
-  const reg = new RegExp(`(^|&)${param}=([^&]*)(&|$)`);
-  const ret = hashs[1].match(reg);
-  return ret ? ret[2] : "";
+  return getQueryValues(`?${hashs.slice(1).join("?")}`, param)[0] || "";
 }
 
 /**
@@ -296,6 +465,92 @@ export function isValidUrl(url: string): boolean {
   return reg.test(url);
 }
 
+function isValidUrlPort(port?: string): boolean {
+  return port === undefined || Number(port) <= 65535;
+}
+
+function isValidIpv4Address(address: string): boolean {
+  const parts = address.split(".");
+  return parts.length === 4 && parts.every(part => (
+    /^\d{1,3}$/.test(part) &&
+    (part.length === 1 || part.charAt(0) !== "0") &&
+    Number(part) <= 255
+  ));
+}
+
+function isValidIpv6Address(address: string): boolean {
+  const compressedParts = address.split("::");
+  if (compressedParts.length > 2) {
+    return false;
+  }
+
+  const hasCompression = compressedParts.length === 2;
+  let segments: string[] = [];
+  compressedParts.forEach(part => {
+    if (part) segments = segments.concat(part.split(":"));
+  });
+  let groupCount = 0;
+  for (let index = 0; index < segments.length; index++) {
+    const segment = segments[index];
+    if (segment.indexOf(".") !== -1) {
+      if (index !== segments.length - 1 || !isValidIpv4Address(segment)) {
+        return false;
+      }
+      groupCount += 2;
+    } else {
+      if (!/^[0-9a-f]{1,4}$/i.test(segment)) {
+        return false;
+      }
+      groupCount += 1;
+    }
+  }
+
+  return hasCompression ? groupCount < 8 : groupCount === 8;
+}
+
+function isValidHttpHostname(hostname: string): boolean {
+  const ipv6Match = hostname.match(/^\[([0-9a-f:.]+)\]$/i);
+  if (ipv6Match) {
+    return isValidIpv6Address(ipv6Match[1]);
+  }
+  if (hostname.charAt(hostname.length - 1) === ".") {
+    hostname = hostname.slice(0, -1);
+  }
+  if (isValidIpv4Address(hostname)) {
+    return true;
+  }
+
+  const labels = hostname.split(".");
+  if (labels.length < 2 || labels.some(label => (
+    !label ||
+    !/^[a-z\d-]+$/i.test(label) ||
+    label.charAt(0) === "-" ||
+    label.charAt(label.length - 1) === "-"
+  ))) {
+    return false;
+  }
+  return !/^\d+$/.test(labels[labels.length - 1]);
+}
+
+function isValidHttpUrlFallback(url: string): boolean {
+  const match = url.match(/^https?:\/\/([^/?#]+)(?:[/?#][^\s<>"`]*)?$/i);
+  if (!match || match[1].indexOf("@") !== -1) {
+    return false;
+  }
+
+  const authority = match[1];
+  const ipv6Match = authority.match(/^\[([0-9a-f:.]+)\](?::(\d*))?$/i);
+  if (ipv6Match) {
+    return isValidIpv6Address(ipv6Match[1]) && isValidUrlPort(ipv6Match[2]);
+  }
+
+  const authorityMatch = authority.match(/^([^:]+)(?::(\d*))?$/);
+  if (!authorityMatch || !isValidUrlPort(authorityMatch[2])) {
+    return false;
+  }
+  return isValidHttpHostname(authorityMatch[1]);
+}
+
 /**
  * Check if the given string is a valid HTTP/HTTPS URL.
  *
@@ -325,17 +580,37 @@ export function isValidUrl(url: string): boolean {
  * @category URL
  */
 export function isValidHttpUrl(url: string, options: { strict: boolean } = { strict: true }): boolean {
-  let reg = /^https?:\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9\u4E00-\u9FA5()!@:%_+.~#?&//=]*)/;
-  if (!options.strict) {
-    reg = /^(https?:)?\/\/(www\.)?[-a-zA-Z0-9@:%._+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b([-a-zA-Z0-9\u4E00-\u9FA5()!@:%_+.~#?&//=]*)/;
+  if (typeof url !== "string" || !url || url.trim() !== url) {
+    return false;
   }
-  return reg.test(url);
+  const isHttpUrl = /^https?:\/\/[^/\\]/i.test(url);
+  const isProtocolRelative = /^\/\/[^/\\]/.test(url);
+  if (!isHttpUrl && (options.strict || !isProtocolRelative)) {
+    return false;
+  }
+  const normalizedUrl = isProtocolRelative ? `http:${url}` : url;
+  if (!isValidHttpUrlFallback(normalizedUrl)) {
+    return false;
+  }
+  if (typeof URL !== "function") {
+    return true;
+  }
+  try {
+    const parsed = new URL(normalizedUrl);
+    const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
+    return isHttp && isValidHttpHostname(parsed.hostname) && !parsed.username && !parsed.password;
+  } catch (e) {
+    try {
+      new URL("http://example.com");
+      return false;
+    } catch (unsupportedError) {
+      return isValidHttpUrlFallback(normalizedUrl);
+    }
+  }
 }
 
 /**
- * EN: Get the file type of the url.
- *
- * ZH: 获取文件后缀名。
+ * Get the file extension from a URL or path.
  *
  * Usage:
  *
@@ -365,7 +640,8 @@ export function getUrlFileType(url: string): boolean | string {
   if (typeof url != "string" || url == "") {
     return ret;
   }
-  const type = /\.[^/?#]+$/.exec(url);
+  const path = url.split(/[?#]/, 1)[0];
+  const type = /\.[^/]+$/.exec(path);
   if (!type) {
     return ret;
   }
@@ -407,14 +683,13 @@ export function getScriptQueryParam(param: string, matchString = ""): string {
   if (!matchString) {
     matchString = ".js";
   }
-  const paramRegExp = new RegExp(`[?&]${param}=([^&]*)`);
-  const scriptTags = document.querySelectorAll(`script[src*="${matchString}"]`);
+  const scriptTags = document.querySelectorAll("script[src]");
   for (let i = 0; i < scriptTags.length; i++) {
     const src = scriptTags[i].getAttribute("src");
     if (src && src.indexOf(matchString) !== -1) {
-      const match = src.match(paramRegExp);
-      if (match) {
-        return decodeURIComponent(match[1]);
+      const value = getQueryValues(src, param)[0];
+      if (value !== undefined) {
+        return value;
       }
     }
   }
@@ -447,11 +722,9 @@ export function convertObjectToQuery(obj: { [key: string]: string }): string {
   if (obj && Object.keys(obj).length === 0) {
     return "";
   }
-  let res: string = "?";
-  for (const i in obj) {
-    res += `${i}=${obj[i]}&`;
-  }
-  return res.slice(0, -1);
+  return `?${Object.keys(obj)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(obj[key])}`)
+    .join("&")}`;
 }
 
 /**
@@ -491,19 +764,12 @@ export function replaceHttp(url: string): string {
 
 function checkIfURLIsSupported(url: string = "") {
   const URL = window.URL;
-  if (!URL) {
-    return false;
-  }
-  if (!URL.canParse) {
-    return false;
-  }
-  if (typeof URL.canParse !== "function") {
+  if (typeof URL !== "function") {
     return false;
   }
   try {
-    const u = new URL("b", "http://a");
-    u.pathname = "c d";
-    return (u.href === "http://a/c%20d") && Boolean(u.searchParams) && URL.canParse(url);
+    const parsed = new URL(url);
+    return Boolean(parsed.href);
   } catch (e) {
     return false;
   }
