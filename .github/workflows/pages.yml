@@ -1,0 +1,61 @@
+name: Deploy GitHub Pages
+
+env:
+  NODE_VERSION: "22"
+
+on:
+  push:
+    branches:
+      - "docs/v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Check types and lint
+        run: npm run typecheck && npm run lint
+
+      - name: Build package
+        run: npm run build
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+      - name: Build and validate Pages
+        run: npm run docs
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: docs
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
