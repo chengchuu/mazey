@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.webpack.json",
+  "compilerOptions": {
+    "types": ["global", "jest", "node"]
+  },
+  "include": ["../test/playground/**/*.ts", "../test/playground/**/*.tsx"]
+}
