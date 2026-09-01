@@ -5,7 +5,8 @@
 import {
   isValidUrl, getUrlFileType, isValidHttpUrl, updateQueryParam, getUrlParam,
   getScriptQueryParam, convertObjectToQuery, convertHttpToHttps,
-  getAllQueryParams, onURLChange,
+  getAllQueryParams, getQueryParam, getHashQueryParam,
+  getDomain, getUrlHost, getUrlPath, onURLChange, parseGitHubRepository,
 } from "../lib/index.esm";
 
 const validUrls = [
@@ -45,6 +46,82 @@ const invalidUrls = [
   "v=0618",
 ];
 
+describe("parseGitHubRepository", () => {
+  const expected = {
+    owner: "acme",
+    name: "widget",
+    slug: "acme/widget",
+    url: "https://github.com/acme/widget",
+  };
+
+  it.each([
+    "acme/widget",
+    "github:acme/widget.git",
+    "git@github.com:acme/widget.git",
+    "git@GITHUB.COM:acme/widget.git",
+    "git://github.com/acme/widget.git",
+    "ssh://git@github.com/acme/widget.git",
+    "git+ssh://git@github.com/acme/widget.git",
+    "http://github.com/acme/widget",
+    "https://www.github.com/acme/widget.git",
+    "git+https://GITHUB.COM/acme/widget.git",
+    "  acme/widget  ",
+  ])("normalizes %s", value => {
+    expect(parseGitHubRepository(value)).toEqual(expected);
+  });
+
+  it.each([
+    "",
+    "   ",
+    "acme",
+    "acme/widget/extra",
+    "https://github.com/acme//widget",
+    "https://example.com/acme/widget",
+    "https://github.com/acme/widget?tab=readme",
+    "https://github.com/acme/widget?",
+    "https://github.com/acme/widget#readme",
+    "https://github.com/acme/widget#",
+    "https://github.com:443/acme/widget",
+    "https://user@github.com/acme/widget",
+    "https://git:secret@github.com/acme/widget",
+    "GIT@github.com:acme/widget.git",
+    "https://github.com/acme/../widget",
+    "https://github.com/acme/%77idget",
+    "https://github.com/acme/%2Fwidget",
+    "https://github.com/acme/%00widget",
+    "工具/widget",
+    "acme/工具",
+    "acme--tools/widget",
+    `${"a".repeat(40)}/widget`,
+    `acme/${"a".repeat(101)}`,
+  ])("rejects unsupported input %p", value => {
+    expect(() => parseGitHubRepository(value)).toThrow(Error);
+  });
+
+  it("rejects non-string runtime input", () => {
+    expect(() => parseGitHubRepository({ url: "acme/widget" })).toThrow(TypeError);
+  });
+
+  it("returns equal but independently allocated results", () => {
+    const first = parseGitHubRepository("acme/widget");
+    const second = parseGitHubRepository("acme/widget");
+    expect(first).toEqual(second);
+    expect(first).not.toBe(second);
+  });
+
+  it("accepts GitHub's owner and repository length boundaries", () => {
+    const owner = "a".repeat(39);
+    const name = "b".repeat(100);
+
+    expect(parseGitHubRepository(`${owner}/${name}`)).toEqual({
+      owner,
+      name,
+      slug: `${owner}/${name}`,
+      url: `https://github.com/${owner}/${name}`,
+    });
+  });
+});
+
 test("isValidUrl", () => {
   validUrls.forEach(url => {
     expect(isValidUrl(url)).toBe(true);
@@ -63,6 +140,7 @@ test("getUrlFileType", () => {
   expect(getUrlFileType("https://example.com/a/b/c.jpeg")).toBe("jpeg");
   expect(getUrlFileType("/a/b/c.jpeg")).toBe("jpeg");
   expect(getUrlFileType("https://example.com/a/b/c.v/a")).toBe("");
+  expect(getUrlFileType("https://example.com/a/b/c.png?size=2#preview")).toBe("png");
 });
 
 describe("isValidHttpUrl", () => {
@@ -73,6 +151,7 @@ describe("isValidHttpUrl", () => {
     expect(isValidHttpUrl("http://www.example.com/#world?id=9")).toBe(true);
     expect(isValidHttpUrl("http://example.com:8080")).toBe(true);
     expect(isValidHttpUrl("http://www.example.com/哈哈哈哈哈")).toBe(true);
+    expect(isValidHttpUrl("https://example.com./path")).toBe(true);
   });
 
   it("should return false for invalid URLs", () => {
@@ -83,6 +162,19 @@ describe("isValidHttpUrl", () => {
     expect(isValidHttpUrl("http://ssssssssssss")).toBe(false);
     expect(isValidHttpUrl("https://this-shouldn't.match@example.com")).toBe(false);
     expect(isValidHttpUrl("abcdef")).toBe(false);
+    expect(isValidHttpUrl("https://example.com trailing text")).toBe(false);
+    expect(isValidHttpUrl("https://example.com<script>")).toBe(false);
+    expect(isValidHttpUrl("http:example.com")).toBe(false);
+    expect(isValidHttpUrl("http:/example.com")).toBe(false);
+    expect(isValidHttpUrl("http:////example.com")).toBe(false);
+    expect(isValidHttpUrl("https://.example.com")).toBe(false);
+    expect(isValidHttpUrl("https://example..com")).toBe(false);
+    expect(isValidHttpUrl("https://-example.com")).toBe(false);
+    expect(isValidHttpUrl("https://example-.com")).toBe(false);
+    expect(isValidHttpUrl("https://exa_mple.com")).toBe(false);
+    expect(isValidHttpUrl("http://127.1")).toBe(false);
+    expect(isValidHttpUrl("http://0177.0.0.1")).toBe(false);
+    expect(isValidHttpUrl("http://0x7f.0.0.1")).toBe(false);
   });
 
   it("should return true for valid URLs when strict is false", () => {
@@ -92,6 +184,7 @@ describe("isValidHttpUrl", () => {
     expect(isValidHttpUrl("https://www.example.com/#world?id=9", { strict: false })).toBe(true);
     expect(isValidHttpUrl("//example.com:8080", { strict: false })).toBe(true);
     expect(isValidHttpUrl("//www.example.com/哈哈哈哈哈", { strict: false })).toBe(true);
+    expect(isValidHttpUrl("//example.com./path", { strict: false })).toBe(true);
   });
 
   it("should return false for invalid URLs when strict is false", () => {
@@ -102,7 +195,15 @@ describe("isValidHttpUrl", () => {
     expect(isValidHttpUrl("http://ssssssssssss", { strict: false })).toBe(false);
     expect(isValidHttpUrl("https://this-shouldn't.match@example.com", { strict: false })).toBe(false);
     expect(isValidHttpUrl("abcdef", { strict: false })).toBe(false);
+    expect(isValidHttpUrl("///example.com", { strict: false })).toBe(false);
+    expect(isValidHttpUrl("////example.com", { strict: false })).toBe(false);
   });
+
+});
+
+test("getDomain resolves absolute and document-relative URLs", () => {
+  expect(getDomain("https://example.com:8080/path", [ "host", "pathname" ])).toBe("example.com:8080/path");
+  expect(getDomain("../relative", [ "pathname" ])).toBe("/relative");
 });
 
 // Test case 1: URL with existing query parameter
@@ -130,6 +231,12 @@ test("Update query parameter in URL with hash fragment", () => {
   const value = "updatedValue";
   const updatedUrl = updateQueryParam(url, param, value);
   expect(updatedUrl).toBe("https://example.com/page?param1=updatedValue#section1");
+});
+
+test("Update encoded parameters in relative URLs without moving the hash", () => {
+  expect(updateQueryParam("/page?first=1#section", "a b", "x&y")).toBe("/page?first=1&a%20b=x%26y#section");
+  expect(updateQueryParam("/page?a%20b=old&a%20b=duplicate#section", "a b", "new value"))
+    .toBe("/page?a%20b=new%20value#section");
 });
 
 
@@ -182,6 +289,24 @@ describe("getUrlParam", () => {
     const result = getUrlParam(url, param);
     expect(result).toBe("value2");
   });
+
+  test("decodes values consistently and supports relative URLs with hashes", () => {
+    expect(getUrlParam("https://example.com/?q=hello%20world", "q")).toBe("hello world");
+    expect(getUrlParam("/?q=hello+world#section", "q")).toBe("hello world");
+    expect(getUrlParam("/?a%2Eb=value", "a.b")).toBe("value");
+  });
+});
+
+describe("current URL query helpers", () => {
+  afterEach(() => {
+    window.history.replaceState({}, "", "/");
+  });
+
+  it("supports encoded names, plus spaces, and hash values", () => {
+    window.history.replaceState({}, "", "/?a%2Eb=hello+world#route?a%2Eb=hash+value");
+    expect(getQueryParam("a.b")).toBe("hello world");
+    expect(getHashQueryParam("a.b")).toBe("hash value");
+  });
 });
 
 describe("getScriptQueryParam", () => {
@@ -227,6 +352,14 @@ describe("getScriptQueryParam", () => {
     const result = getScriptQueryParam("test");
     expect(result).toBe("hello world");
   });
+
+  it("does not construct a selector or regular expression from caller input", () => {
+    document.querySelectorAll.mockReturnValue([
+      { getAttribute: () => "https://example.com/a.js?a%2Eb=ok" },
+    ]);
+    expect(getScriptQueryParam("a.b", "\"")).toBe("");
+    expect(getScriptQueryParam("a.b", "example.com")).toBe("ok");
+  });
 });
 
 describe("convertObjectToQuery", () => {
@@ -257,6 +390,13 @@ describe("convertObjectToQuery", () => {
     const expected = "?name=John_Doe&age=30&city=New_York";
     const result = convertObjectToQuery(obj);
     expect(result).toEqual(expected);
+  });
+
+  it("encodes own properties and excludes inherited properties", () => {
+    const obj = Object.assign(Object.create({ inherited: "bad" }), {
+      "a b": "x&y",
+    });
+    expect(convertObjectToQuery(obj)).toBe("?a%20b=x%26y");
   });
 });
 
@@ -331,10 +471,33 @@ describe("getAllQueryParams", () => {
     expect(result).toEqual({ a: "10", b: "20", c: "30" });
   });
 
+  test("should parse a bare query string", () => {
+    expect(getAllQueryParams("a=10&b=20")).toEqual({ a: "10", b: "20" });
+    expect(getUrlParam("a=10&b=20", "a")).toBe("10");
+  });
+
   test("should decode URI components in query params", () => {
     const url = "?name=John%20Doe&city=New%20York";
     const result = getAllQueryParams(url);
     expect(result).toEqual({ name: "John Doe", city: "New York" });
+  });
+
+  test("should support encoded and hyphenated keys plus form-style spaces", () => {
+    expect(getAllQueryParams("?a-b=hello+world&a%2Eb=value")).toEqual({
+      "a-b": "hello world",
+      "a.b": "value",
+    });
+  });
+
+  test("returns prototype-named keys as safe own properties", () => {
+    const result = getAllQueryParams("?__proto__=safe&constructor=ctor&toString=text");
+
+    expect(Object.getPrototypeOf(result)).toBe(Object.prototype);
+    expect(Object.keys(result)).toEqual([ "__proto__", "constructor", "toString" ]);
+    expect(result.__proto__).toBe("safe");
+    expect(result.constructor).toBe("ctor");
+    expect(result.toString).toBe("text");
+    expect(Object.prototype.polluted).toBeUndefined();
   });
 
   test("should handle empty values in query params", () => {
@@ -353,6 +516,38 @@ describe("getAllQueryParams", () => {
     const url = "?key=value1&key=value2";
     const result = getAllQueryParams(url);
     expect(result).toEqual({ key: "value1" });
+  });
+});
+
+describe("URL constructor compatibility", () => {
+  it("gets host and path when URL.canParse is unavailable", () => {
+    const originalCanParse = Object.getOwnPropertyDescriptor(window.URL, "canParse");
+    Object.defineProperty(window.URL, "canParse", {
+      configurable: true,
+      value: undefined,
+    });
+    try {
+      expect(getUrlHost("https://example.com:8080/path")).toBe("example.com:8080");
+      expect(getUrlPath("https://example.com:8080/path")).toBe("/path");
+    } finally {
+      if (originalCanParse) {
+        Object.defineProperty(window.URL, "canParse", originalCanParse);
+      } else {
+        delete window.URL.canParse;
+      }
+    }
+  });
+
+  it("preserves host and path extraction for absolute non-HTTP URLs", () => {
+    expect(getUrlHost("ftp://example.com/archive/file.zip")).toBe("example.com");
+    expect(getUrlPath("ftp://example.com/archive/file.zip")).toBe("/archive/file.zip");
+    expect(getUrlHost("custom://example.com/action")).toBe("example.com");
+    expect(getUrlPath("mailto:test@example.com")).toBe("test@example.com");
+  });
+
+  it("returns empty strings for malformed URLs", () => {
+    expect(getUrlHost("not a url")).toBe("");
+    expect(getUrlPath("not a url")).toBe("");
   });
 });
 
