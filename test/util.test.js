@@ -5,10 +5,10 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopyObject, repeatUntilConditionMet,
-  formatDate, isBrowser, waitTime, isArray,
+  formatDate, generateCalendarVersion, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
-  getFriendlyInterval, getFileSize, getCurrentVersion,
+  getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
   genUniqueNumString, generateRndNum, genHashCode,
   floatToPercent, floatFixed, throttle, debounce,
   doFn, mTrim, removeHtml, truncateZHString,
@@ -112,6 +112,61 @@ test("formatDate: Edge case - Start of the day", () => {
   expect(formatDate(new Date(2024, 0, 1, 0, 0, 0), "yyyy-MM-dd HH:mm:ss")).toBe("2024-01-01 00:00:00");
 });
 
+describe("generateCalendarVersion", () => {
+  test.each([
+    [ new Date(2026, 6, 11, 7, 40, 35), "2026.711.74035" ],
+    [ new Date(2026, 6, 11, 0, 0, 0), "2026.711.0" ],
+    [ new Date(2026, 7, 1, 8, 5, 9), "2026.801.80509" ],
+    [ new Date(2026, 10, 1, 19, 8, 9), "2026.1101.190809" ],
+    [ new Date(2027, 0, 1, 0, 0, 1), "2027.101.1" ],
+  ])("formats %s as %s", (date, expected) => {
+    expect(generateCalendarVersion(date)).toBe(expected);
+  });
+
+  test("defaults to the current local date and time", () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date(2028, 2, 4, 5, 6, 7));
+      expect(generateCalendarVersion()).toBe("2028.304.50607");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("preserves an explicitly supplied zero timestamp", () => {
+    expect(generateCalendarVersion(0)).toBe(generateCalendarVersion(new Date(0)));
+  });
+
+  test("returns exactly three normalized numeric segments", () => {
+    const segments = generateCalendarVersion(new Date(2026, 0, 1, 0, 0, 1)).split(".");
+    expect(segments).toHaveLength(3);
+    segments.forEach(segment => {
+      expect(segment).toMatch(/^(0|[1-9]\d*)$/);
+      expect(segment).toBe(String(Number(segment)));
+    });
+  });
+
+  test("increases using numeric Semantic Versioning precedence", () => {
+    const compareVersions = (left, right) => {
+      const leftSegments = left.split(".").map(Number);
+      const rightSegments = right.split(".").map(Number);
+      for (let i = 0; i < leftSegments.length; i++) {
+        if (leftSegments[i] !== rightSegments[i]) {
+          return leftSegments[i] - rightSegments[i];
+        }
+      }
+      return 0;
+    };
+    const earlier = generateCalendarVersion(new Date(2026, 6, 11, 7, 40, 35));
+    const later = generateCalendarVersion(new Date(2026, 6, 11, 7, 40, 36));
+    const nextDay = generateCalendarVersion(new Date(2026, 6, 12, 0, 0, 0));
+
+    expect(later).toBe("2026.711.74036");
+    expect(compareVersions(later, earlier)).toBeGreaterThan(0);
+    expect(compareVersions(nextDay, later)).toBeGreaterThan(0);
+  });
+});
+
 test("isValidData: Check the valid value?", () => {
   expect(isValidData({
     a: {
@@ -141,6 +196,47 @@ test("getFriendlyInterval: Get 1116 days?", () => {
   expect(getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" })).toBe(1116);
   expect(getFriendlyInterval(1585325367000, 1681786440000, { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
   expect(getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
+});
+
+describe("formatDurationFromMs", () => {
+  test("formats durations using the largest applicable unit", () => {
+    expect(formatDurationFromMs(0)).toBe("0 seconds");
+    expect(formatDurationFromMs(500)).toBe("0.5 seconds");
+    expect(formatDurationFromMs(1000)).toBe("1 second");
+    expect(formatDurationFromMs(1500)).toBe("1.5 seconds");
+    expect(formatDurationFromMs(60000)).toBe("1 minute");
+    expect(formatDurationFromMs(90000)).toBe("1.5 minutes");
+    expect(formatDurationFromMs(3600000)).toBe("1 hour");
+    expect(formatDurationFromMs(5400000)).toBe("1.5 hours");
+    expect(formatDurationFromMs(86400000)).toBe("1 day");
+    expect(formatDurationFromMs(129600000)).toBe("1.5 days");
+  });
+
+  test("selects units using exact thresholds", () => {
+    expect(formatDurationFromMs(59999)).toBe("60 seconds");
+    expect(formatDurationFromMs(60000)).toBe("1 minute");
+    expect(formatDurationFromMs(60001)).toBe("1 minute");
+    expect(formatDurationFromMs(3599999)).toBe("60 minutes");
+    expect(formatDurationFromMs(3600000)).toBe("1 hour");
+    expect(formatDurationFromMs(3600001)).toBe("1 hour");
+    expect(formatDurationFromMs(86399999)).toBe("24 hours");
+    expect(formatDurationFromMs(86400000)).toBe("1 day");
+    expect(formatDurationFromMs(86400001)).toBe("1 day");
+  });
+
+  test("rounds to one decimal place and pluralizes the rounded value", () => {
+    expect(formatDurationFromMs(1234)).toBe("1.2 seconds");
+    expect(formatDurationFromMs(1250)).toBe("1.3 seconds");
+    expect(formatDurationFromMs(1040)).toBe("1 second");
+    expect(formatDurationFromMs(1050)).toBe("1.1 seconds");
+  });
+
+  test("normalizes negative and non-finite durations", () => {
+    expect(formatDurationFromMs(-1000)).toBe("0 seconds");
+    expect(formatDurationFromMs(NaN)).toBe("0 seconds");
+    expect(formatDurationFromMs(Infinity)).toBe("0 seconds");
+    expect(formatDurationFromMs(-Infinity)).toBe("0 seconds");
+  });
 });
 
 describe("unsanitize", () => {

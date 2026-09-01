@@ -640,6 +640,49 @@ export function getFriendlyInterval(start: number | string | Date = 0, end: numb
   return ret;
 }
 
+function formatDurationUnit(value: number, unit: string): string {
+  const roundedValue = Math.round(value * 10) / 10;
+  const unitLabel = roundedValue === 1 ? unit : `${unit}s`;
+  return `${roundedValue} ${unitLabel}`;
+}
+
+/**
+ * Format a duration in milliseconds using its largest applicable English unit.
+ *
+ * Values are rounded to at most one decimal place. Negative durations are
+ * clamped to zero, and non-finite values return `"0 seconds"`.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { formatDurationFromMs } from "mazey";
+ *
+ * formatDurationFromMs(500);        // "0.5 seconds"
+ * formatDurationFromMs(90000);      // "1.5 minutes"
+ * formatDurationFromMs(3600000);    // "1 hour"
+ * formatDurationFromMs(129600000);  // "1.5 days"
+ * ```
+ *
+ * @param {number} durationMs Duration in milliseconds.
+ * @returns {string} Concise duration using seconds, minutes, hours, or days.
+ * @category Util
+ */
+export function formatDurationFromMs(durationMs: number): string {
+  const normalizedDurationMs = Number.isFinite(durationMs) ? Math.max(durationMs, 0) : 0;
+  const seconds = normalizedDurationMs / 1000;
+
+  if (seconds >= 24 * 60 * 60) {
+    return formatDurationUnit(seconds / 24 / 60 / 60, "day");
+  }
+  if (seconds >= 60 * 60) {
+    return formatDurationUnit(seconds / 60 / 60, "hour");
+  }
+  if (seconds >= 60) {
+    return formatDurationUnit(seconds / 60, "minute");
+  }
+  return formatDurationUnit(seconds, "second");
+}
+
 /**
  * EN: Check whether it is a right number.
  *
@@ -1476,6 +1519,41 @@ export function formatDate(dateIns?: MazeyDate, format = "yyyy-MM-dd"): string {
     tempFormat = tempFormat.replace(key, String(value));
   });
   return tempFormat;
+}
+
+/**
+ * Generate a Calendar Versioning string from a date.
+ *
+ * The conceptual format is `yyyy.MMdd.HHmmss`. Leading zeroes are removed
+ * from each segment to keep numeric Semantic Versioning identifiers valid.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { generateCalendarVersion } from "mazey";
+ *
+ * const ret = generateCalendarVersion(new Date(2026, 6, 11, 7, 40, 35));
+ * console.log(ret);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2026.711.74035
+ * ```
+ *
+ * @param {MazeyDate} dateIns Original date. Defaults to the current date.
+ * @returns {string} Return the generated calendar version.
+ * @category Util
+ */
+export function generateCalendarVersion(dateIns?: MazeyDate): string {
+  const normalizedDateIns = dateIns === undefined
+    ? new Date()
+    : new Date(dateIns instanceof Date ? dateIns.getTime() : dateIns);
+  return formatDate(normalizedDateIns, "yyyy.MMdd.HHmmss")
+    .split(".")
+    .map(segment => String(Number(segment)))
+    .join(".");
 }
 
 /**
