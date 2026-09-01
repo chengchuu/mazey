@@ -3,10 +3,11 @@ node_modules/
 
 # Build outputs
 dist/
+dist-dev/
 lib/
 coverage/
 .ts-webpack/
-examples/
+docs/
 
 # Test reports
 test/unit/coverage/

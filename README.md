@@ -12,21 +12,27 @@ English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README.zh-
 
 Mazey is a functional library for daily frontend work. There are already many excellent libraries for frontend development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for frontend needs.
 
+- [Project website](https://chengchuu.github.io/mazey/)
+- [Live playground](https://chengchuu.github.io/mazey/playground/)
+- [API documentation](https://chengchuu.github.io/mazey/api/)
+
 ## Install
 
 Use Mazey via [npm](https://www.npmjs.com/package/mazey).
 
 ```bash
-npm install mazey --save
+npm install mazey
 ```
 
 Use Mazey from CDN.
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 ```
 
-Of course, you can also download and serve the file [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
+You can also download and serve the
+[latest browser bundle](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)
+yourself.
 
 ## Usage
 
@@ -48,7 +54,7 @@ isNumber(z, { isInfinityAsNumber: true }); // Output: true
 Import from CDN.
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
   const x = 123;
   mazey.isNumber(x); // Output: true
@@ -57,7 +63,8 @@ Import from CDN.
 
 ## API Examples
 
-There are some examples maintained by hand below. For more information, please check the [full documentation](https://mazey.cn/t/m).
+There are some examples maintained by hand below. For more information, please check the
+[full API documentation](https://chengchuu.github.io/mazey/api/).
 
 ### Table of Contents
 
@@ -72,14 +79,27 @@ There are some examples maintained by hand below. For more information, please c
 - [Util](#util)
   - [isNumber](#isnumber)
   - [isJSONString](#isjsonstring)
+  - [parseJsonSafe](#parsejsonsafe)
+  - [sha256Hex](#sha256hex)
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
+  - [isValidDate](#isvaliddate)
+  - [isToday](#istoday)
+  - [isThisYear](#isthisyear)
+  - [isThisMonth](#isthismonth)
+  - [isThisWeek](#isthisweek)
+  - [isThisHour](#isthishour)
+  - [formatDistanceToNow](#formatdistancetonow)
+  - [generateCalendarVersion](#generatecalendarversion)
+  - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
+  - [deepFreeze](#deepfreeze)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToUnder](#convertcameltounder)
+  - [toJavaScriptGlobalName](#tojavascriptglobalname)
 - [URL](#url)
   - [getQueryParam](#getqueryparam)
   - [getUrlParam](#geturlparam)
@@ -88,11 +108,14 @@ There are some examples maintained by hand below. For more information, please c
   - [updateQueryParam](#updatequeryparam)
   - [isValidUrl](#isvalidurl)
   - [isValidHttpUrl](#isvalidhttpurl)
+  - [parseGitHubRepository](#parsegithubrepository)
 - [Store](#store)
   - [Cookie Helpers](#cookie-helpers)
   - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
+  - [isValidCssSelector](#isvalidcssselector)
+  - [extractElementText](#extractelementtext)
   - [addStyle](#addstyle)
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
@@ -101,8 +124,11 @@ There are some examples maintained by hand below. For more information, please c
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
+  - [resolveThemePreference](#resolvethemepreference)
+  - [setThemePreference](#setthemepreference)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
+  - [isStandalonePWA](#isstandalonepwa)
 - [Web Performance](#web-performance)
   - [getPerformance](#getperformance)
 - [Debug](#debug)
@@ -283,6 +309,33 @@ false
 true
 ```
 
+#### parseJsonSafe
+
+Parse JSON and return a caller-defined fallback instead of throwing when the
+input is malformed.
+
+```javascript
+const data = parseJsonSafe('{"enabled":true}');
+const fallback = parseJsonSafe("invalid", {});
+console.log(data, fallback);
+```
+
+#### sha256Hex
+
+Generate a lowercase SHA-256 hexadecimal digest with the Web Crypto API.
+String input also requires `TextEncoder`.
+
+```javascript
+const digest = await sha256Hex("hello world");
+console.log(digest);
+```
+
+Output:
+
+```text
+b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
+```
+
 #### isValidData
 
 Determine the validity of the data.
@@ -359,6 +412,145 @@ Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
 ```
 
+#### isValidDate
+
+Check whether an unknown value represents a valid date. The function accepts
+`Date` instances, finite millisecond timestamps, supported local date strings,
+and ISO 8601 strings with `Z` or a numeric timezone offset.
+
+Supported string forms are `YYYY-MM-DD`, `YYYY-MM-DD HH:mm[:ss]`,
+`YYYY-MM-DDTHH:mm[:ss]`, and the same `T`-separated date-time with `Z` or a
+`+HH:mm`/`-HH:mm` offset. Zoned strings may include 1-3 millisecond digits.
+
+Structured strings are parsed into numeric components and validated strictly.
+Invalid calendar dates such as `"2020-02-30"` are rejected instead of being
+normalized into another date.
+
+Usage:
+
+```javascript
+const ret1 = isValidDate(1577877720000);
+const ret2 = isValidDate("2020-01-01 11:22");
+const ret3 = isValidDate("2020-02-30");
+const ret4 = isValidDate(new Date("invalid"));
+console.log(ret1, ret2, ret3, ret4);
+```
+
+Output:
+
+```text
+true true false false
+```
+
+#### isToday
+
+Check whether a date has the current local year, month, and day.
+
+```javascript
+isToday(new Date());
+```
+
+Output: `true`
+
+#### isThisYear
+
+Check whether a date is in the current local calendar year.
+
+```javascript
+isThisYear(new Date());
+```
+
+Output: `true`
+
+#### isThisMonth
+
+Check whether a date is in the current local calendar month and year.
+
+```javascript
+isThisMonth(new Date());
+```
+
+Output: `true`
+
+#### isThisWeek
+
+Check whether a date is in the current local Monday-first week. The week ends
+before the following Monday.
+
+```javascript
+isThisWeek(new Date());
+```
+
+Output: `true`
+
+#### isThisHour
+
+Check whether a date has the current local year, month, day, and hour.
+
+```javascript
+isThisHour(new Date());
+```
+
+Output: `true`
+
+#### formatDistanceToNow
+
+Format the absolute distance from a date to now without adding `ago` or `in`.
+Past and future dates use the same approximate English wording.
+
+```javascript
+formatDistanceToNow(new Date(Date.now() - 60 * 60 * 1000));
+```
+
+Output: `about 1 hour`
+
+#### generateCalendarVersion
+
+Generate a local-time Calendar Versioning string using the conceptual format `yyyy.MMdd.HHmmss`. Leading zeroes are removed from each numeric segment for Semantic Versioning compatibility.
+
+Versions increase with the supplied local date and time under normal clock progression. Because the function intentionally follows local time, a manual clock rollback or daylight-saving fallback can produce a value lower than one generated earlier.
+
+Usage:
+
+```javascript
+const version = generateCalendarVersion(
+  new Date(2026, 6, 11, 7, 40, 35)
+);
+console.log(version);
+```
+
+Output:
+
+```text
+2026.711.74035
+```
+
+#### formatDurationFromMs
+
+Format a duration in milliseconds using the largest applicable unit: seconds, minutes, hours, or days. Values are rounded to at most one decimal place; negative and non-finite durations produce `"0 seconds"`.
+
+Usage:
+
+```javascript
+const ret1 = formatDurationFromMs(500);
+const ret2 = formatDurationFromMs(90000);
+const ret3 = formatDurationFromMs(3600000);
+const ret4 = formatDurationFromMs(129600000);
+console.log(ret1);
+console.log(ret2);
+console.log(ret3);
+console.log(ret4);
+```
+
+Output:
+
+```text
+0.5 seconds
+1.5 minutes
+1 hour
+1.5 days
+```
+
 #### deepCopy
 
 Copy/Clone Object deeply.
@@ -377,6 +569,31 @@ Output:
 ```text
 ["a", "b", "c"]
 abc
+```
+
+#### deepFreeze
+
+Recursively freeze an object and its nested enumerable values. Primitive values
+and objects that are already frozen are returned unchanged.
+
+Usage:
+
+```javascript
+const config = deepFreeze({
+  api: {
+    timeout: 5000,
+  },
+});
+
+console.log(Object.isFrozen(config));
+console.log(Object.isFrozen(config.api));
+```
+
+Output:
+
+```text
+true
+true
 ```
 
 #### debounce
@@ -443,6 +660,23 @@ Output:
 ```text
 a_b_c
 a_b_c
+```
+
+#### toJavaScriptGlobalName
+
+Convert text to a deterministic uppercase ASCII identifier suitable for an
+IIFE global name. Invalid identifier characters become underscores, and a
+leading digit is prefixed with an underscore.
+
+```javascript
+const globalName = toJavaScriptGlobalName("@scope/my-library");
+console.log(globalName);
+```
+
+Output:
+
+```text
+_SCOPE_MY_LIBRARY
 ```
 
 ### URL
@@ -602,6 +836,22 @@ Output:
 true true true true false
 ```
 
+#### parseGitHubRepository
+
+Parse a GitHub repository shorthand, SCP form, or supported Git transport URL
+into canonical identity fields.
+
+```javascript
+const repository = parseGitHubRepository("git@github.com:acme/widget.git");
+console.log(JSON.stringify(repository));
+```
+
+Output:
+
+```text
+{"owner":"acme","name":"widget","slug":"acme/widget","url":"https://github.com/acme/widget"}
+```
+
 ### Store
 
 #### Cookie Helpers
@@ -669,6 +919,30 @@ hasClass(dom, "test");
 addClass(dom, "test");
 // Remove `class`
 removeClass(dom, "test");
+```
+
+#### isValidCssSelector
+
+Check whether a value is a CSS selector supported by the supplied query root.
+Invalid selector syntax returns `false` instead of throwing.
+
+```javascript
+isValidCssSelector(".message > img"); // true
+isValidCssSelector("["); // false
+isValidCssSelector("", { allowEmpty: true }); // true
+```
+
+#### extractElementText
+
+Extract normalized text from a cloned element without modifying the original
+DOM. Images can contribute their `alt` text, and matching descendants can be
+excluded.
+
+```javascript
+const message = document.querySelector(".message");
+const text = extractElementText(message, {
+  excludeSelector: ".message-actions",
+});
 ```
 
 #### addStyle
@@ -881,6 +1155,53 @@ Output:
 
 ### Browser Information
 
+#### resolveThemePreference
+
+Resolve a project-specific website theme preference without applying it to the
+page. Resolution checks a `light` or `dark` URL query override, persisted
+`system`/`light`/`dark` storage, the current system color scheme, and finally a
+`light` fallback, in that order.
+
+```javascript
+const theme = resolveThemePreference({
+  storageKey: "MY_WEBSITE_THEME",
+  url: "https://example.com/?theme=dark",
+});
+
+console.log(theme);
+```
+
+Output:
+
+```text
+{
+  preference: "dark",
+  resolvedTheme: "dark",
+  displayName: "Dark",
+  source: "query"
+}
+```
+
+`preference` is the selected `system`, `light`, or `dark` value, while
+`resolvedTheme` is always the effective `light` or `dark` theme. The resolver
+is safe during SSR, tolerates unavailable browser storage and media queries,
+and does not mutate the DOM or write to storage.
+
+#### setThemePreference
+
+Persist an exact `system`, `light`, or `dark` preference under a
+project-specific storage key. The function returns `false` when storage is
+unavailable or rejects the write; it does not apply the theme to the page.
+
+```javascript
+const stored = setThemePreference({
+  storageKey: "MY_WEBSITE_THEME",
+  preference: "dark",
+});
+```
+
+Output: `true`
+
 #### getBrowserInfo
 
 Browser Information
@@ -922,7 +1243,17 @@ const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app
 
 #### isSafePWAEnv
 
-Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
+Detect whether the current browser document provides the minimum prerequisites
+for PWA functionality that synchronous JavaScript can identify: a secure
+context, Service Worker API support, and, by default, a web app manifest link
+with a non-empty `href`. Pass `{ requireManifest: false }` when only secure
+Service Worker eligibility is needed, or `{ scope: "/app/" }` to require the
+current page to be inside a same-origin path scope.
+
+This check does not validate or request the manifest, verify service worker
+registration, determine whether the app is installed, or guarantee that an
+installation prompt is available. Browser-specific installation policies may
+impose additional requirements.
 
 Usage:
 
@@ -937,6 +1268,18 @@ Output:
 true
 ```
 
+#### isStandalonePWA
+
+Detect standard standalone display mode with the iOS Safari
+`navigator.standalone` fallback. This is a presentation hint, not proof that
+the app is installed or controlled by a service worker.
+
+```javascript
+if (isStandalonePWA()) {
+  document.querySelector("[data-install-help]")?.remove();
+}
+```
+
 ### Web Performance
 
 #### getPerformance
@@ -945,7 +1288,6 @@ Get page load time(`PerformanceNavigationTiming`).
 
 This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
 The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
-If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/chengchuu/mazey/releases/tag/v3.9.7)).
 
 Usage:
 
@@ -1017,35 +1359,15 @@ MazeyLog: I am object. {a: 123, b: 456}
 
 ### Scripts
 
-Install Dependencies:
-
-```bash
-npm i
-```
-
-Development:
-
-```bash
-npm run dev
-```
-
-Build:
-
-```bash
-npm run build
-```
-
-Test:
-
-```bash
-npm run test
-```
-
-Documentation:
-
-```bash
-npm run docs
-```
+| Command               | Purpose                                                         |
+| --------------------- | --------------------------------------------------------------- |
+| `npm install`         | Install development dependencies.                               |
+| `npm run dev`         | Start the website and playground development server.            |
+| `npm run build`       | Build the publishable package files.                            |
+| `npm test`            | Run the Jest test suite.                                        |
+| `npm run docs`        | Build and validate the complete GitHub Pages artifact.          |
+| `npm run preview`     | Run the full type, lint, build, test, and documentation checks. |
+| `npm run pwa:preview` | Serve the production Pages artifact at the `/mazey/` base path. |
 
 ### Returns
 
