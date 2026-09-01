@@ -4,12 +4,17 @@ import type {
 } from "./typing";
 import { isNonEmptyArray } from "./util";
 
-let pwaSupport = "";
-
 /**
- * EN: Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
+ * Detect whether the current browser document provides the minimum
+ * JavaScript-detectable prerequisites for PWA functionality.
  *
- * ZH: 判断是否是安全的 PWA 环境。
+ * This function checks for a secure context, Service Worker API support,
+ * and a web app manifest link with a non-empty `href`.
+ *
+ * It does not validate or request the manifest, verify service worker
+ * registration, determine whether the app is installed, or guarantee that an
+ * installation prompt is available. Browser-specific installation policies
+ * may impose additional requirements.
  *
  * Usage:
  *
@@ -27,53 +32,26 @@ let pwaSupport = "";
  * ```
  *
  * @environment Browser
- * @returns {boolean} true 是
+ * @returns Whether the detectable minimum PWA prerequisites are satisfied.
  * @category Browser Information
  */
 export function isSafePWAEnv(): boolean {
-  if (pwaSupport) {
-    return pwaSupport === "pwa";
-  }
-  // 判断是否支持 async await
-  function isSupportAsyncAwait() {
-    let isSupportAsyncAwaitFunc;
-    try {
-      const fn = new Function("return async function(){};");
-      isSupportAsyncAwaitFunc = fn();
-      // 由于 async 函数的构造器不是全局对象，所以我们需要由下面代码来获取 async 函数的构造器
-      // 具体可以查看以下 MDN 上有关于 AsyncFunction 的说明
-      // 地址：https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncFunction
-      return Object.getPrototypeOf(isSupportAsyncAwaitFunc).constructor != null;
-    } catch (e) {
-      return false;
-    }
-  }
-  // 判断是否支持 Promise
-  function isSupportPromise() {
-    if (typeof Promise !== "undefined" && Promise.toString().indexOf("[native code]") !== -1) {
-      return true;
-    }
+  if (
+    typeof window === "undefined" ||
+    typeof document === "undefined" ||
+    typeof navigator === "undefined"
+  ) {
     return false;
   }
-  // HTTPS
-  function isHttps() {
-    return window.location.protocol === "https:";
-  }
-  // 浏览器信息
-  const BrowserType = getBrowserInfo();
-  if (
+
+  const manifest = document.querySelector<HTMLLinkElement>("link[rel~=\"manifest\"][href]");
+  const manifestHref = manifest?.getAttribute("href")?.trim();
+
+  return (
+    window.isSecureContext === true &&
     "serviceWorker" in navigator &&
-    isSupportAsyncAwait() &&
-    isSupportPromise() &&
-    Boolean(window.fetch) && Boolean(window.indexedDB) && Boolean(window.caches) &&
-    !BrowserType["shell"] &&
-    isHttps()
-  ) {
-    pwaSupport = "pwa";
-    return true;
-  }
-  pwaSupport = "no-pwa";
-  return false;
+    Boolean(manifestHref)
+  );
 }
 
 /**

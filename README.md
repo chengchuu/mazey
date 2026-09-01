@@ -75,7 +75,10 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
+  - [generateCalendarVersion](#generatecalendarversion)
+  - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
+  - [deepFreeze](#deepfreeze)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
@@ -359,6 +362,51 @@ Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
 ```
 
+#### generateCalendarVersion
+
+Generate an increasing Calendar Versioning string using the conceptual format `yyyy.MMdd.HHmmss`. Leading zeroes are removed from each numeric segment for Semantic Versioning compatibility.
+
+Usage:
+
+```javascript
+const version = generateCalendarVersion(
+  new Date(2026, 6, 11, 7, 40, 35)
+);
+console.log(version);
+```
+
+Output:
+
+```text
+2026.711.74035
+```
+
+#### formatDurationFromMs
+
+Format a duration in milliseconds using the largest applicable unit: seconds, minutes, hours, or days. Values are rounded to at most one decimal place; negative and non-finite durations produce `"0 seconds"`.
+
+Usage:
+
+```javascript
+const ret1 = formatDurationFromMs(500);
+const ret2 = formatDurationFromMs(90000);
+const ret3 = formatDurationFromMs(3600000);
+const ret4 = formatDurationFromMs(129600000);
+console.log(ret1);
+console.log(ret2);
+console.log(ret3);
+console.log(ret4);
+```
+
+Output:
+
+```text
+0.5 seconds
+1.5 minutes
+1 hour
+1.5 days
+```
+
 #### deepCopy
 
 Copy/Clone Object deeply.
@@ -377,6 +425,31 @@ Output:
 ```text
 ["a", "b", "c"]
 abc
+```
+
+#### deepFreeze
+
+Recursively freeze an object and its nested enumerable values. Primitive values
+and objects that are already frozen are returned unchanged.
+
+Usage:
+
+```javascript
+const config = deepFreeze({
+  api: {
+    timeout: 5000,
+  },
+});
+
+console.log(Object.isFrozen(config));
+console.log(Object.isFrozen(config.api));
+```
+
+Output:
+
+```text
+true
+true
 ```
 
 #### debounce
@@ -922,7 +995,15 @@ const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app
 
 #### isSafePWAEnv
 
-Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
+Detect whether the current browser document provides the minimum prerequisites
+for PWA functionality that synchronous JavaScript can identify: a secure
+context, Service Worker API support, and a web app manifest link with a
+non-empty `href`.
+
+This check does not validate or request the manifest, verify service worker
+registration, determine whether the app is installed, or guarantee that an
+installation prompt is available. Browser-specific installation policies may
+impose additional requirements.
 
 Usage:
 
