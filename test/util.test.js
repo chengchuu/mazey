@@ -8,7 +8,7 @@ import {
   formatDate, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
-  getFriendlyInterval, getFileSize, getCurrentVersion,
+  getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
   genUniqueNumString, generateRndNum, genHashCode,
   floatToPercent, floatFixed, throttle, debounce,
   doFn, mTrim, removeHtml, truncateZHString,
@@ -141,6 +141,47 @@ test("getFriendlyInterval: Get 1116 days?", () => {
   expect(getFriendlyInterval(new Date("2020-03-28 00:09:27"), new Date("2023-04-18 10:54:00"), { type: "d" })).toBe(1116);
   expect(getFriendlyInterval(1585325367000, 1681786440000, { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
   expect(getFriendlyInterval("2020-03-28 00:09:27", "2023-04-18 10:54:00", { type: "text" })).toBe("1116 天 10 时 44 分 33 秒");
+});
+
+describe("formatDurationFromMs", () => {
+  test("formats durations using the largest applicable unit", () => {
+    expect(formatDurationFromMs(0)).toBe("0 seconds");
+    expect(formatDurationFromMs(500)).toBe("0.5 seconds");
+    expect(formatDurationFromMs(1000)).toBe("1 second");
+    expect(formatDurationFromMs(1500)).toBe("1.5 seconds");
+    expect(formatDurationFromMs(60000)).toBe("1 minute");
+    expect(formatDurationFromMs(90000)).toBe("1.5 minutes");
+    expect(formatDurationFromMs(3600000)).toBe("1 hour");
+    expect(formatDurationFromMs(5400000)).toBe("1.5 hours");
+    expect(formatDurationFromMs(86400000)).toBe("1 day");
+    expect(formatDurationFromMs(129600000)).toBe("1.5 days");
+  });
+
+  test("selects units using exact thresholds", () => {
+    expect(formatDurationFromMs(59999)).toBe("60 seconds");
+    expect(formatDurationFromMs(60000)).toBe("1 minute");
+    expect(formatDurationFromMs(60001)).toBe("1 minute");
+    expect(formatDurationFromMs(3599999)).toBe("60 minutes");
+    expect(formatDurationFromMs(3600000)).toBe("1 hour");
+    expect(formatDurationFromMs(3600001)).toBe("1 hour");
+    expect(formatDurationFromMs(86399999)).toBe("24 hours");
+    expect(formatDurationFromMs(86400000)).toBe("1 day");
+    expect(formatDurationFromMs(86400001)).toBe("1 day");
+  });
+
+  test("rounds to one decimal place and pluralizes the rounded value", () => {
+    expect(formatDurationFromMs(1234)).toBe("1.2 seconds");
+    expect(formatDurationFromMs(1250)).toBe("1.3 seconds");
+    expect(formatDurationFromMs(1040)).toBe("1 second");
+    expect(formatDurationFromMs(1050)).toBe("1.1 seconds");
+  });
+
+  test("normalizes negative and non-finite durations", () => {
+    expect(formatDurationFromMs(-1000)).toBe("0 seconds");
+    expect(formatDurationFromMs(NaN)).toBe("0 seconds");
+    expect(formatDurationFromMs(Infinity)).toBe("0 seconds");
+    expect(formatDurationFromMs(-Infinity)).toBe("0 seconds");
+  });
 });
 
 describe("unsanitize", () => {
