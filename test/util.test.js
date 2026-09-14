@@ -5,7 +5,7 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopyObject, repeatUntilConditionMet,
-  formatDate, isBrowser, waitTime, isArray,
+  formatDate, generateCalendarVersion, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
   getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
@@ -110,6 +110,61 @@ test("formatDate: Edge case - 12:00:00 AM", () => {
 
 test("formatDate: Edge case - Start of the day", () => {
   expect(formatDate(new Date(2024, 0, 1, 0, 0, 0), "yyyy-MM-dd HH:mm:ss")).toBe("2024-01-01 00:00:00");
+});
+
+describe("generateCalendarVersion", () => {
+  test.each([
+    [ new Date(2026, 6, 11, 7, 40, 35), "2026.711.74035" ],
+    [ new Date(2026, 6, 11, 0, 0, 0), "2026.711.0" ],
+    [ new Date(2026, 7, 1, 8, 5, 9), "2026.801.80509" ],
+    [ new Date(2026, 10, 1, 19, 8, 9), "2026.1101.190809" ],
+    [ new Date(2027, 0, 1, 0, 0, 1), "2027.101.1" ],
+  ])("formats %s as %s", (date, expected) => {
+    expect(generateCalendarVersion(date)).toBe(expected);
+  });
+
+  test("defaults to the current local date and time", () => {
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(new Date(2028, 2, 4, 5, 6, 7));
+      expect(generateCalendarVersion()).toBe("2028.304.50607");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  test("preserves an explicitly supplied zero timestamp", () => {
+    expect(generateCalendarVersion(0)).toBe(generateCalendarVersion(new Date(0)));
+  });
+
+  test("returns exactly three normalized numeric segments", () => {
+    const segments = generateCalendarVersion(new Date(2026, 0, 1, 0, 0, 1)).split(".");
+    expect(segments).toHaveLength(3);
+    segments.forEach(segment => {
+      expect(segment).toMatch(/^(0|[1-9]\d*)$/);
+      expect(segment).toBe(String(Number(segment)));
+    });
+  });
+
+  test("increases using numeric Semantic Versioning precedence", () => {
+    const compareVersions = (left, right) => {
+      const leftSegments = left.split(".").map(Number);
+      const rightSegments = right.split(".").map(Number);
+      for (let i = 0; i < leftSegments.length; i++) {
+        if (leftSegments[i] !== rightSegments[i]) {
+          return leftSegments[i] - rightSegments[i];
+        }
+      }
+      return 0;
+    };
+    const earlier = generateCalendarVersion(new Date(2026, 6, 11, 7, 40, 35));
+    const later = generateCalendarVersion(new Date(2026, 6, 11, 7, 40, 36));
+    const nextDay = generateCalendarVersion(new Date(2026, 6, 12, 0, 0, 0));
+
+    expect(later).toBe("2026.711.74036");
+    expect(compareVersions(later, earlier)).toBeGreaterThan(0);
+    expect(compareVersions(nextDay, later)).toBeGreaterThan(0);
+  });
 });
 
 test("isValidData: Check the valid value?", () => {
