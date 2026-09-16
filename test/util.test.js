@@ -4,7 +4,7 @@
 /* eslint-disable no-undef */
 import {
   camelCaseToKebabCase, camelCase2Underscore,
-  deepCopyObject, repeatUntilConditionMet,
+  deepCopyObject, deepFreeze, repeatUntilConditionMet,
   formatDate, generateCalendarVersion, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
@@ -45,6 +45,40 @@ test("mTrim: Transfer 'abc ' to 'abc'?", () => {
 
 test("deepCopyObject: Transfer 'abc' to 'abc'?", () => {
   expect(deepCopyObject("abc")).toBe("abc");
+});
+
+describe("deepFreeze", () => {
+  it("recursively freezes nested objects and arrays", () => {
+    const value = {
+      config: {
+        entries: [
+          { enabled: true },
+        ],
+      },
+    };
+
+    const result = deepFreeze(value);
+
+    expect(result).toBe(value);
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.config)).toBe(true);
+    expect(Object.isFrozen(result.config.entries)).toBe(true);
+    expect(Object.isFrozen(result.config.entries[0])).toBe(true);
+  });
+
+  it.each([ null, undefined, false, 0, "mazey" ])(
+    "returns the primitive value %p unchanged",
+    value => {
+      expect(deepFreeze(value)).toBe(value);
+    },
+  );
+
+  it("returns an already-frozen object unchanged", () => {
+    const value = Object.freeze({ enabled: true });
+
+    expect(deepFreeze(value)).toBe(value);
+    expect(Object.isFrozen(value)).toBe(true);
+  });
 });
 
 test("isJsonString: Is '['a', 'b', 'c']' a valid JSON string?", () => {

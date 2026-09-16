@@ -78,6 +78,7 @@ There are some examples maintained by hand below. For more information, please c
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
+  - [deepFreeze](#deepfreeze)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
@@ -424,6 +425,31 @@ Output:
 ```text
 ["a", "b", "c"]
 abc
+```
+
+#### deepFreeze
+
+Recursively freeze an object and its nested enumerable values. Primitive values
+and objects that are already frozen are returned unchanged.
+
+Usage:
+
+```javascript
+const config = deepFreeze({
+  api: {
+    timeout: 5000,
+  },
+});
+
+console.log(Object.isFrozen(config));
+console.log(Object.isFrozen(config.api));
+```
+
+Output:
+
+```text
+true
+true
 ```
 
 #### debounce
@@ -969,7 +995,15 @@ const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app
 
 #### isSafePWAEnv
 
-Detect the margin of Safety. Determine if it is a secure PWA environment that it can run.
+Detect whether the current browser document provides the minimum prerequisites
+for PWA functionality that synchronous JavaScript can identify: a secure
+context, Service Worker API support, and a web app manifest link with a
+non-empty `href`.
+
+This check does not validate or request the manifest, verify service worker
+registration, determine whether the app is installed, or guarantee that an
+installation prompt is available. Browser-specific installation policies may
+impose additional requirements.
 
 Usage:
 
