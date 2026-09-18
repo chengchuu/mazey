@@ -25,12 +25,12 @@ function renderPwaControls() {
   `;
 }
 
-test("install state changes support legacy MediaQueryList listeners", () => {
+test("install state changes use standard MediaQueryList listeners", () => {
   renderPwaControls();
   const media = {
     matches: false,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
   };
   const windowRef = Object.assign(new EventTarget(), {
     matchMedia: () => media,
@@ -42,9 +42,9 @@ test("install state changes support legacy MediaQueryList listeners", () => {
     appName
   );
 
-  expect(media.addListener).toHaveBeenCalledTimes(1);
+  expect(media.addEventListener).toHaveBeenCalledTimes(1);
   cleanup();
-  expect(media.removeListener).toHaveBeenCalledTimes(1);
+  expect(media.removeEventListener).toHaveBeenCalledTimes(1);
 });
 
 test("service worker registration uses the configured URL and scope", async () => {

@@ -39,6 +39,10 @@ test("project configuration derives deployment identity from package metadata", 
     basePath: "/mazey/",
   });
   expect(projectConfig.pwa.serviceWorkerUrl).toBe("/mazey/service-worker.js");
+  expect(projectConfig.pwa).toMatchObject({
+    name: projectConfig.brand.displayName,
+    shortName: projectConfig.brand.shortName,
+  });
   expect(projectConfig.site.theme.storageKey).toBe("mazey-theme");
   expect(projectConfig.urls.cdn).toBe(
     "https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"
@@ -134,16 +138,17 @@ test("generated cross-page fragments require a real target ID", () => {
   }
 });
 
-test("Pages CI builds package outputs before running Jest", () => {
+test("Pages CI builds package outputs before running Jest normally", () => {
   const workflow = fs.readFileSync(
     path.join(process.cwd(), ".github", "workflows", "pages.yml"),
     "utf8"
   );
   const build = workflow.indexOf("run: npm run build");
-  const test = workflow.indexOf("run: npm test -- --runInBand");
+  const test = workflow.indexOf("run: npm test");
 
   expect(build).toBeGreaterThan(-1);
   expect(test).toBeGreaterThan(build);
+  expect(workflow).not.toContain("--runInBand");
 });
 
 test.each([
@@ -170,13 +175,71 @@ test("package identity supports scoped package names", () => {
 
 test("API transformation is complete, idempotent, and promotes a page h1", () => {
   const transformed = transformApiHtml(typeDocHtml, "modules.html");
+  const theme = projectConfig.site.theme;
   expect(transformApiHtml(transformed, "modules.html")).toBe(transformed);
   expect(transformed).toContain(
     `rel="canonical" href="${projectConfig.site.pages.api.url}modules.html"`
   );
   expect(transformed).toContain('href="../assets/api.css"');
   expect(transformed).toContain('src="../assets/api.js"');
+  expect(transformed).toContain(
+    `<meta name="theme-color" content="${theme.colorPrimary}" data-theme-color data-theme-color-light="${theme.colorLight}" data-theme-color-dark="${theme.colorDark}"/>`
+  );
   expect(transformed.match(/<h1\b/g)).toHaveLength(1);
+});
+
+test("site navbar uses the same mode background as browser chrome", () => {
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(siteCss).toMatch(
+    /\.site-header\s*{[^}]*background:\s*var\(--mz-bg\);[^}]*}/
+  );
+});
+
+test("playground primary section uses compact vertical spacing", () => {
+  const playground = fs.readFileSync(
+    path.join(process.cwd(), "examples", "index.html"),
+    "utf8"
+  );
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(playground).toContain('class="section-band section-band--compact"');
+  expect(siteCss).toMatch(
+    /\.section-band--compact\s*{[^}]*padding:\s*3\.5rem 0;[^}]*}/
+  );
+  expect(siteCss).toMatch(
+    /@media \(max-width: 575\.98px\)\s*{[\s\S]*?\.section-band--compact\s*{[^}]*padding:\s*2rem 0;[^}]*}/
+  );
+});
+
+test("playground layout fills the dynamic viewport above the footer", () => {
+  const playground = fs.readFileSync(
+    path.join(process.cwd(), "examples", "index.html"),
+    "utf8"
+  );
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(playground).toContain(
+    '<body class="playground-page d-flex flex-column">'
+  );
+  expect(playground).toContain(
+    '<main id="main-content" class="d-flex flex-column flex-grow-1">'
+  );
+  expect(playground).toContain(
+    'class="section-band section-band--muted flex-grow-1"'
+  );
+  expect(siteCss).toMatch(
+    /\.playground-page\s*{[^}]*min-height:\s*100dvh;[^}]*}/
+  );
 });
 
 test("API toolbar preserves TypeDoc's search dialog", () => {
@@ -195,6 +258,20 @@ test("API toolbar preserves TypeDoc's search dialog", () => {
   );
   expect(apiCss).not.toContain(
     ".tsd-page-toolbar .tsd-toolbar-contents > #tsd-search"
+  );
+});
+
+test("API theme controls use readable native option colors", () => {
+  const apiCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "api.css"),
+    "utf8"
+  );
+
+  expect(apiCss).toMatch(
+    /\.site-project-links select,\s*\.tsd-theme-toggle select\s*{[^}]*color-scheme:\s*var\(--color-scheme\);[^}]*background-color:\s*var\(--color-background-secondary\);[^}]*}/
+  );
+  expect(apiCss).toMatch(
+    /\.site-project-links select option,\s*\.tsd-theme-toggle select option\s*{[^}]*color:\s*var\(--color-text\);[^}]*background-color:\s*var\(--color-background-secondary\);[^}]*}/
   );
 });
 
@@ -231,11 +308,12 @@ test("API theme bootstrap rejects corrupted stored preferences", () => {
     .map((match) => match[1])
     .find((script) => script.includes("tsd-theme"));
   const values = new Map([["mazey-theme", "corrupted"]]);
+  const theme = projectConfig.site.theme;
   const meta = {
-    content: projectConfig.site.theme.colorLight,
+    content: theme.colorPrimary,
     dataset: {
-      themeColorDark: projectConfig.site.theme.colorDark,
-      themeColorLight: projectConfig.site.theme.colorLight,
+      themeColorDark: theme.colorDark,
+      themeColorLight: theme.colorLight,
     },
   };
   const documentElement = { dataset: {}, style: {} };
@@ -254,6 +332,43 @@ test("API theme bootstrap rejects corrupted stored preferences", () => {
 
   expect(documentElement.dataset.bsTheme).toBe("light");
   expect(values.get("tsd-theme")).toBe("os");
+});
+
+test("API theme bootstrap applies a valid URL override before rendering", () => {
+  const transformed = transformApiHtml(typeDocHtml, "index.html");
+  const initializer = [...transformed.matchAll(/<script>([\s\S]*?)<\/script>/g)]
+    .map((match) => match[1])
+    .find((script) => script.includes("tsd-theme"));
+  const values = new Map();
+  const theme = projectConfig.site.theme;
+  const meta = {
+    content: theme.colorPrimary,
+    dataset: {
+      themeColorDark: theme.colorDark,
+      themeColorLight: theme.colorLight,
+    },
+  };
+  const documentElement = { dataset: {}, style: {} };
+
+  vm.runInNewContext(initializer, {
+    URL,
+    location: { href: "https://example.com/api/?theme=dark" },
+    document: {
+      documentElement,
+      querySelector: () => meta,
+    },
+    localStorage: {
+      getItem: () => {
+        throw new DOMException("Storage unavailable", "SecurityError");
+      },
+      setItem: (key, value) => values.set(key, value),
+    },
+    matchMedia: () => ({ matches: false }),
+  });
+
+  expect(documentElement.dataset.bsTheme).toBe("dark");
+  expect(meta.content).toBe(theme.colorDark);
+  expect(values.get("tsd-theme")).toBe("dark");
 });
 
 test("heading normalization prevents skipped levels", () => {
