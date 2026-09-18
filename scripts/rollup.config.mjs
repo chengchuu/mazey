@@ -76,6 +76,8 @@ const gTsConf = {
     {
       file: _resolve("../lib/global.d.ts"),
       format: "es",
+      // `declare global` must remain inside an external module after bundling.
+      footer: "export {};",
     },
   ],
   plugins: [

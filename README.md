@@ -12,6 +12,11 @@ English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README.zh-
 
 Mazey is a functional library for daily frontend work. There are already many excellent libraries for frontend development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for frontend needs.
 
+Website: [chengchuu.github.io/mazey](https://chengchuu.github.io/mazey/)
+
+- [Interactive playground](https://chengchuu.github.io/mazey/playground/)
+- [TypeScript API documentation](https://chengchuu.github.io/mazey/api/)
+
 ## Install
 
 Use Mazey via [npm](https://www.npmjs.com/package/mazey).
@@ -23,10 +28,12 @@ npm install mazey --save
 Use Mazey from CDN.
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 ```
 
-Of course, you can also download and serve the file [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js) yourself.
+You can also download and serve the
+[latest browser bundle](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)
+yourself.
 
 ## Usage
 
@@ -48,7 +55,7 @@ isNumber(z, { isInfinityAsNumber: true }); // Output: true
 Import from CDN.
 
 ```html
-<script src="//cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
   const x = 123;
   mazey.isNumber(x); // Output: true
@@ -57,7 +64,8 @@ Import from CDN.
 
 ## API Examples
 
-There are some examples maintained by hand below. For more information, please check the [full documentation](https://mazey.cn/t/m).
+There are some examples maintained by hand below. For more information, please check the
+[full API documentation](https://chengchuu.github.io/mazey/api/).
 
 ### Table of Contents
 
@@ -75,6 +83,7 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
   - [formatDate](#formatdate)
+  - [isValidDate](#isvaliddate)
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
   - [deepCopy](#deepcopy)
@@ -362,9 +371,41 @@ Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
 ```
 
+#### isValidDate
+
+Check whether an unknown value represents a valid date. The function accepts
+`Date` instances, finite millisecond timestamps, supported local date strings,
+and ISO 8601 strings with `Z` or a numeric timezone offset.
+
+Supported string forms are `YYYY-MM-DD`, `YYYY-MM-DD HH:mm[:ss]`,
+`YYYY-MM-DDTHH:mm[:ss]`, and the same `T`-separated date-time with `Z` or a
+`+HH:mm`/`-HH:mm` offset. Zoned strings may include 1-3 millisecond digits.
+
+Structured strings are parsed into numeric components and validated strictly.
+Invalid calendar dates such as `"2020-02-30"` are rejected instead of being
+normalized into another date.
+
+Usage:
+
+```javascript
+const ret1 = isValidDate(1577877720000);
+const ret2 = isValidDate("2020-01-01 11:22");
+const ret3 = isValidDate("2020-02-30");
+const ret4 = isValidDate(new Date("invalid"));
+console.log(ret1, ret2, ret3, ret4);
+```
+
+Output:
+
+```text
+true true false false
+```
+
 #### generateCalendarVersion
 
-Generate an increasing Calendar Versioning string using the conceptual format `yyyy.MMdd.HHmmss`. Leading zeroes are removed from each numeric segment for Semantic Versioning compatibility.
+Generate a local-time Calendar Versioning string using the conceptual format `yyyy.MMdd.HHmmss`. Leading zeroes are removed from each numeric segment for Semantic Versioning compatibility.
+
+Versions increase with the supplied local date and time under normal clock progression. Because the function intentionally follows local time, a manual clock rollback or daylight-saving fallback can produce a value lower than one generated earlier.
 
 Usage:
 
@@ -1026,7 +1067,6 @@ Get page load time(`PerformanceNavigationTiming`).
 
 This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
 The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
-If you are using an older browser that does not support `PerformanceNavigationTiming`, you can still use the `PerformanceTiming` API by using the previous version of this library ([`v3.9.7`](https://github.com/chengchuu/mazey/releases/tag/v3.9.7)).
 
 Usage:
 
@@ -1126,6 +1166,23 @@ Documentation:
 
 ```bash
 npm run docs
+```
+
+The documentation command builds the production website, playground, and TypeDoc API into `docs`,
+then validates the final SEO and PWA metadata. Use the focused checks while developing:
+
+```bash
+npm run typecheck
+npm run lint
+npm run build:site
+npm run seo:validate
+npm run pwa:validate
+```
+
+Preview the production Pages artifact at `http://127.0.0.1:4173/mazey/`:
+
+```bash
+npm run pwa:preview
 ```
 
 ### Returns

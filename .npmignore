@@ -1,5 +1,7 @@
 # Folders
 build/
+dist/
+dist-dev/
 node_modules/
 test/
 doc/
@@ -11,6 +13,9 @@ examples/
 images/
 coverage/
 types/
+scripts/
+site/
+project.config.js
 
 # Specific script subdirectories
 scripts/convert/
@@ -47,6 +52,8 @@ Dockerfile
 yarn.lock
 yarn-error.log
 package-lock.json
+pnpm-lock.yaml
+pnpm-workspace.yaml
 
 # Configuration Files
 api-extractor.json
@@ -63,9 +70,9 @@ README_ZH.md
 README.zh-CN.md
 AGENTS.md
 
-# Global TypeScript definitions
-/global.d.ts
-
 # System files
 .DS_Store
 Thumbs.db
+
+# Additional files
+.agents/

@@ -1,0 +1,17 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "..",
+    "outDir": "../.ts-webpack",
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["global"]
+  },
+  "include": [
+    "../src/**/*.ts",
+    "../types/**/*.ts",
+    "../examples/**/*.ts",
+    "../site/**/*.ts",
+    "../site/**/*.d.ts"
+  ]
+}

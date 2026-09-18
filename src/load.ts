@@ -43,14 +43,15 @@ import { isValidHttpUrl } from "./url";
  * @returns {Promise<string>} true -- 加载成功
  * @category Load
  */
-export function loadCSS(url: string, options: { id?: string } = { id: "" }): Promise<unknown> {
+export function loadCSS(url: string, options: { id?: string } = { id: "" }): Promise<string> {
   const { id } = options;
-  let success: (v: boolean | string) => void;
+  let success: (v: string) => void;
   let fail: (v: Error) => void = () => undefined;
-  const status = new Promise((resolve, reject) => {
+  const status = new Promise<string>((resolve, reject) => {
     [ success, fail ] = [ resolve, reject ];
   });
   const callback = function() {
+    cleanup();
     success("loaded");
   };
   let node: HTMLLinkElement | null = document.createElement("link");
@@ -78,8 +79,8 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
   if (supportOnload) {
     node.onload = onload;
     node.onerror = function() {
-      // 加载失败(404)
-      onload();
+      cleanup();
+      fail(new Error(`Failed to load CSS: ${url}`));
     };
   } else {
     // todo: 和 !supportOnload 重复
@@ -90,11 +91,13 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     };
   }
   function onload() {
+    callback();
+  }
+  function cleanup() {
     // 确保只跑一次下载操作
     if (node) node.onload = node.onerror = node.onreadystatechange = null;
     // 清空 node 引用，在低版本 IE，不清除会造成内存泄露
     node = null;
-    callback();
   }
   // 循环判断 CSS 是否已加载成功
   /*
@@ -128,7 +131,6 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
         }
       } catch (ex) {
         const err = ex as ErrorEvent;
-        if (!err.name) return;
         // 火狐特殊版本，通过特定值获知是否下载成功
         // The value of `ex.name` is changed from "NS_ERROR_DOM_SECURITY_ERR"
         // to "SecurityError" since Firefox 13.0. But Firefox is less than 9.0
@@ -173,12 +175,14 @@ const defaultLoadScriptOptions = {
 function resolveCssUrl(jsUrl: string, cssPath: string): string {
   if (!cssPath) return "";
   if (isValidHttpUrl(cssPath)) return cssPath;
-  // Get the directory of the JS URL
-  const jsUrlParts = jsUrl.split("/");
-  jsUrlParts.pop(); // Remove filename
-  const jsDirectory = jsUrlParts.join("/");
-  // Combine with CSS path
-  return `${jsDirectory}/${cssPath}`;
+  try {
+    const scriptUrl = new URL(jsUrl, location.href);
+    return new URL(cssPath, scriptUrl).href;
+  } catch (e) {
+    const jsUrlParts = jsUrl.split("/");
+    jsUrlParts.pop();
+    return `${jsUrlParts.join("/")}/${cssPath}`;
+  }
 }
 
 /**
@@ -249,12 +253,6 @@ export function loadScript(
     },
     options
   );
-  let success: (v: string) => void;
-  let fail: (v: string) => void;
-  const script: HTMLScriptElement = document.createElement("script");
-  if (!script) {
-    Promise.reject("Not support create script element");
-  }
   // 如果提供了 cssUrl，则先加载 CSS 文件
   if (cssUrl) {
     const resolvedCssUrl = resolveCssUrl(url, cssUrl);
@@ -262,48 +260,73 @@ export function loadScript(
       console.error(`Failed to load CSS from ${resolvedCssUrl}: ${err?.message}`);
     });
   }
-  // 如果没有 script 标签，那么代码就不会运行。可以利用这一事实，在页面的第一个 script 标签上使用 insertBefore()。
-  const firstScript: HTMLScriptElement = document.getElementsByTagName("script")[0];
-  script.type = "text/javascript";
-  if (isDefer) {
-    script.defer = true; // "defer";
-  }
-  if (isAsync) {
-    script.async = true; // "async";
-  }
-  if (isCrossOrigin) {
-    script.crossOrigin = "anonymous";
-  }
-  if (id) {
-    script.id = id;
-  }
-  if (attributes) {
-    Object.keys(attributes).forEach(key => {
-      script.setAttribute(key, attributes[key]);
-    });
-  }
-  if (script.readyState) {
-    // IE
-    script.onreadystatechange = function() {
-      if (script.readyState === "loaded" || script.readyState === "complete") {
-        script.onreadystatechange = null;
-        doFn(callback);
-        doFn(success, "loaded");
+  return new Promise<string>((resolve, reject) => {
+    const script: HTMLScriptElement = document.createElement("script");
+    let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      script.onload = null;
+      script.onerror = null;
+      script.onreadystatechange = null;
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
       }
     };
-  } else {
-    // Others
-    script.onload = function() {
-      doFn(callback);
-      doFn(success, "loaded");
+
+    const succeed = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      try {
+        doFn(callback);
+        resolve("loaded");
+      } catch (err) {
+        reject(err);
+      }
     };
-  }
-  script.src = url;
-  firstScript && firstScript.parentNode.insertBefore(script, firstScript);
-  return new Promise((resolve, reject) => {
-    [ success, fail ] = [ resolve, reject ];
+
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(error);
+    };
+
+    script.type = "text/javascript";
+    script.defer = Boolean(isDefer);
+    script.async = Boolean(isAsync);
+    if (isCrossOrigin) script.crossOrigin = "anonymous";
+    if (id) script.id = id;
+    if (attributes) {
+      Object.keys(attributes).forEach(key => {
+        script.setAttribute(key, attributes[key]);
+      });
+    }
+
+    if (script.readyState) {
+      script.onreadystatechange = function() {
+        if (script.readyState === "loaded" || script.readyState === "complete") {
+          succeed();
+        }
+      };
+    } else {
+      script.onload = succeed;
+    }
+    script.onerror = () => fail(new Error(`Failed to load script: ${url}`));
+    script.src = url;
+
     if (timeout) {
-      setTimeout(fail.bind(null, "timeout"), timeout);
+      timeoutId = setTimeout(() => fail(new Error("timeout")), timeout);
+    }
+
+    const firstScript = document.getElementsByTagName("script")[0];
+    if (firstScript?.parentNode) {
+      firstScript.parentNode.insertBefore(script, firstScript);
+    } else {
+      const parent = document.head || document.body || document.documentElement;
+      parent.appendChild(script);
     }
   });
 }
@@ -337,21 +360,32 @@ export function loadScript(
  * @returns {Promise<string>} document is loaded? "complete" "load" / "timeout"
  * @category Load
  */
-export function windowLoaded(timeout = 30000): Promise<string | Error> {
-  let loaded: (value: string) => void = () => undefined;
-  let loadFail: (value: Error) => void;
-  const status = new Promise((resolve: (value: string) => void, reject: (value: Error) => void) => {
-    loaded = resolve;
-    loadFail = reject;
+export function windowLoaded(timeout = 30000): Promise<string> {
+  return new Promise((resolve, reject) => {
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const cleanup = () => {
+      window.removeEventListener("load", onLoad);
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+    const onLoad = () => {
+      cleanup();
+      resolve("load");
+    };
+
+    if (document.readyState === "complete") {
+      resolve("complete");
+      return;
+    }
+
+    window.addEventListener("load", onLoad);
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error("timeout"));
+    }, timeout);
   });
-  if (document.readyState === "complete") {
-    loaded("complete");
-  } else {
-    window.addEventListener("load", () => loaded("load"));
-  }
-  // 超过 timeout 秒后加载失败
-  setTimeout(() => loadFail(Error("timeout")), timeout);
-  return status;
 }
 
 /**
@@ -424,5 +458,33 @@ export function loadScriptIfUndefined(windowAttribute: string, url: string): Loa
   if ((window as MazeyWindow)[windowAttribute]) {
     return Promise.resolve("defined");
   }
-  return loadScript(url);
+  let attributeLoads = loadingScripts.get(windowAttribute);
+  const existingLoad = attributeLoads?.get(url);
+  if (existingLoad) {
+    return existingLoad;
+  }
+  if (!attributeLoads) {
+    attributeLoads = new Map<string, LoadScriptReturns>();
+    loadingScripts.set(windowAttribute, attributeLoads);
+  }
+  const clearLoad = () => {
+    attributeLoads?.delete(url);
+    if (attributeLoads?.size === 0) {
+      loadingScripts.delete(windowAttribute);
+    }
+  };
+  const load = loadScript(url).then(
+    result => {
+      clearLoad();
+      return result;
+    },
+    error => {
+      clearLoad();
+      throw error;
+    }
+  );
+  attributeLoads.set(url, load);
+  return load;
 }
+
+const loadingScripts = new Map<string, Map<string, LoadScriptReturns>>();

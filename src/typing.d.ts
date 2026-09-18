@@ -33,7 +33,7 @@ export type SingleValueUrlParams = {
 
 export type ThrottleFunc<T extends (...args: any[]) => any> = (...args: Parameters<T>) => ReturnType<T> | null;
 
-export type DebounceFunc<T extends (...args: any[]) => any> = (...args: Parameters<T>) => ReturnType<T>;
+export type DebounceFunc<T extends (...args: any[]) => any> = (...args: Parameters<T>) => ReturnType<T> | null;
 
 export interface IsNumberOptions {
   isNaNAsNumber?: boolean;
@@ -62,7 +62,7 @@ export interface RepeatUntilOptions {
   args?: Array<any>;
 }
 
-export type LoadScriptReturns = Promise<boolean | string | Error | void>;
+export type LoadScriptReturns = Promise<string>;
 
 export type SimpleType = string | number | boolean | null | undefined;
 export type SimpleObject = {

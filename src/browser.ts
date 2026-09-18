@@ -31,7 +31,7 @@ import { isNonEmptyArray } from "./util";
  * true
  * ```
  *
- * @environment Browser
+ * @remarks Browser only.
  * @returns Whether the detectable minimum PWA prerequisites are satisfied.
  * @category Browser Information
  */
@@ -96,7 +96,7 @@ export function isSafePWAEnv(): boolean {
  * const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app"].includes(shell);
  * ```
  *
- * @environment Browser
+ * @remarks Browser only.
  * @returns Browser information
  * @category Browser Information
  */
@@ -212,7 +212,7 @@ export function getBrowserInfo(): BrowserInfo {
     let supporter = "";
     if (testUa(/applewebkit/g)) {
       engine = "webkit"; // webkit engine
-      if (testUa(/edge/g)) {
+      if (testUa(/edg(?:a|ios)?\//g) || testUa(/edge\//g)) {
         supporter = "edge"; // Edge browser
       } else if (testUa(/opr/g)) {
         supporter = "opera"; // Opera browser
@@ -264,7 +264,7 @@ export function getBrowserInfo(): BrowserInfo {
     } else if (supporter === "iexplore") {
       supporterVs = testVs(/(msie [\d._]+)|(rv:[\d._]+)/g);
     } else if (supporter === "edge") {
-      supporterVs = testVs(/edge\/[\d._]+/g);
+      supporterVs = testVs(/(?:edge|edg|edga|edgios)\/[\d._]+/g);
     }
     browserInfo = {
       ...browserInfo,
@@ -347,7 +347,7 @@ export function getBrowserInfo(): BrowserInfo {
  * ["windows", "desktop", "webkit", "chrome"]
  * ```
  *
- * @environment Browser
+ * @remarks Browser only.
  * @param {string} prefix
  * @returns {array} Browser attributes
  * @category Browser Information

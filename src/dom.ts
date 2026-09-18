@@ -78,10 +78,11 @@ export function addClass(ele: MazeyElement, cls: string | string[]): void {
   }
   if (Array.isArray(cls)) {
     cls.forEach((item) => {
-      ele.classList.add(item);
+      if (item) ele.classList.add(item);
     });
     return;
   }
+  if (!cls) return;
   const oriCls = ele.className;
   // Should not add duplicate classes.
   const oriClsArr = oriCls.split(/\s+/);
@@ -287,8 +288,8 @@ export function setImgSizeBySrc(): boolean {
       const canMatch = src && typeof src === "string" && src.length;
       if (!canMatch) return;
       // Use regular expressions to extract the `width` and `height` values from the `src` attribute
-      const width = src.match(/width=([0-9]+[a-z%]*)/);
-      const height = src.match(/height=([0-9]+[a-z%]*)/);
+      const width = src.match(/[?&]width=([0-9]+[a-z%]*)/);
+      const height = src.match(/[?&]height=([0-9]+[a-z%]*)/);
       // Set the width and height of the image using jQuery's `width()` and `height()` methods
       if (width && isNonEmptyArray(width) && width[1]) $this.width(width[1]);
       if (height && isNonEmptyArray(height) && height[1]) $this.height(height[1]);
@@ -307,8 +308,8 @@ export function setImgSizeBySrc(): boolean {
         const canMatch = src && typeof src === "string" && src.length;
         if (!canMatch) return;
         // Use regular expressions to extract the `width` and `height` values from the `src` attribute
-        const width = src.match(/width=([0-9]+[a-z%]*)/);
-        const height = src.match(/height=([0-9]+[a-z%]*)/);
+        const width = src.match(/[?&]width=([0-9]+[a-z%]*)/);
+        const height = src.match(/[?&]height=([0-9]+[a-z%]*)/);
         // Set the width and height of the image using the `style.width` and `style.height` properties
         if (width && isNonEmptyArray(width) && width[1]) $this.style.width = width[1];
         if (height && isNonEmptyArray(height) && height[1]) $this.style.height = height[1];
@@ -418,6 +419,11 @@ export function genStyleString(selector: string, styleArray: Array<string>): str
  * @category DOM
  */
 export function getPageMeta(name: string): string {
-  if (!document.querySelector) return "";
-  return document.querySelector(`meta[name="${name}"]`)?.getAttribute("content") || "";
+  const metaTags = document.getElementsByTagName("meta");
+  for (let i = 0; i < metaTags.length; i++) {
+    if (metaTags[i].getAttribute("name") === name) {
+      return metaTags[i].getAttribute("content") || "";
+    }
+  }
+  return "";
 }

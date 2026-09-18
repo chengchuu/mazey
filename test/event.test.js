@@ -57,6 +57,12 @@ describe("getDefineListeners", () => {
     const defineListeners = getDefineListeners();
     expect(defineListeners).toEqual({});
   });
+
+  it("should create a new defineListeners object when the cache is null", () => {
+    window.MAZEY_DEFINE_LISTENERS = null;
+
+    expect(getDefineListeners()).toEqual({});
+  });
 });
 
 describe("Event System", () => {
@@ -94,6 +100,34 @@ describe("Event System", () => {
     expect(mockFn).toHaveBeenCalled();
   });
 
+  test("invokeEvent forwards event parameters", () => {
+    const params = { type: "test" };
+    addEvent("test", mockFn);
+
+    invokeEvent("test", params);
+
+    expect(mockFn).toHaveBeenCalledWith(params);
+  });
+
+  test("prototype property names can be used as event names", () => {
+    addEvent("__proto__", mockFn);
+
+    fireEvent("__proto__");
+
+    expect(mockFn).toHaveBeenCalledTimes(1);
+  });
+
+  test("listeners can remove themselves without skipping the next listener", () => {
+    const selfRemoving = jest.fn(() => removeEvent("test", selfRemoving));
+    addEvent("test", selfRemoving);
+    addEvent("test", mockFn);
+
+    fireEvent("test");
+
+    expect(selfRemoving).toHaveBeenCalledTimes(1);
+    expect(mockFn).toHaveBeenCalledTimes(1);
+  });
+
   test("removeEvent removes a specific event listener", () => {
     addEvent("test", mockFn);
     const anotherMock = jest.fn();
@@ -111,4 +145,3 @@ describe("Event System", () => {
     expect(defineListeners["test"]).toBeUndefined();
   });
 });
-
