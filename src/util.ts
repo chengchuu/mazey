@@ -1857,11 +1857,12 @@ export function isValidPhoneNumber(mobile: string): boolean {
 }
 
 /**
- * Alias of {@link isValidPhoneNumber}.
+ * Deprecated alias of {@link isValidPhoneNumber}.
  *
  * This helper validates an 11-digit Chinese mobile-shaped number. It does not
  * detect a browser's device form factor; use `isPhone` for that purpose.
  *
+ * @deprecated Use `isValidPhoneNumber` instead.
  * @category Util
  */
 export const isMobile = isValidPhoneNumber;
