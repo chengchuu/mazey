@@ -4,7 +4,7 @@
 /* eslint-disable no-undef */
 import {
   cancelBubble, getDefineListeners,
-  addEvent, fireEvent, invokeEvent, removeEvent,
+  addEvent, fireEvent, invokeEvent, onEvent, removeEvent,
 } from "../lib/index.esm";
 
 describe("cancelBubble", () => {
@@ -68,20 +68,33 @@ describe("Event System", () => {
     expect(window.MAZEY_DEFINE_LISTENERS).toBe(defineListeners);
   });
 
-  test("addEvent adds a new event listener", () => {
-    addEvent("test", mockFn);
+  test("onEvent adds a new event listener", () => {
+    onEvent("test", mockFn);
     const defineListeners = getDefineListeners();
     expect(defineListeners["test"]).toEqual([ mockFn ]);
   });
 
+  test("addEvent is the same function as onEvent", () => {
+    expect(addEvent).toBe(onEvent);
+  });
+
+  test("onEvent allows duplicate listeners and returns void", () => {
+    expect(onEvent("test", mockFn)).toBeUndefined();
+    expect(onEvent("test", mockFn)).toBeUndefined();
+
+    fireEvent("test");
+
+    expect(mockFn).toHaveBeenCalledTimes(2);
+  });
+
   test("fireEvent invokes the event listeners for an event", () => {
-    addEvent("test", mockFn);
+    onEvent("test", mockFn);
     fireEvent("test", { type: "test" });
     expect(mockFn).toHaveBeenCalledWith({ type: "test" });
   });
 
   test("invokeEvent is an alias for fireEvent and invokes the event listeners", () => {
-    addEvent("test", mockFn);
+    onEvent("test", mockFn);
     invokeEvent("test");
     // called with 0 arguments
     expect(mockFn).toHaveBeenCalled();
@@ -89,7 +102,7 @@ describe("Event System", () => {
 
   test("invokeEvent forwards event parameters", () => {
     const params = { type: "test" };
-    addEvent("test", mockFn);
+    onEvent("test", mockFn);
 
     invokeEvent("test", params);
 
@@ -97,7 +110,7 @@ describe("Event System", () => {
   });
 
   test("prototype property names can be used as event names", () => {
-    addEvent("__proto__", mockFn);
+    onEvent("__proto__", mockFn);
 
     fireEvent("__proto__");
 
@@ -106,8 +119,8 @@ describe("Event System", () => {
 
   test("listeners can remove themselves without skipping the next listener", () => {
     const selfRemoving = jest.fn(() => removeEvent("test", selfRemoving));
-    addEvent("test", selfRemoving);
-    addEvent("test", mockFn);
+    onEvent("test", selfRemoving);
+    onEvent("test", mockFn);
 
     fireEvent("test");
 
@@ -116,9 +129,9 @@ describe("Event System", () => {
   });
 
   test("removeEvent removes a specific event listener", () => {
-    addEvent("test", mockFn);
+    onEvent("test", mockFn);
     const anotherMock = jest.fn();
-    addEvent("test", anotherMock);
+    onEvent("test", anotherMock);
 
     removeEvent("test", mockFn);
     const defineListeners = getDefineListeners();
@@ -126,7 +139,7 @@ describe("Event System", () => {
   });
 
   test("removeEvent clears all listeners for an event type if no function is provided", () => {
-    addEvent("test", mockFn);
+    onEvent("test", mockFn);
     removeEvent("test");
     const defineListeners = getDefineListeners();
     expect(defineListeners["test"]).toBeUndefined();

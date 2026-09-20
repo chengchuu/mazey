@@ -107,9 +107,11 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [Storage 工具](#storage-工具)
 - [DOM](#dom)
   - [Class 工具](#class-工具)
-  - [addStyle](#addstyle)
+  - [injectStyle](#injectstyle)
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
+- [事件](#事件)
+  - [onEvent](#onevent)
 - [计算与公式](#计算与公式)
   - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
@@ -859,18 +861,20 @@ addClass(dom, "test");
 removeClass(dom, "test");
 ```
 
-#### addStyle
+#### injectStyle
 
 在 `<head>` 中添加 `<style>` 元素。
+
+`addStyle` 是 `injectStyle` 的弃用兼容别名。
 
 用法:
 
 示例 1: 添加带有 `id` 的 `<style>`。重复调用会更新内容，不会添加新元素。
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle(
+injectStyle(
   "body { background-color: #333; }",
   { id: "test" }
 );
@@ -885,9 +889,9 @@ addStyle(
 示例 2: 添加不带 `id` 的 `<style>`。重复调用会添加新元素。
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle("body { background-color: #444; }");
+injectStyle("body { background-color: #444; }");
 ```
 
 输出:
@@ -896,10 +900,10 @@ addStyle("body { background-color: #444; }");
 <style>body { background-color: #444; }</style>
 ```
 
-示例 3: 组合使用 `genStyleString` 和 `addStyle`，一次添加多条样式。
+示例 3: 组合使用 `genStyleString` 和 `injectStyle`，一次添加多条样式。
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -918,7 +922,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 输出:
@@ -947,10 +951,10 @@ console.log(ret2);
 #b{color:red;font-size:12px;}
 ```
 
-下面的示例组合使用 `genStyleString` 和 `addStyle`，一次添加多条样式。
+下面的示例组合使用 `genStyleString` 和 `injectStyle`，一次添加多条样式。
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -969,7 +973,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 输出:
@@ -996,6 +1000,23 @@ console.log(ret2);
 ```text
 a<br />b<br />c
 a<br /><br />bc
+```
+
+### 事件
+
+#### onEvent
+
+注册具名的 Mazey 事件回调。函数允许重复注册同一个回调。
+`addEvent` 是 `onEvent` 的弃用兼容别名。
+
+```javascript
+import { fireEvent, onEvent } from "mazey";
+
+onEvent("test", event => {
+  console.log("test event:", event);
+});
+
+fireEvent("test", { type: "test" });
 ```
 
 ### 计算与公式

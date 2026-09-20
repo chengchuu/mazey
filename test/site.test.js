@@ -18,13 +18,41 @@ import {
   packageDetails,
   repositoryDetails,
 } from "../scripts/project-config-utils";
-import { manifestMetadataFailures } from "../scripts/validate-pwa";
+import { parseHtmlAttributes } from "../scripts/html-attributes";
+import { findTag, manifestMetadataFailures } from "../scripts/validate-pwa";
 import {
+  attribute,
+  hasNavigationToggle,
+  jsonLdBlocks,
   localFragmentError,
   localFragmentErrors,
 } from "../scripts/validate-seo";
 
 const typeDocHtml = `<!doctype html><html><head><title>mazey</title></head><body><header><div class="tsd-toolbar-contents container"><a href="index.html" class="title">mazey</a><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results"><ul role="listbox" id="tsd-search-results"></ul></dialog></div></header><div class="tsd-page-title"><h2>mazey</h2></div><main><p>Public API documentation content.</p></main></body></html>`;
+
+test("HTML helpers parse production-minified unquoted attributes", () => {
+  const html = `<!doctype html><html lang=en data-bs-theme=light><head><meta name=description content="Mazey utilities"><link rel=canonical href=https://chengchuu.github.io/mazey/ ><link rel=manifest href=/mazey/manifest.webmanifest><script type=application/ld+json>{"url":"https://chengchuu.github.io/mazey/"}</script></head><body><button aria-expanded=false data-nav-toggle>Menu</button></body></html>`;
+
+  expect(
+    parseHtmlAttributes("<html lang=en data-bs-theme=light>")
+  ).toMatchObject({
+    lang: "en",
+    "data-bs-theme": "light",
+  });
+  expect(attribute(html, "meta", "name", "description").content).toBe(
+    "Mazey utilities"
+  );
+  expect(attribute(html, "link", "rel", "canonical").href).toBe(
+    "https://chengchuu.github.io/mazey/"
+  );
+  expect(findTag(html, "link", "rel", "manifest").href).toBe(
+    "/mazey/manifest.webmanifest"
+  );
+  expect(jsonLdBlocks(html)).toEqual([
+    '{"url":"https://chengchuu.github.io/mazey/"}',
+  ]);
+  expect(hasNavigationToggle(html)).toBe(true);
+});
 
 test("project configuration derives deployment identity from package metadata", () => {
   expect(pkg.private).not.toBe(true);

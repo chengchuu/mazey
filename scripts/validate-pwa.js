@@ -4,6 +4,7 @@ const { existsSync, readFileSync, readdirSync, statSync } = require("node:fs");
 const path = require("node:path");
 const projectConfig = require("../project.config");
 const { apiAppShellAssets } = require("./build-pages");
+const { parseHtmlAttributes } = require("./html-attributes");
 const manifestDisplayModes = new Set([
   "browser",
   "fullscreen",
@@ -52,13 +53,7 @@ function filesIn(directory) {
 
 function findTag(html, tagName, attributeName, value) {
   return [...html.matchAll(new RegExp(`<${tagName}\\b[^>]*>`, "gi"))]
-    .map((match) =>
-      Object.fromEntries(
-        [...match[0].matchAll(/([:\w-]+)(?:=["']([^"']*)["'])?/g)].map(
-          (attribute) => [attribute[1].toLowerCase(), attribute[2] ?? ""]
-        )
-      )
-    )
+    .map((match) => parseHtmlAttributes(match[0]))
     .find((attributes) => attributes[attributeName] === value);
 }
 
@@ -271,6 +266,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  findTag,
   manifestMetadataFailures,
   pngDimensions,
   validatePwa,

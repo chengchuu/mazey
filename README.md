@@ -125,9 +125,11 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidCssSelector](#isvalidcssselector)
   - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
-  - [addStyle](#addstyle)
+  - [injectStyle](#injectstyle)
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
+- [Event](#event)
+  - [onEvent](#onevent)
 - [Calculate and Formula](#calculate-and-formula)
   - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
@@ -1202,18 +1204,20 @@ const text = extractElementText(message, {
 });
 ```
 
-#### addStyle
+#### injectStyle
 
 Add `<style>` in `<head>`.
+
+`addStyle` is a deprecated compatibility alias of `injectStyle`.
 
 Usage:
 
 Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle(
+injectStyle(
   "body { background-color: #333; }",
   { id: "test" }
 );
@@ -1228,9 +1232,9 @@ Output:
 Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle("body { background-color: #444; }");
+injectStyle("body { background-color: #444; }");
 ```
 
 Output:
@@ -1239,10 +1243,10 @@ Output:
 <style>body { background-color: #444; }</style>
 ```
 
-Example 3: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+Example 3: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -1261,7 +1265,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 Output:
@@ -1290,10 +1294,10 @@ Output:
 #b{color:red;font-size:12px;}
 ```
 
-Example: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+Example: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -1312,7 +1316,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 Output:
@@ -1339,6 +1343,23 @@ Output:
 ```text
 a<br />b<br />c
 a<br /><br />bc
+```
+
+### Event
+
+#### onEvent
+
+Register a named Mazey event callback. Duplicate callbacks are allowed.
+`addEvent` is a deprecated compatibility alias of `onEvent`.
+
+```javascript
+import { fireEvent, onEvent } from "mazey";
+
+onEvent("test", event => {
+  console.log("test event:", event);
+});
+
+fireEvent("test", { type: "test" });
 ```
 
 ### Calculate and Formula

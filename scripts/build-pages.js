@@ -13,6 +13,7 @@ const {
 } = require("node:fs");
 const path = require("node:path");
 const projectConfig = require("../project.config");
+const { parseHtmlAttributes } = require("./html-attributes");
 
 const defaultRoot = path.resolve(__dirname, "..");
 const { displayName } = projectConfig.brand;
@@ -272,11 +273,7 @@ function apiAppShellAssets(html) {
   const assets = new Set();
   for (const match of html.matchAll(/<(link|script|use)\b[^>]*>/gi)) {
     const tagName = match[1].toLowerCase();
-    const attributes = Object.fromEntries(
-      [...match[0].matchAll(/([:\w-]+)(?:=["']([^"']*)["'])?/g)].map(
-        (attribute) => [attribute[1].toLowerCase(), attribute[2] ?? ""]
-      )
-    );
+    const attributes = parseHtmlAttributes(match[0]);
     if (
       tagName === "link" &&
       !String(attributes.rel)
