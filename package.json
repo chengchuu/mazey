@@ -39,7 +39,7 @@
     "typecheck": "tsc --noEmit && tsc --noEmit --project ./scripts/tsconfig.webpack.json && tsc --noEmit --project ./scripts/tsconfig.test.json",
     "lint": "eslint --ext 'js,ts,tsx,mjs' ./src ./test ./scripts ./types ./examples ./site ./project.config.js",
     "lint:fix": "npm run lint -- --fix",
-    "format:check": "prettier --check ./.eslintrc ./.babelrc ./.github/workflows/pages.yml ./.github/workflows/publish-npm.yml ./examples ./package.json ./project.config.js ./scripts/build-pages.js ./scripts/preview-pages.js ./scripts/project-config-utils.js ./scripts/tsconfig.test.json ./scripts/tsconfig.webpack.json ./scripts/validate-pwa.js ./scripts/validate-seo.js ./scripts/webpack.config.dev.js ./site ./test/playground ./test/pwa.test.js ./test/service-worker.test.js ./test/site.test.js ./test/theme.test.js",
+    "format:check": "prettier --check ./.eslintrc ./.babelrc ./.github/workflows/pages.yml ./.github/workflows/publish-npm.yml ./examples ./package.json ./project.config.js ./scripts/build-pages.js ./scripts/html-attributes.js ./scripts/preview-pages.js ./scripts/project-config-utils.js ./scripts/tsconfig.test.json ./scripts/tsconfig.webpack.json ./scripts/validate-pwa.js ./scripts/validate-seo.js ./scripts/webpack.config.dev.js ./site ./test/playground ./test/pwa.test.js ./test/service-worker.test.js ./test/site.test.js ./test/theme.test.js",
     "docs": "typedoc --out ./docs/api --readme ./README.md --excludeProtected --excludePrivate --excludeInternal --hideGenerator && npm run build:site && node scripts/build-pages.js && npm run seo:validate && npm run pwa:validate",
     "seo:validate": "node scripts/validate-seo.js",
     "pwa:validate": "node scripts/validate-pwa.js",
