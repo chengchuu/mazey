@@ -6,7 +6,7 @@ import {
   isValidUrl, getUrlFileType, isValidHttpUrl, updateQueryParam, getUrlParam,
   getScriptQueryParam, convertObjectToQuery, convertHttpToHttps,
   getAllQueryParams, getQueryParam, getHashQueryParam,
-  getUrlHost, getUrlPath, onURLChange,
+  getDomain, getUrlHost, getUrlPath, onURLChange, parseGitHubRepository,
 } from "../lib/index.esm";
 
 const validUrls = [
@@ -45,6 +45,82 @@ const invalidUrls = [
   "http://example.com/a/index.html?msg=<a href=\"https://b.example.com/t/i/y\" target=\"_blank\">xxx</a><br/>",
   "v=0618",
 ];
+
+describe("parseGitHubRepository", () => {
+  const expected = {
+    owner: "acme",
+    name: "widget",
+    slug: "acme/widget",
+    url: "https://github.com/acme/widget",
+  };
+
+  it.each([
+    "acme/widget",
+    "github:acme/widget.git",
+    "git@github.com:acme/widget.git",
+    "git@GITHUB.COM:acme/widget.git",
+    "git://github.com/acme/widget.git",
+    "ssh://git@github.com/acme/widget.git",
+    "git+ssh://git@github.com/acme/widget.git",
+    "http://github.com/acme/widget",
+    "https://www.github.com/acme/widget.git",
+    "git+https://GITHUB.COM/acme/widget.git",
+    "  acme/widget  ",
+  ])("normalizes %s", value => {
+    expect(parseGitHubRepository(value)).toEqual(expected);
+  });
+
+  it.each([
+    "",
+    "   ",
+    "acme",
+    "acme/widget/extra",
+    "https://github.com/acme//widget",
+    "https://example.com/acme/widget",
+    "https://github.com/acme/widget?tab=readme",
+    "https://github.com/acme/widget?",
+    "https://github.com/acme/widget#readme",
+    "https://github.com/acme/widget#",
+    "https://github.com:443/acme/widget",
+    "https://user@github.com/acme/widget",
+    "https://git:secret@github.com/acme/widget",
+    "GIT@github.com:acme/widget.git",
+    "https://github.com/acme/../widget",
+    "https://github.com/acme/%77idget",
+    "https://github.com/acme/%2Fwidget",
+    "https://github.com/acme/%00widget",
+    "工具/widget",
+    "acme/工具",
+    "acme--tools/widget",
+    `${"a".repeat(40)}/widget`,
+    `acme/${"a".repeat(101)}`,
+  ])("rejects unsupported input %p", value => {
+    expect(() => parseGitHubRepository(value)).toThrow(Error);
+  });
+
+  it("rejects non-string runtime input", () => {
+    expect(() => parseGitHubRepository({ url: "acme/widget" })).toThrow(TypeError);
+  });
+
+  it("returns equal but independently allocated results", () => {
+    const first = parseGitHubRepository("acme/widget");
+    const second = parseGitHubRepository("acme/widget");
+    expect(first).toEqual(second);
+    expect(first).not.toBe(second);
+  });
+
+  it("accepts GitHub's owner and repository length boundaries", () => {
+    const owner = "a".repeat(39);
+    const name = "b".repeat(100);
+
+    expect(parseGitHubRepository(`${owner}/${name}`)).toEqual({
+      owner,
+      name,
+      slug: `${owner}/${name}`,
+      url: `https://github.com/${owner}/${name}`,
+    });
+  });
+});
 
 test("isValidUrl", () => {
   validUrls.forEach(url => {
@@ -123,61 +199,11 @@ describe("isValidHttpUrl", () => {
     expect(isValidHttpUrl("////example.com", { strict: false })).toBe(false);
   });
 
-  it("validates URLs when the Web URL constructor is unavailable", () => {
-    const originalURL = global.URL;
-    global.URL = undefined;
-    try {
-      expect(isValidHttpUrl("https://example.com/path?q=1")).toBe(true);
-      expect(isValidHttpUrl("https://example.com./path")).toBe(true);
-      expect(isValidHttpUrl("//example.com:8080/path", { strict: false })).toBe(true);
-      expect(isValidHttpUrl("https://example.com:/path")).toBe(true);
-      expect(isValidHttpUrl("https://[::1]/path")).toBe(true);
-      expect(isValidHttpUrl("https://[::1]:/path")).toBe(true);
-      expect(isValidHttpUrl("https://[::ffff:192.0.2.1]/path")).toBe(true);
-      expect(isValidHttpUrl("https://[::ffff:192.168.001.1]/path")).toBe(false);
-      expect(isValidHttpUrl("https://[::ffff:01.2.3.4]/path")).toBe(false);
-      expect(isValidHttpUrl("https://[:::]/path")).toBe(false);
-      expect(isValidHttpUrl("https://[1:2:3:4:5:6:7:8:9]/path")).toBe(false);
-      expect(isValidHttpUrl("https://user@example.com/path")).toBe(false);
-      expect(isValidHttpUrl("https://example.123/path")).toBe(false);
-      expect(isValidHttpUrl("http://127.1")).toBe(false);
-      expect(isValidHttpUrl("http://0177.0.0.1")).toBe(false);
-      expect(isValidHttpUrl("http://0x7f.0.0.1")).toBe(false);
-      expect(isValidHttpUrl("https://example.com trailing text")).toBe(false);
+});
 
-      global.URL = function UnsupportedURL() {
-        throw new TypeError("URL is not constructible");
-      };
-      expect(isValidHttpUrl("https://example.com/path")).toBe(true);
-    } finally {
-      global.URL = originalURL;
-    }
-  });
-
-  it("parses queries and validates URLs without modern string helpers", () => {
-    const originalURL = global.URL;
-    const originalIncludes = String.prototype.includes;
-    const originalStartsWith = String.prototype.startsWith;
-    const originalEndsWith = String.prototype.endsWith;
-    let queryResult;
-    let validUrlResult;
-    try {
-      global.URL = undefined;
-      String.prototype.includes = undefined;
-      String.prototype.startsWith = undefined;
-      String.prototype.endsWith = undefined;
-      queryResult = getAllQueryParams("?a=1&b=2");
-      validUrlResult = isValidHttpUrl("https://example.com/path");
-    } finally {
-      global.URL = originalURL;
-      String.prototype.includes = originalIncludes;
-      String.prototype.startsWith = originalStartsWith;
-      String.prototype.endsWith = originalEndsWith;
-    }
-
-    expect(queryResult).toEqual({ a: "1", b: "2" });
-    expect(validUrlResult).toBe(true);
-  });
+test("getDomain resolves absolute and document-relative URLs", () => {
+  expect(getDomain("https://example.com:8080/path", [ "host", "pathname" ])).toBe("example.com:8080/path");
+  expect(getDomain("../relative", [ "pathname" ])).toBe("/relative");
 });
 
 // Test case 1: URL with existing query parameter
@@ -510,6 +536,18 @@ describe("URL constructor compatibility", () => {
         delete window.URL.canParse;
       }
     }
+  });
+
+  it("preserves host and path extraction for absolute non-HTTP URLs", () => {
+    expect(getUrlHost("ftp://example.com/archive/file.zip")).toBe("example.com");
+    expect(getUrlPath("ftp://example.com/archive/file.zip")).toBe("/archive/file.zip");
+    expect(getUrlHost("custom://example.com/action")).toBe("example.com");
+    expect(getUrlPath("mailto:test@example.com")).toBe("test@example.com");
+  });
+
+  it("returns empty strings for malformed URLs", () => {
+    expect(getUrlHost("not a url")).toBe("");
+    expect(getUrlPath("not a url")).toBe("");
   });
 });
 

@@ -56,6 +56,10 @@ body {
   line-height: 1.65;
 }
 
+.playground-page {
+  min-height: 100dvh;
+}
+
 a {
   text-underline-offset: 0.2em;
 }
@@ -86,8 +90,7 @@ a {
   z-index: 1030;
   top: 0;
   border-bottom: 1px solid var(--mz-border);
-  background: color-mix(in srgb, var(--mz-bg) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--mz-bg);
 }
 
 .site-navbar {
@@ -243,6 +246,10 @@ a {
   border-bottom: 1px solid var(--mz-border);
 }
 
+.section-band--compact {
+  padding: 3.5rem 0;
+}
+
 .section-band--muted {
   background: var(--mz-surface-muted);
 }
@@ -262,6 +269,14 @@ a {
 
 .feature-card h3 {
   font-size: 1.15rem;
+}
+
+.playground-tabs {
+  scrollbar-width: none;
+}
+
+.playground-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .feature-marker {
@@ -388,6 +403,10 @@ a {
 
   .section-band {
     padding: 3.5rem 0;
+  }
+
+  .section-band--compact {
+    padding: 2rem 0;
   }
 
   .pwa-update-notice {

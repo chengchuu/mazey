@@ -12,7 +12,7 @@
     <% } %>
     <meta
       name="theme-color"
-      content="<%= THEME_COLOR_LIGHT %>"
+      content="<%= THEME_COLOR_PRIMARY %>"
       data-theme-color
       data-theme-color-light="<%= THEME_COLOR_LIGHT %>"
       data-theme-color-dark="<%= THEME_COLOR_DARK %>"
@@ -58,8 +58,16 @@
       (() => {
         try {
           const key = <%= THEME_STORAGE_KEY_JSON %>;
-          const stored = localStorage.getItem(key);
-          const value = stored === "light" || stored === "dark" ? stored : "system";
+          const query = new URL(location.href).searchParams.get("theme");
+          let stored = null;
+          if (query !== "light" && query !== "dark") {
+            try { stored = localStorage.getItem(key); } catch {}
+          }
+          const value = query === "light" || query === "dark"
+            ? query
+            : stored === "system" || stored === "light" || stored === "dark"
+              ? stored
+              : "system";
           const resolved = value === "system"
             ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
             : value;
@@ -75,7 +83,7 @@
       })();
     </script>
   </head>
-  <body>
+  <body class="playground-page d-flex flex-column">
     <a class="skip-link" href="#main-content">Skip to playground controls</a>
     <header class="site-header">
       <nav
@@ -147,116 +155,29 @@
       </nav>
     </header>
 
-    <main id="main-content">
-      <section class="section-band" aria-labelledby="playground-title">
+    <main id="main-content" class="d-flex flex-column flex-grow-1">
+      <section
+        class="section-band section-band--compact"
+        aria-labelledby="playground-title"
+      >
         <div class="container">
-          <div class="section-heading">
-            <p class="text-uppercase fw-semibold text-muted-custom mb-2">
-              Interactive package-root examples
-            </p>
-            <h1 id="playground-title">Mazey utility playground</h1>
-            <p>
-              Enter values and run three public Mazey utilities. Duration
-              formatting uses the largest applicable unit, identifier conversion
-              changes camel case to kebab case, and email validation applies
-              Mazey's current public validation behavior.
+          <h1 id="playground-title" class="visually-hidden">
+            Mazey utility playground
+          </h1>
+          <p class="lead">
+            Try date interval, CAGR, and exact aspect-ratio calculations using
+            Mazey's public utility APIs.
+          </p>
+          <div id="playground-root">
+            <p class="text-muted" role="status">
+              Loading interactive examples…
             </p>
           </div>
-          <form class="playground-panel p-4" data-utility-form novalidate>
-            <div class="row g-4">
-              <div class="col-lg-4">
-                <label class="form-label" for="duration-ms"
-                  >Duration in milliseconds</label
-                >
-                <input
-                  id="duration-ms"
-                  class="form-control"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value="90000"
-                  required
-                  data-duration
-                />
-                <div class="form-text">Example: 90000 becomes 1.5 minutes.</div>
-              </div>
-              <div class="col-lg-4">
-                <label class="form-label" for="identifier"
-                  >Camel-case identifier</label
-                >
-                <input
-                  id="identifier"
-                  class="form-control"
-                  type="text"
-                  value="helloWorld"
-                  maxlength="100"
-                  data-identifier
-                />
-                <div class="form-text">
-                  Example: helloWorld becomes hello-world.
-                </div>
-              </div>
-              <div class="col-lg-4">
-                <label class="form-label" for="email">Email address</label>
-                <input
-                  id="email"
-                  class="form-control"
-                  type="email"
-                  value="dev@example.com"
-                  maxlength="254"
-                  data-email
-                />
-                <div class="form-text">
-                  The result reflects Mazey's email validator.
-                </div>
-              </div>
-            </div>
-            <button class="btn btn-primary mt-4" type="submit">
-              Run utilities
-            </button>
-            <p
-              class="alert alert-danger playground-error mt-3 mb-0"
-              role="alert"
-              data-error
-            ></p>
-          </form>
-
-          <section class="mt-4" aria-labelledby="results-title">
-            <h2 id="results-title" class="h4">Results</h2>
-            <div
-              class="row g-3"
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <div class="col-lg-4">
-                <div class="playground-output">
-                  <strong>Duration</strong><br /><code data-duration-result
-                    >1.5 minutes</code
-                  >
-                </div>
-              </div>
-              <div class="col-lg-4">
-                <div class="playground-output">
-                  <strong>Identifier</strong><br /><code data-identifier-result
-                    >hello-world</code
-                  >
-                </div>
-              </div>
-              <div class="col-lg-4">
-                <div class="playground-output">
-                  <strong>Email valid</strong><br /><code data-email-result
-                    >true</code
-                  >
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </section>
 
       <section
-        class="section-band section-band--muted"
+        class="section-band section-band--muted flex-grow-1"
         aria-labelledby="continue-title"
       >
         <div class="container">

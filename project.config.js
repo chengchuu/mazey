@@ -15,6 +15,7 @@ siteUrl.search = "";
 siteUrl.hash = "";
 
 const displayName = "Mazey";
+const shortName = "Mazey";
 const githubUrl = repository.url;
 const npmUrl = `https://www.npmjs.com/package/${pkg.name}`;
 const cdnUrl = `https://cdn.jsdelivr.net/npm/${pkg.name}@latest/lib/${packageConfig.bundleBaseName}.min.js`;
@@ -56,7 +57,7 @@ const pages = {
   playground: {
     title: "Mazey Playground - Try Frontend Utility APIs",
     description:
-      "Try Mazey duration formatting, identifier conversion, and email validation utilities in an interactive browser playground.",
+      "Try Mazey date interval, CAGR, and exact aspect-ratio utilities in an interactive browser playground.",
     url: new URL("playground/", siteUrl).href,
   },
   api: {
@@ -110,7 +111,7 @@ module.exports = Object.freeze({
   repository,
   brand: {
     displayName,
-    shortName: "Mazey",
+    shortName,
   },
   urls: {
     cdn: cdnUrl,
@@ -154,8 +155,8 @@ module.exports = Object.freeze({
     },
   },
   pwa: {
-    name: "Mazey Documentation",
-    shortName: "Mazey",
+    name: displayName,
+    shortName,
     display: "standalone",
     backgroundColor: theme.colorLight,
     themeColor: theme.colorPrimary,

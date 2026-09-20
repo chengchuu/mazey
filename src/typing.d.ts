@@ -16,6 +16,18 @@ export interface BrowserInfo {
   colorScheme: string;
 }
 
+/**
+ * A resolved preference value and its human-readable label.
+ *
+ * @category Browser Information
+ */
+export interface PreferenceResult<T extends string = string> {
+  /** Machine-readable value used by application logic. */
+  value: T;
+  /** Human-readable label suitable for display. */
+  label: string;
+}
+
 export interface DefineListeners {
   [key: string]: any;
 }
@@ -35,10 +47,24 @@ export type ThrottleFunc<T extends (...args: any[]) => any> = (...args: Paramete
 
 export type DebounceFunc<T extends (...args: any[]) => any> = (...args: Parameters<T>) => ReturnType<T> | null;
 
+/**
+ * Optional constraints used by {@link isNumber}.
+ *
+ * @category Util
+ */
 export interface IsNumberOptions {
+  /** Treat `NaN` as a number when no integer or range constraint rejects it. */
   isNaNAsNumber?: boolean;
+  /** Treat positive and negative infinity as numbers. */
   isInfinityAsNumber?: boolean;
+  /** Compatibility alias that permits non-finite numeric values. */
   isUnFiniteAsNumber?: boolean;
+  /** Require the value to be an integer. */
+  integer?: boolean;
+  /** Inclusive minimum value. */
+  min?: number;
+  /** Inclusive maximum value. */
+  max?: number;
 }
 
 export type AnyFunction = (...args: any[]) => any;

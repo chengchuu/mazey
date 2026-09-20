@@ -28,6 +28,12 @@ npm install mazey
 
 你也可以下载 [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)，并自行托管该文件。
 
+## 浏览器支持
+
+Mazey 支持 Chrome 109 及以上版本、Edge 109 及以上版本、Firefox 115 及以上版本、Safari 16.4 及以上版本、iOS Safari 16.4 及以上版本、Android Chrome 109 及以上版本，以及 Samsung Internet 21 及以上版本。软件包输出可能包含 ES2022 语法，并且不包含 JavaScript polyfill。Internet Explorer、Opera Mini、KaiOS、旧版 Android Browser 和更早的浏览器版本不在支持范围内。
+
+开发和持续集成环境使用 Node.js 22。Mazey 未声明 Node.js 运行时兼容范围。
+
 ## 使用
 
 下面的示例使用一个函数，判断某个值是否适合参与常规计算和比较。
@@ -86,6 +92,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToUnder](#convertcameltounder)
+  - [toJavaScriptGlobalName](#tojavascriptglobalname)
 - [URL](#url)
   - [getQueryParam](#getqueryparam)
   - [getUrlParam](#geturlparam)
@@ -94,6 +101,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [updateQueryParam](#updatequeryparam)
   - [isValidUrl](#isvalidurl)
   - [isValidHttpUrl](#isvalidhttpurl)
+  - [parseGitHubRepository](#parsegithubrepository)
 - [存储](#存储)
   - [Cookie 工具](#cookie-工具)
   - [Storage 工具](#storage-工具)
@@ -103,12 +111,19 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [计算与公式](#计算与公式)
+  - [calculateAspectRatio](#calculateaspectratio)
+  - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [浏览器信息](#浏览器信息)
+  - [detectVisitorType](#detectvisitortype)
+  - [isPhone](#isphone)
+  - [isDesktop](#isdesktop)
+  - [isTablet](#istablet)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
+  - [isStandalonePWA](#isstandalonepwa)
 - [Web 性能](#web-性能)
   - [getPerformance](#getperformance)
 - [调试](#调试)
@@ -583,6 +598,21 @@ a_b_c
 a_b_c
 ```
 
+#### toJavaScriptGlobalName
+
+将文本转换为确定的、全大写的 ASCII JavaScript 标识符。该标识符适合作为 IIFE 全局名称。函数会将无效字符替换为下划线。结果以数字开头时，函数会添加下划线前缀。
+
+```javascript
+const globalName = toJavaScriptGlobalName("@scope/my-library");
+console.log(globalName);
+```
+
+输出:
+
+```text
+_SCOPE_MY_LIBRARY
+```
+
 ### URL
 
 #### getQueryParam
@@ -739,6 +769,21 @@ console.log(ret1, ret2, ret3, ret4, ret5);
 true true true true false
 ```
 
+#### parseGitHubRepository
+
+解析 GitHub 仓库简写、SCP 格式或支持的 Git 传输 URL，并返回规范的仓库标识信息。
+
+```javascript
+const repository = parseGitHubRepository("git@github.com:acme/widget.git");
+console.log(JSON.stringify(repository));
+```
+
+输出:
+
+```text
+{"owner":"acme","name":"widget","slug":"acme/widget","url":"https://github.com/acme/widget"}
+```
+
 ### 存储
 
 #### Cookie 工具
@@ -761,33 +806,39 @@ console.log(ret);
 
 #### Storage 工具
 
-操作 Web Storage。函数适用于 JSON 数据，并会自动转换格式。
+在 Web Storage 中存储 JSON 序列化值，并在读取时解析这些值。
 
 用法:
 
 ```javascript
-setSessionStorage("test", "123");
-const ret1 = getSessionStorage("test");
-setLocalStorage("test", "123");
-const ret2 = getLocalStorage("test");
-console.log(ret1, ret2);
+setSessionJSON("preferences", { theme: "dark" });
+const sessionValue = getSessionJSON("preferences");
+setLocalJSON("recentItems", [ "one", "two" ]);
+const localValue = getLocalJSON("recentItems");
+console.log({ sessionValue, localValue });
 
-// 也可以按项目封装键名
+// 也可以按项目封装键名。
 const projectName = "mazey";
 function mSetLocalStorage (key, value) {
-  return setLocalStorage(`${projectName}_${key}`, value);
+  return setLocalJSON(`${projectName}_${key}`, value);
 }
 
 function mGetLocalStorage (key) {
-  return getLocalStorage(`${projectName}_${key}`);
+  return getLocalJSON(`${projectName}_${key}`);
 }
 ```
 
 输出:
 
 ```text
-123 123
+{
+  sessionValue: { theme: "dark" },
+  localValue: [ "one", "two" ]
+}
 ```
+
+`setSessionStorage`、`getSessionStorage`、`setLocalStorage` 和
+`getLocalStorage` 是对应 `JSON` 工具的弃用别名。
 
 ### DOM
 
@@ -949,6 +1000,77 @@ a<br /><br />bc
 
 ### 计算与公式
 
+#### calculateAspectRatio
+
+根据正安全整数形式的宽度和高度，计算精确的最简宽高比。函数使用最大公约数约分，并使用小写 `x` 连接结果。函数不会将结果近似为常见的图片或视频宽高比。
+
+```javascript
+import { calculateAspectRatio } from "mazey";
+
+const portraitRatio = calculateAspectRatio(900, 1200);
+const landscapeRatio = calculateAspectRatio(1920, 1080);
+
+console.log(portraitRatio);
+console.log(landscapeRatio);
+```
+
+输出：
+
+```text
+3x4
+16x9
+```
+
+例如，`calculateAspectRatio(3440, 1440)` 返回数学意义上精确的 `"43x18"`，而不是近似标签 `"21x9"`。无效或不安全的整数尺寸会抛出 `TypeError`。零或负数尺寸会抛出 `RangeError`。
+
+#### calculateCAGR
+
+根据投资的开始日期、结束日期和整个周期的总回报率，计算复合年增长率（Compound Annual Growth Rate，CAGR）。
+
+```text
+CAGR = (1 + totalReturnRate)^(365 / durationInDays) - 1
+```
+
+日期可以是支持的结构化日期字符串、毫秒时间戳或 `Date` 实例。计算使用精确的毫秒间隔，包括日期中的时分秒，并固定以 365 天作为一个财务年度。
+
+数值输入使用十进制比率，因此 `0.202` 表示 `20.2%`。字符串输入使用百分比数值，因此 `"20.2%"` 和 `"20.2"` 都表示 `20.2%`；也支持 `"2.02e1%"` 这类严格的科学记数法。返回的 CAGR 是未经舍入的十进制比率。
+
+```javascript
+import { calculateCAGR, floatToPercent } from "mazey";
+
+const cagr = calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  "20.2%"
+);
+
+console.log({
+  cagr,
+  percentage: floatToPercent(cagr, 2),
+});
+```
+
+可能的输出：
+
+```text
+{
+  cagr: 0.053908...,
+  percentage: "5.39%"
+}
+```
+
+等效的十进制数值调用如下：
+
+```javascript
+calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  0.202
+);
+```
+
+日期字符串遵循 Mazey 的严格日期校验规则。无效日期、格式错误或非有限的回报率，以及没有递增的日期范围都会抛出错误。解析后的总回报率必须大于 `-1`，因为 `-1` 表示本金完全损失，此时 CAGR 没有定义。
+
 #### inRate
 
 按照指定概率返回命中结果。有效概率范围为 1%～100%。
@@ -1018,6 +1140,108 @@ console.log(ret);
 
 ### 浏览器信息
 
+#### detectVisitorType
+
+此函数使用保守的启发式规则，将访问者分类为 `"crawler"`、`"automation"` 或 `"unknown"`。函数首先检查一组明确的 User-Agent 令牌。这些令牌来自爬虫、索引、SEO、AI 抓取和链接预览客户端。随后，函数检查显式的自动化 User-Agent 令牌，以及 `navigator.webdriver === true`。
+
+省略参数时，函数会安全地读取 `navigator.userAgent`。也可以传入明确的 User-Agent 字符串。此方式适合分析已捕获的 User-Agent、编写确定性测试或在服务端分类。SSR 或 Node.js 环境没有 `navigator` 时，默认返回 `"unknown"`。此时仍可传入明确的 User-Agent 进行分类。
+
+```javascript
+const visitorType = detectVisitorType();
+
+console.log(visitorType);
+```
+
+可能的输出：
+
+```text
+unknown
+```
+
+下面的示例传入爬虫 User-Agent：
+
+```javascript
+const visitorType = detectVisitorType(
+  "Mozilla/5.0 (compatible; Googlebot/2.1)"
+);
+
+console.log(visitorType);
+```
+
+输出：
+
+```text
+crawler
+```
+
+`"unknown"` 仅表示没有检测到受支持的爬虫或浏览器自动化信号。User-Agent 可以伪造，WebDriver 信号也可以隐藏或修改。因此，分类可能出现误判或漏判。
+
+> `unknown` 不表示访问者已经通过真人验证。此函数只使用浏览器端启发式规则，不能作为安全边界。请勿单独使用此结果进行身份验证、授权、支付决策、速率限制、欺诈防范或访问控制。验证真实爬虫通常需要服务端请求信息，以及服务提供商规定的验证流程。
+
+#### isPhone
+
+检查当前浏览器是否代表手机或手持设备。此结果不包含平板电脑。
+
+```javascript
+const result = isPhone();
+
+console.log(result);
+```
+
+#### isDesktop
+
+检查当前浏览器是否代表桌面或笔记本电脑。触摸屏 Windows 笔记本电脑仍归类为桌面设备。
+
+```javascript
+const result = isDesktop();
+
+console.log(result);
+```
+
+#### isTablet
+
+检查当前浏览器是否代表平板电脑。此函数支持常规 iPad 和 iPadOS 桌面模式。他还支持不含 `Mobile` 令牌的 Android User-Agent，以及独立的 `Tablet` 令牌。
+
+```javascript
+const result = isTablet();
+
+console.log(result);
+```
+
+可以传入 User-Agent 字符串。此方式适合确定性测试或服务端分类。
+
+```javascript
+const result = isTablet(
+  "Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36"
+);
+
+console.log(result);
+```
+
+输出：
+
+```text
+true
+```
+
+对于已识别的设备，这 3 个函数使用互斥的设备形态分类：
+
+| 设备             | `isPhone` | `isDesktop` | `isTablet` |
+|:-----------------|:-----------|:------------|:-----------|
+| iPhone           | `true`     | `false`     | `false`    |
+| Android 手机     | `true`     | `false`     | `false`    |
+| iPad             | `false`    | `false`     | `true`     |
+| Android 平板电脑 | `false`    | `false`     | `true`     |
+| Windows 笔记本   | `false`    | `true`      | `false`    |
+| MacBook          | `false`    | `true`      | `false`    |
+| 未知设备         | `false`    | `false`     | `false`    |
+
+每个函数都接受可选的 User-Agent 字符串。显式输入不会读取当前浏览器的平台或触摸信号。SSR 环境无法读取浏览器信号且没有显式输入时，这 3 个函数均返回 `false`。
+
+设备分类使用可伪造的启发式规则，不读取视口宽度。这些函数不能作为安全 API，也不能替代响应式 CSS 和功能检测。`getBrowserInfo().platform` 保留原有的宽泛分类，并将 iOS 和 Android 报告为 `"mobile"`。新函数提供更具体的手机、平板电脑或桌面设备分类。
+
+`isPhone` 用于检查设备形态。独立的 `isMobile` API 是 `isValidPhoneNumber` 的直接别名，用于验证 11 位中国手机号码形式的字符串，不会检查浏览器或设备。
+
 #### getBrowserInfo
 
 获取浏览器信息。
@@ -1059,7 +1283,9 @@ const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app
 
 #### isSafePWAEnv
 
-检查当前浏览器文档是否满足 PWA (渐进式 Web 应用) 的最低前提条件。这里只检查同步 JavaScript 能够识别的条件。函数会检查安全上下文和 Service Worker API 支持。文档还必须包含 Web App Manifest (Web 应用清单) 链接，而且 `href` 不能为空。
+检查当前浏览器文档是否满足 PWA (渐进式 Web 应用) 的最低前提条件。这里只检查同步 JavaScript 能够识别的条件。函数会检查安全上下文和 Service Worker API 支持。默认情况下，文档还必须包含 Web App Manifest (Web 应用清单) 链接，而且 `href` 不能为空。
+
+只需检查安全的 Service Worker 环境时，可以传入 `{ requireManifest: false }`。传入 `{ scope: "/app/" }` 时，当前页面还必须位于同源路径范围内。
 
 该检查不会验证或请求 Manifest。它也不会验证 Service Worker 是否注册成功。该函数无法判断应用是否已经安装，也不保证浏览器会提供安装提示。不同浏览器还可能执行额外的安装策略。
 
@@ -1076,13 +1302,23 @@ console.log(ret);
 true
 ```
 
+#### isStandalonePWA
+
+检查当前页面是否以独立 PWA 模式显示。函数会检查标准的显示模式媒体查询，并兼容 iOS Safari 的 `navigator.standalone`。该结果只表示显示模式，不能证明应用已经安装或受 Service Worker 控制。
+
+```javascript
+if (isStandalonePWA()) {
+  document.querySelector("[data-install-help]")?.remove();
+}
+```
+
 ### Web 性能
 
 #### getPerformance
 
-获取页面加载时间 (`PerformanceNavigationTiming`)。
+通过 `PerformanceNavigationTiming` 获取页面加载指标。
 
-该函数使用 [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API 获取页面加载数据。与已弃用的 [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API 相比，新 API 提供的数据更准确，也更详细。
+如果浏览器未提供导航条目，该函数返回的 Promise 会进入 rejected 状态。函数不会回退到已弃用的 `PerformanceTiming` API。
 
 用法:
 

@@ -44,6 +44,138 @@ function getQueryValues(url: string, param: string): string[] {
 }
 
 /**
+ * Canonical identity fields returned by {@link parseGitHubRepository}.
+ *
+ * @category URL
+ */
+export interface GitHubRepositoryDetails {
+  owner: string;
+  name: string;
+  slug: string;
+  url: string;
+}
+
+const githubOwnerPattern = /^(?=.{1,39}$)(?!.*--)[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/;
+const githubRepositoryPattern = /^(?=.{1,100}$)(?!\.{1,2}$)[A-Za-z0-9_.-]+$/;
+
+function invalidGitHubRepository(): Error {
+  return new Error("The value does not identify one supported GitHub repository");
+}
+
+function hasAsciiControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    if (code <= 31 || code === 127) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function createGitHubRepositoryDetails(owner: string, rawName: string): GitHubRepositoryDetails {
+  const name = rawName.replace(/\.git$/i, "");
+  if (!githubOwnerPattern.test(owner) || !githubRepositoryPattern.test(name)) {
+    throw invalidGitHubRepository();
+  }
+
+  const slug = `${owner}/${name}`;
+  return {
+    owner,
+    name,
+    slug,
+    url: `https://github.com/${slug}`,
+  };
+}
+
+/**
+ * Parse a GitHub repository shorthand or transport URL.
+ *
+ * Accepted values include `owner/name`, `github:owner/name`, SCP-style SSH,
+ * and `git`, `ssh`, `http`, or `https` GitHub URLs with an optional `git+`
+ * prefix and terminal `.git` suffix. Owner and repository names intentionally
+ * use a strict subset of GitHub's ASCII naming rules, including documented
+ * length bounds, and percent-encoded input is rejected.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { parseGitHubRepository } from "mazey";
+ *
+ * const repository = parseGitHubRepository("git@github.com:acme/widget.git");
+ * console.log(repository.slug, repository.url);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * acme/widget https://github.com/acme/widget
+ * ```
+ *
+ * @param value A GitHub `owner/name` shorthand, SCP form, or supported Git URL.
+ * @returns Canonical owner, repository name, slug, and HTTPS URL.
+ * @throws TypeError when `value` is not a string.
+ * @throws Error when the value is malformed or does not identify one GitHub repository.
+ * @category URL
+ */
+export function parseGitHubRepository(value: string): GitHubRepositoryDetails {
+  if (typeof value !== "string") {
+    throw new TypeError("value must be a string");
+  }
+
+  const input = value.trim();
+  if (!input || /[%\\?#]/.test(input) || hasAsciiControlCharacter(input)) {
+    throw invalidGitHubRepository();
+  }
+
+  const shorthand = input.match(/^(?:github:)?([^/:\s]+)\/([^/\s]+)$/i);
+  if (shorthand) {
+    return createGitHubRepositoryDetails(shorthand[1], shorthand[2]);
+  }
+
+  const scp = input.match(/^git@([^:\s]+):([^/\s]+)\/([^/\s]+)$/);
+  if (scp && scp[1].toLowerCase() === "github.com") {
+    return createGitHubRepositoryDetails(scp[2], scp[3]);
+  }
+
+  const normalizedUrl = input.replace(/^git\+(?=(?:git|ssh|https?):\/\/)/i, "");
+  const authority = normalizedUrl.match(/^[a-z][a-z\d+.-]*:\/\/([^/?#]+)/i);
+  if (!authority || /(^|\/)\.{1,2}(?:\/|$)/.test(normalizedUrl.slice(authority[0].length))) {
+    throw invalidGitHubRepository();
+  }
+
+  const hostWithPort = authority[1].slice(authority[1].lastIndexOf("@") + 1);
+  if (hostWithPort.indexOf(":") !== -1) {
+    throw invalidGitHubRepository();
+  }
+
+  let repositoryUrl: URL;
+  try {
+    repositoryUrl = new URL(normalizedUrl);
+  } catch (e) {
+    throw invalidGitHubRepository();
+  }
+
+  const protocol = repositoryUrl.protocol.toLowerCase();
+  const hostname = repositoryUrl.hostname.toLowerCase().replace(/^www\./, "");
+  if (
+    ![ "git:", "ssh:", "http:", "https:" ].includes(protocol) ||
+    hostname !== "github.com" ||
+    (repositoryUrl.username !== "" && repositoryUrl.username !== "git") ||
+    repositoryUrl.password !== "" ||
+    repositoryUrl.search !== "" ||
+    repositoryUrl.hash !== ""
+  ) {
+    throw invalidGitHubRepository();
+  }
+
+  const pathMatch = repositoryUrl.pathname.match(/^\/([^/]+)\/([^/]+)\/?$/);
+  if (!pathMatch) {
+    throw invalidGitHubRepository();
+  }
+  return createGitHubRepositoryDetails(pathMatch[1], pathMatch[2]);
+}
+
+/**
  * Get the query param's value of the current Web URL(`location.search`).
  *
  * Usage:
@@ -102,7 +234,7 @@ export function getAllQueryParams(url: string = ""): SingleValueUrlParams {
   }
   const result: SingleValueUrlParams = {};
   getQueryEntries(url).forEach(([ key, value ]) => {
-    if (!Object.prototype.hasOwnProperty.call(result, key)) {
+    if (!Object.hasOwn(result, key)) {
       Object.defineProperty(result, key, {
         configurable: true,
         enumerable: true,
@@ -282,13 +414,13 @@ export function getHashQueryParam(param: string): string {
  * @category URL
  */
 export function getDomain(url: string, rules = [ "hostname" ]): string {
-  if (checkIfURLIsSupported(url)) {
-    const u = new window.URL(url);
+  try {
+    const u = new URL(url, document.baseURI);
     return rules.reduce((ret, v) => {
       ret += u[v as keyof URL];
       return ret;
     }, "");
-  } else {
+  } catch (e) {
     const aEl: HTMLAnchorElement = document.createElement("a");
     aEl.href = url;
     return rules.reduce((ret, v) => {
@@ -400,7 +532,7 @@ function isValidHttpHostname(hostname: string): boolean {
   return !/^\d+$/.test(labels[labels.length - 1]);
 }
 
-function isValidHttpUrlFallback(url: string): boolean {
+function hasValidHttpUrlSyntax(url: string): boolean {
   const match = url.match(/^https?:\/\/([^/?#]+)(?:[/?#][^\s<>"`]*)?$/i);
   if (!match || match[1].indexOf("@") !== -1) {
     return false;
@@ -457,30 +589,20 @@ export function isValidHttpUrl(url: string, options: { strict: boolean } = { str
     return false;
   }
   const normalizedUrl = isProtocolRelative ? `http:${url}` : url;
-  if (!isValidHttpUrlFallback(normalizedUrl)) {
+  if (!hasValidHttpUrlSyntax(normalizedUrl)) {
     return false;
-  }
-  if (typeof URL !== "function") {
-    return true;
   }
   try {
     const parsed = new URL(normalizedUrl);
     const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
     return isHttp && isValidHttpHostname(parsed.hostname) && !parsed.username && !parsed.password;
   } catch (e) {
-    try {
-      new URL("http://example.com");
-      return false;
-    } catch (unsupportedError) {
-      return isValidHttpUrlFallback(normalizedUrl);
-    }
+    return false;
   }
 }
 
 /**
- * EN: Get the file type of the url.
- *
- * ZH: 获取文件后缀名。
+ * Get the file extension from a URL or path.
  *
  * Usage:
  *
@@ -632,19 +754,6 @@ export function replaceHttp(url: string): string {
   return convertHttpToHttps(url);
 }
 
-function checkIfURLIsSupported(url: string = "") {
-  const URL = window.URL;
-  if (typeof URL !== "function") {
-    return false;
-  }
-  try {
-    const parsed = new URL(url);
-    return Boolean(parsed.href);
-  } catch (e) {
-    return false;
-  }
-}
-
 /**
  * Get the host of the URL.
  *
@@ -668,15 +777,14 @@ function checkIfURLIsSupported(url: string = "") {
  * @category URL
  */
 export function getUrlHost(url: string): string {
-  let ret = "";
-  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.indexOf("//") === 0) {
+  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.startsWith("//")) {
     url = "https:" + url;
   }
-  if (checkIfURLIsSupported(url)) {
-    const urlObj = new URL(url);
-    ret = urlObj.host;
+  try {
+    return new URL(url).host;
+  } catch (e) {
+    return "";
   }
-  return ret;
 }
 
 /**
@@ -702,15 +810,14 @@ export function getUrlHost(url: string): string {
  * @category URL
  */
 export function getUrlPath(url: string): string {
-  let ret = "";
-  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.indexOf("//") === 0) {
+  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.startsWith("//")) {
     url = "https:" + url;
   }
-  if (checkIfURLIsSupported(url)) {
-    const urlObj = new URL(url);
-    ret = urlObj.pathname;
+  try {
+    return new URL(url).pathname;
+  } catch (e) {
+    return "";
   }
-  return ret;
 }
 
 /**

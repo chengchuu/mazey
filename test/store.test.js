@@ -3,6 +3,10 @@
  */
 /* eslint-disable no-undef */
 import {
+  setSessionJSON,
+  getSessionJSON,
+  setLocalJSON,
+  getLocalJSON,
   setSessionStorage,
   getSessionStorage,
   setLocalStorage,
@@ -13,70 +17,70 @@ import {
   removeCookie,
 } from "../lib/index.esm";
 
-describe("setSessionStorage", () => {
+describe("setSessionJSON", () => {
   it("should set sessionStorage correctly: string", () => {
-    setSessionStorage("test", "test");
+    setSessionJSON("test", "test");
     expect(sessionStorage.getItem("test")).toBe("\"test\"");
   });
 
   it("should set sessionStorage correctly: object", () => {
-    setSessionStorage("test", { a: 1 });
+    setSessionJSON("test", { a: 1 });
     expect(sessionStorage.getItem("test")).toBe("{\"a\":1}");
   });
 
   it("should set sessionStorage correctly: array", () => {
-    setSessionStorage("test", [ 1, 2, 3 ]);
+    setSessionJSON("test", [ 1, 2, 3 ]);
     expect(sessionStorage.getItem("test")).toBe("[1,2,3]");
   });
 
   it("stores undefined as JSON null instead of an unparsable string", () => {
-    setSessionStorage("test", undefined);
+    setSessionJSON("test", undefined);
     expect(sessionStorage.getItem("test")).toBe("null");
-    expect(getSessionStorage("test")).toBeNull();
+    expect(getSessionJSON("test")).toBeNull();
   });
 });
 
-describe("getSessionStorage", () => {
+describe("getSessionJSON", () => {
   it("should get sessionStorage correctly: string", () => {
     sessionStorage.setItem("test", "\"test\"");
-    expect(getSessionStorage("test")).toBe("test");
+    expect(getSessionJSON("test")).toBe("test");
   });
 
   it("should get sessionStorage correctly: object", () => {
     sessionStorage.setItem("test", "{\"a\":1}");
-    expect(getSessionStorage("test")).toEqual({ a: 1 });
+    expect(getSessionJSON("test")).toEqual({ a: 1 });
   });
 
   it("should get sessionStorage correctly: array", () => {
     sessionStorage.setItem("test", "[1,2,3]");
-    expect(getSessionStorage("test")).toEqual([ 1, 2, 3 ]);
+    expect(getSessionJSON("test")).toEqual([ 1, 2, 3 ]);
   });
 
   it("returns legacy non-JSON values without throwing", () => {
     sessionStorage.setItem("test", "legacy-value");
-    expect(getSessionStorage("test")).toBe("legacy-value");
+    expect(getSessionJSON("test")).toBe("legacy-value");
   });
 });
 
-describe("setLocalStorage", () => {
+describe("setLocalJSON", () => {
   it("should set the value in local storage", () => {
     const key = "testKey";
     const value = { name: "John", age: 30 };
 
-    setLocalStorage(key, value);
+    setLocalJSON(key, value);
 
     const storedValue = JSON.parse(localStorage.getItem(key) || "");
 
     expect(storedValue).toEqual(value);
   });
 
-  it("should remove the value from local storage if null is passed", () => {
+  it("stores null as JSON null", () => {
     const key = "testKey";
     const value = { name: "John", age: 30 };
 
     localStorage.setItem(key, JSON.stringify(value));
 
-    setLocalStorage(key, null);
+    setLocalJSON(key, null);
 
     const storedValue = localStorage.getItem(key);
 
@@ -87,7 +91,7 @@ describe("setLocalStorage", () => {
     const key = "";
     const value = { name: "John", age: 30 };
 
-    setLocalStorage(key, value);
+    setLocalJSON(key, value);
 
     const storedValue = localStorage.getItem(key);
 
@@ -95,61 +99,84 @@ describe("setLocalStorage", () => {
   });
 
   it("stores undefined as JSON null instead of an unparsable string", () => {
-    setLocalStorage("test", undefined);
+    setLocalJSON("test", undefined);
     expect(localStorage.getItem("test")).toBe("null");
-    expect(getLocalStorage("test")).toBeNull();
+    expect(getLocalJSON("test")).toBeNull();
   });
 });
 
-describe("getLocalStorage", () => {
+describe("getLocalJSON", () => {
   it("should get localStorage correctly: string", () => {
     localStorage.setItem("test", "\"test\"");
-    expect(getLocalStorage("test")).toBe("test");
+    expect(getLocalJSON("test")).toBe("test");
   });
 
   it("should get localStorage correctly: object", () => {
     localStorage.setItem("test", "{\"a\":1}");
-    expect(getLocalStorage("test")).toEqual({ a: 1 });
+    expect(getLocalJSON("test")).toEqual({ a: 1 });
   });
 
   it("should get localStorage correctly: array", () => {
     localStorage.setItem("test", "[1,2,3]");
-    expect(getLocalStorage("test")).toEqual([ 1, 2, 3 ]);
+    expect(getLocalJSON("test")).toEqual([ 1, 2, 3 ]);
   });
 
   it("returns legacy non-JSON values without throwing", () => {
     localStorage.setItem("test", "legacy-value");
-    expect(getLocalStorage("test")).toBe("legacy-value");
+    expect(getLocalJSON("test")).toBe("legacy-value");
   });
 });
 
-describe("setLocalStorage&getLocalStorage", () => {
+describe("setLocalJSON and getLocalJSON", () => {
   it("should set/get localStorage correctly: string", () => {
-    setLocalStorage("test", "test");
-    expect(getLocalStorage("test")).toBe("test");
+    setLocalJSON("test", "test");
+    expect(getLocalJSON("test")).toBe("test");
   });
 
   it("should set/get localStorage correctly: object", () => {
-    setLocalStorage("test", { a: 1 });
-    expect(getLocalStorage("test")).toEqual({ a: 1 });
+    setLocalJSON("test", { a: 1 });
+    expect(getLocalJSON("test")).toEqual({ a: 1 });
   });
 
   it("should set/get localStorage correctly: array", () => {
-    setLocalStorage("test", [ 1, 2, 3 ]);
-    expect(getLocalStorage("test")).toEqual([ 1, 2, 3 ]);
+    setLocalJSON("test", [ 1, 2, 3 ]);
+    expect(getLocalJSON("test")).toEqual([ 1, 2, 3 ]);
   });
 
   it("should set/get localStorage correctly: number", () => {
-    setLocalStorage("test", 1);
-    const res = getLocalStorage("test");
+    setLocalJSON("test", 1);
+    const res = getLocalJSON("test");
     expect(typeof res).toBe("number");
     expect(res).toBe(1);
   });
 
   it("should return null for non-existent keys", () => {
     const key = "nonExistentKey";
-    const retrievedValue = getLocalStorage(key);
+    const retrievedValue = getLocalJSON(key);
     expect(retrievedValue).toBeNull();
+  });
+});
+
+describe("Storage compatibility aliases", () => {
+  it("exports the original names as direct aliases", () => {
+    expect(setSessionStorage).toBe(setSessionJSON);
+    expect(getSessionStorage).toBe(getSessionJSON);
+    expect(setLocalStorage).toBe(setLocalJSON);
+    expect(getLocalStorage).toBe(getLocalJSON);
+  });
+
+  it("delegates session storage JSON behavior", () => {
+    setSessionStorage("test", { enabled: true });
+
+    expect(getSessionStorage("test")).toEqual({ enabled: true });
+    expect(getSessionJSON("test")).toEqual({ enabled: true });
+  });
+
+  it("delegates local storage JSON behavior", () => {
+    setLocalStorage("test", { enabled: true });
+
+    expect(getLocalStorage("test")).toEqual({ enabled: true });
+    expect(getLocalJSON("test")).toEqual({ enabled: true });
   });
 });
 

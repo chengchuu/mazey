@@ -1,3 +1,8 @@
+import {
+  listenMediaQueryChanges,
+  watchServiceWorkerUpdates,
+} from "../src/browser";
+
 export interface SitePwaConfig {
   appName: string;
   enabled: boolean;
@@ -16,18 +21,6 @@ interface NavigatorWithStandalone extends Navigator {
 
 interface WindowWithIdleCallback {
   requestIdleCallback?: (callback: () => void) => number;
-}
-
-function listenForMediaChanges(
-  media: MediaQueryList,
-  listener: () => void
-): () => void {
-  if (media.addEventListener) {
-    media.addEventListener("change", listener);
-    return () => media.removeEventListener("change", listener);
-  }
-  media.addListener(listener);
-  return () => media.removeListener(listener);
 }
 
 function announce(documentRef: Document, message: string): void {
@@ -146,7 +139,7 @@ export function initializeInstallExperience(
   buttons.forEach((button) => button.addEventListener("click", handleInstall));
   windowRef.addEventListener("beforeinstallprompt", handlePrompt);
   windowRef.addEventListener("appinstalled", handleInstalled);
-  const removeDisplayModeListener = listenForMediaChanges(
+  const removeDisplayModeListener = listenMediaQueryChanges(
     displayMode,
     handleDisplayMode
   );
@@ -172,38 +165,14 @@ export function monitorServiceWorkerUpdates(
   const updateButton = documentRef.querySelector<HTMLButtonElement>(
     "[data-pwa-update-now]"
   );
-  let waitingWorker: ServiceWorker | null = registration.waiting;
-  let installingWorker: ServiceWorker | null = null;
   let reloadRequested = false;
 
-  const showUpdate = (worker: ServiceWorker) => {
-    waitingWorker = worker;
+  const showUpdate = () => {
     if (notice) notice.hidden = false;
     announce(
       documentRef,
       `A new version of the ${appName} website is available.`
     );
-  };
-  const handleStateChange = () => {
-    if (
-      installingWorker?.state === "installed" &&
-      navigatorRef.serviceWorker.controller
-    ) {
-      showUpdate(installingWorker);
-    }
-  };
-  const handleUpdateFound = () => {
-    installingWorker?.removeEventListener("statechange", handleStateChange);
-    installingWorker = registration.installing;
-    installingWorker?.addEventListener("statechange", handleStateChange);
-    handleStateChange();
-  };
-  const handleUpdate = () => {
-    if (!waitingWorker) return;
-    reloadRequested = true;
-    if (updateButton) updateButton.disabled = true;
-    announce(documentRef, "Updating the website now.");
-    waitingWorker.postMessage({ type: "SKIP_WAITING" });
   };
   const handleControllerChange = () => {
     if (notice) notice.hidden = true;
@@ -211,26 +180,26 @@ export function monitorServiceWorkerUpdates(
     reloadRequested = false;
     windowRef.location.reload();
   };
-
-  if (registration.waiting && navigatorRef.serviceWorker.controller) {
-    showUpdate(registration.waiting);
-  }
-  registration.addEventListener("updatefound", handleUpdateFound);
-  if (registration.installing) handleUpdateFound();
-  updateButton?.addEventListener("click", handleUpdate);
-  navigatorRef.serviceWorker.addEventListener(
-    "controllerchange",
-    handleControllerChange
+  const watcher = watchServiceWorkerUpdates(
+    registration,
+    navigatorRef.serviceWorker,
+    {
+      onUpdateAvailable: showUpdate,
+      onControllerChange: handleControllerChange,
+    }
   );
+  const handleUpdate = () => {
+    if (!watcher.activateWaiting()) return;
+    reloadRequested = true;
+    if (updateButton) updateButton.disabled = true;
+    announce(documentRef, "Updating the website now.");
+  };
+
+  updateButton?.addEventListener("click", handleUpdate);
 
   return () => {
-    registration.removeEventListener("updatefound", handleUpdateFound);
-    installingWorker?.removeEventListener("statechange", handleStateChange);
     updateButton?.removeEventListener("click", handleUpdate);
-    navigatorRef.serviceWorker.removeEventListener(
-      "controllerchange",
-      handleControllerChange
-    );
+    watcher.dispose();
   };
 }
 
