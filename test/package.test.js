@@ -132,6 +132,37 @@ describe("package API catalog", () => {
     expect(declarations).toMatch(/export type \{[^}]*IsNumberOptions[^}]*\}/);
   });
 
+  it("publishes canonical utility names and deprecated compatibility names", () => {
+    const declarations = fs.readFileSync(
+      path.join(process.cwd(), "lib", "index.d.ts"),
+      "utf8"
+    );
+
+    expect(declarations).toMatch(
+      /declare function hideElements<T extends DomVisibilityTarget>\(target: T\): T;/
+    );
+    expect(declarations).toMatch(
+      /declare function showElements<T extends DomVisibilityTarget>\(target: T\): T;/
+    );
+    expect(declarations).toContain(
+      "declare function randomBoolean(rate: number): boolean;"
+    );
+    expect(declarations).toContain(
+      "declare function isNullish(val: MazeyObject): boolean;"
+    );
+    expect(declarations).toContain("declare function hide<T");
+    expect(declarations).toContain("declare function show<T");
+    expect(declarations).toContain("declare function isHit(rate: number)");
+    expect(declarations).toContain("declare function isUdfOrNul(val: MazeyObject)");
+    expect(declarations).toContain("declare function mNow(): number");
+    [ "hideElements", "showElements", "randomBoolean", "isNullish", "Date.now()" ]
+      .forEach(replacement => {
+        expect(declarations).toContain(
+          `@deprecated Use \`${replacement}\` instead.`
+        );
+      });
+  });
+
   it("keeps the documented runtime-export totals aligned with the package", () => {
     const apiMap = fs.readFileSync(
       path.join(

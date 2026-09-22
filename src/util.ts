@@ -5,7 +5,7 @@ import type {
   MazeyObject, MazeyFnParams, MazeyFnReturn, MazeyFunction,
   RepeatUntilOptions,
 } from "./typing";
-import { getDateTime, mNow } from "./date";
+import { getDateTime } from "./date";
 
 function createCloneCache(): WeakMap<object, unknown> {
   return new WeakMap<object, unknown>();
@@ -670,7 +670,7 @@ export function generateRndNum(n = 5): string {
  * @category Util
  */
 export function genUniqueNumString(n = 3): string {
-  const [ now, rnd ] = [ mNow(), generateRndNum(n || 3) ];
+  const [ now, rnd ] = [ Date.now(), generateRndNum(n || 3) ];
   return now + rnd;
 }
 
@@ -778,7 +778,7 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
   let timeout: ReturnType<typeof setTimeout> | null = null;
   let [ result, previous ] = [ null, 0 ];
   const later = function(this: unknown) {
-    previous = options.leading === false ? 0 : mNow();
+    previous = options.leading === false ? 0 : Date.now();
     timeout = null;
     result = func.apply(this as T, args!);
     if (!timeout) {
@@ -786,7 +786,7 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
     }
   };
   return function(this: unknown, ...argRest: Parameters<T>) {
-    const now = mNow();
+    const now = Date.now();
     if (!previous && options.leading === false) {
       previous = now;
     }
@@ -838,7 +838,7 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
   let args: Parameters<T> | null = null;
   let result: ReturnType<T> | null = null;
   const later = function() {
-    const last = mNow() - (timestamp as number);
+    const last = Date.now() - (timestamp as number);
     if (last < wait && last >= 0) {
       timeout = setTimeout(later, wait - last);
     } else {
@@ -855,7 +855,7 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     context = this;
     args = argRest;
-    timestamp = mNow();
+    timestamp = Date.now();
     const callNow = immediate && !timeout;
     if (!timeout) {
       timeout = setTimeout(later, wait);
@@ -1132,16 +1132,16 @@ export function isBoolean(bool: MazeyObject): boolean {
 }
 
 /**
- * Verify the validity of a value.
+ * Return whether a value is exactly `undefined` or `null`.
  *
  * Usage:
  *
  * ```javascript
- * import { isUdfOrNul } from "mazey";
+ * import { isNullish } from "mazey";
  *
- * const ret1 = isUdfOrNul(undefined);
- * const ret2 = isUdfOrNul(null);
- * const ret3 = isUdfOrNul("abc");
+ * const ret1 = isNullish(undefined);
+ * const ret2 = isNullish(null);
+ * const ret3 = isNullish("abc");
  * console.log(ret1, ret2, ret3);
  * ```
  *
@@ -1151,12 +1151,27 @@ export function isBoolean(bool: MazeyObject): boolean {
  * true true false
  * ```
  *
+ * Other falsy values, including `false`, `0`, `NaN`, and an empty string,
+ * return `false`.
+ *
  * @param {MazeyObject} val The value to verify.
- * @returns {boolean} Return TRUE if the object is undefined or null.
+ * @returns {boolean} Whether the value is `undefined` or `null`.
+ * @category Util
+ */
+export function isNullish(val: MazeyObject): boolean {
+  return val === undefined || val === null;
+}
+
+/**
+ * Deprecated alias of {@link isNullish}.
+ *
+ * @deprecated Use `isNullish` instead.
+ * @param val The value to verify.
+ * @returns Whether the value is `undefined` or `null`.
  * @category Util
  */
 export function isUdfOrNul(val: MazeyObject): boolean {
-  return val === undefined || val === null;
+  return isNullish(val);
 }
 
 /**

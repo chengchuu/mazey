@@ -324,9 +324,9 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * Usage:
  *
  * ```javascript
- * import { isHit } from "mazey";
+ * import { randomBoolean } from "mazey";
  *
- * const ret = isHit(0.5); // A 50% chance of returning true.
+ * const ret = randomBoolean(0.5); // A 50% chance of returning true.
  * console.log(ret);
  * ```
  *
@@ -342,7 +342,7 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * let trueCount = 0;
  * let falseCount = 0;
  * new Array(1000000).fill(0).forEach(() => {
- *   if (isHit(0.5)) {
+ *   if (randomBoolean(0.5)) {
  *     trueCount++;
  *   } else {
  *     falseCount++;
@@ -361,7 +361,7 @@ export function calLongestCommonSubsequence(aStr: string, bStr: string): number 
  * @returns {boolean} Whether the random value is less than the probability.
  * @category Calculate and Formula
  */
-export function isHit(rate: number): boolean {
+export function randomBoolean(rate: number): boolean {
   if (Math.random() < rate) {
     return true;
   }
@@ -369,10 +369,22 @@ export function isHit(rate: number): boolean {
 }
 
 /**
- * Alias of `isHit`.
+ * Deprecated alias of {@link randomBoolean}.
+ *
+ * @deprecated Use `randomBoolean` instead.
+ * @param rate Probability expressed as a value from 0 to 1.
+ * @returns Whether the random value is less than the probability.
+ * @category Calculate and Formula
+ */
+export function isHit(rate: number): boolean {
+  return randomBoolean(rate);
+}
+
+/**
+ * Compatibility alias of {@link randomBoolean}.
  *
  * @hidden
  */
 export function inRate(rate: number): boolean {
-  return isHit(rate);
+  return randomBoolean(rate);
 }
