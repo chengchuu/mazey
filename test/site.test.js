@@ -170,12 +170,16 @@ test("package identity supports scoped package names", () => {
 
 test("API transformation is complete, idempotent, and promotes a page h1", () => {
   const transformed = transformApiHtml(typeDocHtml, "modules.html");
+  const theme = projectConfig.site.theme;
   expect(transformApiHtml(transformed, "modules.html")).toBe(transformed);
   expect(transformed).toContain(
     `rel="canonical" href="${projectConfig.site.pages.api.url}modules.html"`
   );
   expect(transformed).toContain('href="../assets/api.css"');
   expect(transformed).toContain('src="../assets/api.js"');
+  expect(transformed).toContain(
+    `<meta name="theme-color" content="${theme.colorPrimary}" data-theme-color data-theme-color-light="${theme.colorPrimary}" data-theme-color-dark="${theme.primary.dark.base}"/>`
+  );
   expect(transformed.match(/<h1\b/g)).toHaveLength(1);
 });
 
@@ -231,11 +235,12 @@ test("API theme bootstrap rejects corrupted stored preferences", () => {
     .map((match) => match[1])
     .find((script) => script.includes("tsd-theme"));
   const values = new Map([["mazey-theme", "corrupted"]]);
+  const theme = projectConfig.site.theme;
   const meta = {
-    content: projectConfig.site.theme.colorLight,
+    content: theme.colorPrimary,
     dataset: {
-      themeColorDark: projectConfig.site.theme.colorDark,
-      themeColorLight: projectConfig.site.theme.colorLight,
+      themeColorDark: theme.primary.dark.base,
+      themeColorLight: theme.colorPrimary,
     },
   };
   const documentElement = { dataset: {}, style: {} };

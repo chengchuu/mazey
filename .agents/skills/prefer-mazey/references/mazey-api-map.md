@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 128 runtime exports in the current repository: 126 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 131 runtime exports in the current repository: 129 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -91,6 +91,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `convertKebabToCamel` | Convert kebab case to camel case              | Universal | Handles lowercase letters after `-`; trims one trailing hyphen.         |
 | `convertCamelToUnder` | Convert camel/Pascal case to snake case       | Universal | Inserts underscores before capitals and lowercases.                     |
 | `convertUnderToCamel` | Convert snake case to camel case              | Universal | Handles lowercase letters after `_`.                                    |
+| `toJavaScriptGlobalName` | Convert text to an uppercase ASCII identifier | Universal | Replaces invalid identifier characters with `_`, preserves `$`/`_`, and prefixes leading digits. |
 | `convertToHtmlBreaks` | Replace line breaks with `<br />`             | Universal | Returns empty for falsy input; does not escape HTML.                    |
 | `removeHTML`          | Strip HTML-like tags from text                | Universal | Regex-based, optional newline removal; not an HTML parser or sanitizer. |
 | `sanitizeInput`       | Escape six HTML-sensitive characters          | Universal | Context-limited escaping, not a complete XSS sanitizer.                 |
@@ -116,6 +117,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `getDomain`            | Concatenate selected URL/anchor fields              | Browser-only      | Uses `window.URL` or a DOM anchor; `rules` controls fields such as hostname/pathname.                                     |
 | `isValidUrl`           | Match a scheme URL                                  | Universal         | Regex-based and broader than HTTP; not equivalent to WHATWG `URL` validation.                                             |
 | `isValidHttpUrl`       | Validate strict HTTP/HTTPS URLs                     | Universal         | Rejects credentials and malformed hosts/ports; `strict: false` permits protocol-relative URLs.                            |
+| `parseGitHubRepository` | Parse GitHub shorthands and Git transport URLs      | Universal         | Returns owner/name/slug/HTTPS URL; bounded strict-ASCII grammar; permits only the conventional `git` username and rejects passwords, ports, queries, fragments, and encoding. |
 | `getUrlFileType`       | Extract the final path extension                    | Universal         | Ignores query/hash; returns an empty string when absent despite the broader declaration.                                  |
 | `getScriptQueryParam`  | Read a query value from matching script tags        | Browser-only      | Scans `document` script `src` attributes; default match substring is `.js`.                                               |
 | `convertObjectToQuery` | Encode own string properties as a query             | Universal         | Returns `?key=value`; empty object returns empty; excludes inherited properties.                                          |
@@ -162,7 +164,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function          | Purpose                                                    | Runtime           | Notes                                                                                                                         |
 | ----------------- | ---------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `isSafePWAEnv`    | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; checks secure context, service worker API, and non-empty manifest link; not installability proof. |
+| `isSafePWAEnv`    | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.   |
+| `isStandalonePWA` | Detect standalone PWA presentation                          | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                  |
 | `getBrowserInfo`  | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                         |
 | `genBrowserAttrs` | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                     |
 | `isSupportWebp`   | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                             |

@@ -14,7 +14,7 @@ import {
   doFn, mTrim, removeHtml, truncateZHString,
   convertKebabToCamel, convert10To26, zAxiosIsValidRes,
   unsanitize, sanitizeInput, unsanitizeInput,
-  isFunction, isString, isBoolean, isUdfOrNul,
+  isFunction, isString, isBoolean, isUdfOrNul, toJavaScriptGlobalName,
 } from "../lib/index.esm";
 import { runInNewContext } from "vm";
 
@@ -34,6 +34,30 @@ test("camelCaseToKebabCase: Transfer 'aBC' to 'a-b-c'?", () => {
 
 test("camelCase2Underscore: Transfer 'ABC' to 'a_b_c'?", () => {
   expect(camelCase2Underscore("ABC")).toBe("a_b_c");
+});
+
+describe("toJavaScriptGlobalName", () => {
+  it.each([
+    [ "my-library", "MY_LIBRARY" ],
+    [ "@scope/my-library", "_SCOPE_MY_LIBRARY" ],
+    [ "9patch", "_9PATCH" ],
+    [ "$cache_key", "$CACHE_KEY" ],
+    [ "", "_" ],
+    [ "a..b", "A__B" ],
+    [ "工具", "__" ],
+  ])("converts %p to %p", (value, expected) => {
+    expect(toJavaScriptGlobalName(value)).toBe(expected);
+  });
+
+  it("rejects non-string runtime input", () => {
+    expect(() => toJavaScriptGlobalName(123)).toThrow(TypeError);
+  });
+
+  it("is repeatable and does not mutate the input", () => {
+    const value = "@scope/my-library";
+    expect(toJavaScriptGlobalName(value)).toBe(toJavaScriptGlobalName(value));
+    expect(value).toBe("@scope/my-library");
+  });
 });
 
 test("mTrim: Transfer ' 1 2 3 ' to '1 2 3'?", () => {

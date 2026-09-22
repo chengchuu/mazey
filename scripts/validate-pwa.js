@@ -162,6 +162,18 @@ function validatePwa({ rootDir = path.resolve(__dirname, "..") } = {}) {
     const themeColor = findTag(html, "meta", "name", "theme-color");
     if (!themeColor || !Object.hasOwn(themeColor, "data-theme-color")) {
       failures.push(`${label} is missing dynamic theme-color metadata`);
+    } else {
+      const lightThemeColor = projectConfig.site.theme.colorPrimary;
+      const darkThemeColor = projectConfig.site.theme.primary.dark.base;
+      if (
+        themeColor.content !== lightThemeColor ||
+        themeColor["data-theme-color-light"] !== lightThemeColor
+      ) {
+        failures.push(`${label} must use the light primary theme color`);
+      }
+      if (themeColor["data-theme-color-dark"] !== darkThemeColor) {
+        failures.push(`${label} must use the dark primary theme color`);
+      }
     }
     if (installButton && !/<button\b[^>]*data-pwa-install/.test(html)) {
       failures.push(`${label} is missing an install button`);

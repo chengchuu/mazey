@@ -5,11 +5,58 @@ import type {
 import { isNonEmptyArray } from "./util";
 
 /**
+ * Options for {@link isSafePWAEnv}.
+ *
+ * @category Browser Information
+ */
+export interface IsSafePWAEnvOptions {
+  /** Require a non-empty web app manifest link. Defaults to `true`. */
+  requireManifest?: boolean;
+  /**
+   * Require the current page path to be within this same-origin URL scope.
+   * Comparison uses serialized WHATWG URL paths; encoded separators remain encoded.
+   */
+  scope?: string;
+}
+
+function isCurrentPageWithinScope(scope: string): boolean {
+  const normalizedScope = scope.trim();
+  if (!normalizedScope || /[?#]/.test(normalizedScope)) {
+    return false;
+  }
+
+  try {
+    const currentUrl = new URL(window.location.href);
+    const scopeUrl = new URL(normalizedScope, currentUrl);
+    if (
+      scopeUrl.origin !== currentUrl.origin ||
+      scopeUrl.search !== "" ||
+      scopeUrl.hash !== ""
+    ) {
+      return false;
+    }
+
+    if (currentUrl.pathname === scopeUrl.pathname) {
+      return true;
+    }
+
+    const nestedScopePath = scopeUrl.pathname.endsWith("/")
+      ? scopeUrl.pathname
+      : `${scopeUrl.pathname}/`;
+    return currentUrl.pathname.startsWith(nestedScopePath);
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * Detect whether the current browser document provides the minimum
  * JavaScript-detectable prerequisites for PWA functionality.
  *
  * This function checks for a secure context, Service Worker API support,
- * and a web app manifest link with a non-empty `href`.
+ * and, by default, a web app manifest link with a non-empty `href`. Options
+ * can make the manifest optional or require the current path to be within a
+ * same-origin scope.
  *
  * It does not validate or request the manifest, verify service worker
  * registration, determine whether the app is installed, or guarantee that an
@@ -31,27 +78,87 @@ import { isNonEmptyArray } from "./util";
  * true
  * ```
  *
- * @remarks Browser only.
+ * @remarks Browser-preferred and safe to call during SSR.
+ * @param options Optional manifest and URL-scope requirements.
  * @returns Whether the detectable minimum PWA prerequisites are satisfied.
  * @category Browser Information
  */
-export function isSafePWAEnv(): boolean {
-  if (
-    typeof window === "undefined" ||
-    typeof document === "undefined" ||
-    typeof navigator === "undefined"
-  ) {
+export function isSafePWAEnv(options: IsSafePWAEnvOptions = {}): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
     return false;
   }
 
-  const manifest = document.querySelector<HTMLLinkElement>("link[rel~=\"manifest\"][href]");
-  const manifestHref = manifest?.getAttribute("href")?.trim();
+  try {
+    if (options === null || typeof options !== "object" || Array.isArray(options)) {
+      return false;
+    }
 
-  return (
-    window.isSecureContext === true &&
-    "serviceWorker" in navigator &&
-    Boolean(manifestHref)
-  );
+    const requireManifest = options.requireManifest;
+    const scope = options.scope;
+    if (
+      (requireManifest !== undefined && typeof requireManifest !== "boolean") ||
+      (scope !== undefined && typeof scope !== "string")
+    ) {
+      return false;
+    }
+
+    if (window.isSecureContext !== true || !("serviceWorker" in navigator)) {
+      return false;
+    }
+
+    if (scope !== undefined && !isCurrentPageWithinScope(scope)) {
+      return false;
+    }
+
+    if (requireManifest === false) {
+      return true;
+    }
+
+    if (typeof document === "undefined") {
+      return false;
+    }
+
+    const manifest = document.querySelector<HTMLLinkElement>("link[rel~=\"manifest\"][href]");
+    return Boolean(manifest?.getAttribute("href")?.trim());
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Detect whether the current page is displayed as a standalone PWA.
+ *
+ * Checks the standard `display-mode: standalone` media query and the iOS Safari
+ * `navigator.standalone` compatibility signal. This does not prove that the app
+ * is installed, trusted, or controlled by a service worker.
+ *
+ * @remarks Browser-preferred and safe to call during SSR.
+ * @returns `true` in detected standalone presentation; otherwise `false`.
+ * @category Browser Information
+ */
+export function isStandalonePWA(): boolean {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
+
+  const appleNavigator = navigator as Navigator & { standalone?: boolean };
+  try {
+    const matchMedia = window.matchMedia;
+    if (
+      typeof matchMedia === "function" &&
+      matchMedia.call(window, "(display-mode: standalone)").matches
+    ) {
+      return true;
+    }
+  } catch (e) {
+    // Fall through to the iOS compatibility signal.
+  }
+
+  try {
+    return appleNavigator.standalone === true;
+  } catch (e) {
+    return false;
+  }
 }
 
 /**
