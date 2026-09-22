@@ -78,6 +78,7 @@ There are some examples maintained by hand below. For more information, please c
   - [windowLoaded](#windowloaded)
 - [Util](#util)
   - [isNumber](#isnumber)
+  - [isNullish](#isnullish)
   - [isJSONString](#isjsonstring)
   - [parseJsonSafe](#parsejsonsafe)
   - [escapeHtmlAttribute](#escapehtmlattribute)
@@ -121,7 +122,7 @@ There are some examples maintained by hand below. For more information, please c
   - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
-  - [hide and show](#hide-and-show)
+  - [hideElements and showElements](#hideelements-and-showelements)
   - [isValidCssSelector](#isvalidcssselector)
   - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
@@ -133,7 +134,7 @@ There are some examples maintained by hand below. For more information, please c
 - [Calculate and Formula](#calculate-and-formula)
   - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
-  - [inRate](#inrate)
+  - [randomBoolean](#randomboolean)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
@@ -293,6 +294,9 @@ Load Success: load
 
 ### Util
 
+Use native `Date.now()` to get the current epoch time in milliseconds. The
+former `mNow()` helper remains available as a deprecated compatibility API.
+
 #### isNumber
 
 Check whether a value is an allowed numeric primitive. Optional constraints can
@@ -322,6 +326,21 @@ true false false true false true true false
 `min` and `max` are inclusive and may be used independently. Invalid or
 reversed bounds return `false`. Existing non-finite-number behavior is unchanged
 when `integer`, `min`, and `max` are omitted.
+
+#### isNullish
+
+Check whether a value is exactly `undefined` or `null`. Other falsy values are
+not nullish.
+
+```javascript
+isNullish(undefined); // true
+isNullish(null); // true
+isNullish(false); // false
+isNullish(0); // false
+isNullish(""); // false
+```
+
+`isUdfOrNul` remains available as a deprecated alias of `isNullish`.
 
 #### isJSONString
 
@@ -1139,28 +1158,30 @@ addClass(dom, "test");
 removeClass(dom, "test");
 ```
 
-#### hide and show
+#### hideElements and showElements
 
 Hide or show a CSS selector, one element, or an iterable or array-like element
 collection. Both helpers return the original target, so a caller can retain its
 own chaining convention. Duplicate elements are changed only once, and invalid
 selectors or unsupported values are ignored.
 
-`hide()` preserves a visible element's inline `display` value. `show()` restores
-that value, or recovers the element's normal display when a stylesheet would
-otherwise keep it hidden.
+`hideElements()` preserves a visible element's inline `display` value.
+`showElements()` restores that value, or recovers the element's normal display
+when a stylesheet would otherwise keep it hidden.
 
 ```javascript
-import { hide, show } from "mazey";
+import { hideElements, showElements } from "mazey";
 
 const notices = document.querySelectorAll(".notice");
 
-hide(notices);
-show(notices);
+hideElements(notices);
+showElements(notices);
 
-hide("#temporary-message");
-show(document.querySelector("#temporary-message"));
+hideElements("#temporary-message");
+showElements(document.querySelector("#temporary-message"));
 ```
+
+`hide` and `show` remain available as deprecated aliases.
 
 #### isValidCssSelector
 
@@ -1435,14 +1456,14 @@ calculateCAGR(
 
 Date strings are validated using Mazey's strict date rules. Invalid dates, malformed or non-finite returns, and non-increasing date ranges throw errors. The parsed total return must be greater than `-1`, because `-1` represents a complete loss for which CAGR is undefined.
 
-#### inRate
+#### randomBoolean
 
-Hit probability (1% ~ 100%).
+Return whether a generated random value is less than the supplied probability.
 
 Usage:
 
 ```javascript
-const ret = inRate(0.5); // 0.01 ~ 1 true/false
+const ret = randomBoolean(0.5); // A 50% chance of returning true.
 console.log(ret);
 ```
 
@@ -1459,7 +1480,7 @@ Example: Test the precision.
 let trueCount = 0;
 let falseCount = 0;
 new Array(1000000).fill(0).forEach(() => {
-  if (inRate(0.5)) {
+  if (randomBoolean(0.5)) {
     trueCount++;
   } else {
     falseCount++;
@@ -1467,6 +1488,9 @@ new Array(1000000).fill(0).forEach(() => {
 });
 console.log(trueCount, falseCount); // 499994 500006
 ```
+
+`randomBoolean` evaluates `Math.random() < rate` without clamping the supplied
+rate. `isHit` is a deprecated alias, and `inRate` remains a compatibility alias.
 
 #### longestComSubstring
 

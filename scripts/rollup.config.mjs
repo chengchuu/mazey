@@ -16,7 +16,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const _resolve = (_path) => path.resolve(__dirname, _path);
 const pkgVersion = process.env.SCRIPTS_NPM_PACKAGE_VERSION || process.env.VERSION || "unknown";
-const debugMode = process.env.SCRIPTS_NPM_PACKAGE_DEBUG;
 const banner =
   "/*!\n" +
   ` * Mazey v${pkgVersion} https://github.com/chengchuu/mazey\n` +
@@ -42,7 +41,14 @@ const plugins = [
     ],
   }),
 ];
-const iifePlugins = [];
+const outputPlugins = [
+  terser({ // https://github.com/terser/terser
+    format: {
+      // https://github.com/terser/terser#format-options
+      comments: /^!\n\s\*\sMazey/,
+    },
+  }),
+];
 const dTsConf = {
   input: _resolve("../src/typing.d.ts"),
   // https://rollupjs.org/guide/en/#outputformat
@@ -86,19 +92,6 @@ const gTsConf = {
   external: [],
 };
 
-if (debugMode !== "open") {
-  iifePlugins.push(
-    // Add Minification
-    // https://github.com/TrySound/rollup-plugin-terser
-    terser({ // https://github.com/terser/terser
-      format: {
-        // https://github.com/terser/terser#format-options
-        comments: /^!\n\s\*\sMazey/,
-      },
-    }),
-  );
-}
-
 // https://rollupjs.org/guide/en/
 export default [
   {
@@ -109,20 +102,20 @@ export default [
         file: _resolve("../lib/index.cjs.js"),
         format: "cjs",
         banner,
-        plugins: iifePlugins,
+        plugins: outputPlugins,
       },
       {
         file: _resolve("../lib/index.esm.js"),
         format: "esm",
         banner,
-        plugins: iifePlugins,
+        plugins: outputPlugins,
       },
       {
         file: _resolve("../lib/mazey.min.js"),
         format: "iife",
         name: "mazey",
         banner,
-        plugins: iifePlugins,
+        plugins: outputPlugins,
       },
     ],
     plugins: [

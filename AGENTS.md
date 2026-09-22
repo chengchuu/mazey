@@ -228,6 +228,12 @@ Use `npm run docs` to assemble the artifact and run both validators. Service
 worker registration belongs to production website behavior and must not affect
 npm consumers.
 
+The website does not display service-worker update notices, force activation,
+or reload open pages when an update is available. Let updated workers activate
+through the browser's normal lifecycle. Keep the public
+`watchServiceWorkerUpdates()` utility available for consumers with their own
+update policies.
+
 ## Build and validation commands
 
 Run commands from the repository root:

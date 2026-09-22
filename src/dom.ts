@@ -639,12 +639,12 @@ function getDefaultDisplay(element: Element): string {
 
 /**
  * Hide every resolved element while preserving its visible inline `display`
- * value for a later call to {@link show}.
+ * value for a later call to {@link showElements}.
  *
  * ```javascript
- * import { hide } from "mazey";
+ * import { hideElements } from "mazey";
  *
- * hide(".notice");
+ * hideElements(".notice");
  * ```
  *
  * @remarks Selectors use the global document. Direct elements and collections
@@ -654,7 +654,7 @@ function getDefaultDisplay(element: Element): string {
  * @returns The original target unchanged, to support chaining by the caller.
  * @category DOM
  */
-export function hide<T extends DomVisibilityTarget>(target: T): T {
+export function hideElements<T extends DomVisibilityTarget>(target: T): T {
   resolveVisibilityTargets(target).forEach(element => {
     const computedDisplay = getComputedDisplay(element);
     if (computedDisplay !== "none" && element.style.display !== "none") {
@@ -667,14 +667,14 @@ export function hide<T extends DomVisibilityTarget>(target: T): T {
 
 /**
  * Show every resolved element by restoring a display value preserved by
- * {@link hide}, or by applying the document-aware default for CSS-hidden
+ * {@link hideElements}, or by applying the document-aware default for CSS-hidden
  * elements.
  *
  * ```javascript
- * import { show } from "mazey";
+ * import { showElements } from "mazey";
  *
  * const notices = document.querySelectorAll(".notice");
- * show(notices);
+ * showElements(notices);
  * ```
  *
  * @remarks Selectors use the global document. Direct elements and collections
@@ -684,7 +684,7 @@ export function hide<T extends DomVisibilityTarget>(target: T): T {
  * @returns The original target unchanged, to support chaining by the caller.
  * @category DOM
  */
-export function show<T extends DomVisibilityTarget>(target: T): T {
+export function showElements<T extends DomVisibilityTarget>(target: T): T {
   resolveVisibilityTargets(target).forEach(element => {
     if (storedDisplayValues.has(element)) {
       element.style.display = storedDisplayValues.get(element) as string;
@@ -698,6 +698,30 @@ export function show<T extends DomVisibilityTarget>(target: T): T {
     }
   });
   return target;
+}
+
+/**
+ * Deprecated alias of {@link hideElements}.
+ *
+ * @deprecated Use `hideElements` instead.
+ * @param target Selector, element, iterable, array-like collection, or an empty target.
+ * @returns The original target unchanged.
+ * @category DOM
+ */
+export function hide<T extends DomVisibilityTarget>(target: T): T {
+  return hideElements(target);
+}
+
+/**
+ * Deprecated alias of {@link showElements}.
+ *
+ * @deprecated Use `showElements` instead.
+ * @param target Selector, element, iterable, array-like collection, or an empty target.
+ * @returns The original target unchanged.
+ * @category DOM
+ */
+export function show<T extends DomVisibilityTarget>(target: T): T {
+  return showElements(target);
 }
 
 /**

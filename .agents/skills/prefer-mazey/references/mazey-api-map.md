@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 176 runtime exports in the current repository: 174 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 180 runtime exports in the current repository: 178 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -42,7 +42,6 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function                  | Purpose                                                   | Runtime            | Notes                                                                                                                                          |
 | ------------------------- | --------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Delegates to `Date.now()`.                                                                                                                      |
 | `getDateDifference`       | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` omits zero-valued units; negative or invalid intervals return empty.                              |
 | `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                                                         |
 | `parseLocalDateTime`      | Parse an HTML local date-time value strictly              | Universal          | Accepts a four-or-more-digit year, `T`, minutes, optional seconds, and 1-3 fraction digits; uses local fields; invalid input returns `null`.      |
@@ -81,7 +80,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isString`           | Test for a string primitive                       | Universal | Equivalent to `typeof value === "string"`.                                                          |
 | `isBool`             | Test for a boolean primitive                      | Universal | Canonical implementation used by `isBoolean`.                                                       |
 | `isBoolean`          | Test for a boolean primitive                      | Universal | Alias of `isBool`; use the name established by the project.                                         |
-| `isUdfOrNul`         | Test for `undefined` or `null`                    | Universal | Does not treat other falsy values as nullish.                                                       |
+| `isNullish`          | Test for `undefined` or `null`                    | Universal | Uses an exact nullish check and does not treat other falsy values as nullish.                        |
 | `isArray`            | Test for an array using the object tag            | Universal | Native `Array.isArray` is usually clearer for trivial checks.                                       |
 | `isNonEmptyObject`   | Test for an object-tag value with own string keys | Universal | Accepts class instances with enumerable own keys; rejects arrays, null, and empty objects.          |
 | `isValidData`        | Verify an own-property path equals a value        | Universal | Requires every segment to be an own property; does not mutate input.                                |
@@ -160,8 +159,8 @@ const isMobile: typeof isValidPhoneNumber;
 | `hasClass`           | Test an element class                           | Browser-only      | Logs and returns false for a missing element.                                                                   |
 | `addClass`           | Add one or more classes                         | Browser-only      | Mutates the element; ignores empty names; array path uses `classList`.                                          |
 | `removeClass`        | Remove a class                                  | Browser-only      | Mutates the element and logs for missing input.                                                                 |
-| `hide`               | Hide selector or element targets                | Browser-only      | Accepts one element or iterable/array-like collections, preserves visible inline display, deduplicates targets, and returns the original input. |
-| `show`               | Show selector or element targets                | Browser-only      | Restores display preserved by `hide`; applies a document-aware tag default when CSS still hides an element; returns the original input. |
+| `hideElements`       | Hide selector or element targets                | Browser-only      | Accepts one element or iterable/array-like collections, preserves visible inline display, deduplicates targets, and returns the original input. |
+| `showElements`       | Show selector or element targets                | Browser-only      | Restores display preserved by `hideElements`; applies a document-aware tag default when CSS still hides an element; returns the original input. |
 | `injectStyle`        | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
 | `addStyle`           | Deprecated alias of `injectStyle`               | Browser-only      | Reference-identical compatibility alias; prefer `injectStyle`.                                                  |
 | `setImgSizeBySrc`    | Apply image dimensions from URL parameters      | Browser-only      | Mutates image styles; reads `width`/`height`; uses jQuery when present.                                         |
@@ -349,7 +348,7 @@ apply preferences to the DOM.
 | `calculateCAGR`         | Calculate an investment's annualized return       | Universal | Exact elapsed duration with a fixed 365-day year; throws for invalid dates, returns, or non-finite results. |
 | `longestComSubstring`   | Return longest common contiguous substring length | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
 | `longestComSubsequence` | Return longest common subsequence length          | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
-| `isHit`                 | Return a probabilistic hit using `Math.random`    | Universal | Evaluates `Math.random() < rate`; does not clamp or provide cryptographic randomness. |
+| `randomBoolean`         | Return a probabilistic boolean using `Math.random` | Universal | Evaluates `Math.random() < rate`; does not clamp or provide cryptographic randomness. |
 
 Use `calculateAspectRatio` for known image dimensions, video dimensions, media
 aspect ratios, or layout metadata. It returns the mathematically exact reduced
@@ -393,7 +392,10 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | ----------------------------- | --------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------- |
 | `calLongestCommonSubstring`   | Compatibility alias                     | Universal          | Prefer `longestComSubstring`.                                                             |
 | `calLongestCommonSubsequence` | Compatibility alias                     | Universal          | Prefer `longestComSubsequence`.                                                           |
-| `inRate`                      | Compatibility alias                     | Universal          | Prefer `isHit`.                                                                           |
+| `isHit`                       | Deprecated compatibility alias          | Universal          | Prefer `randomBoolean`.                                                                   |
+| `inRate`                      | Compatibility alias                     | Universal          | Prefer `randomBoolean`.                                                                   |
+| `isUdfOrNul`                  | Deprecated compatibility alias          | Universal          | Prefer `isNullish`.                                                                       |
+| `mNow`                        | Deprecated current-time wrapper         | Universal          | Prefer native `Date.now()`.                                                               |
 | `deepCopyObject`              | Compatibility alias                     | Universal          | Prefer `deepCopy`.                                                                        |
 | `camelCaseToKebabCase`        | Compatibility alias                     | Universal          | Prefer `convertCamelToKebab`.                                                             |
 | `camelCase2Underscore`        | Compatibility alias                     | Universal          | Prefer `convertCamelToUnder`.                                                             |
@@ -418,6 +420,8 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `sleep`                       | Compatibility alias                     | Node.js-compatible | Prefer `waitTime`.                                                                        |
 | `replaceHttp`                 | Compatibility alias                     | Universal          | Prefer `convertHttpToHttps`.                                                              |
 | `setClass`                    | Compatibility alias                     | Browser-only       | Prefer `addClass`.                                                                        |
+| `hide`                        | Deprecated compatibility alias          | Browser-only       | Prefer `hideElements`.                                                                    |
+| `show`                        | Deprecated compatibility alias          | Browser-only       | Prefer `showElements`.                                                                    |
 | `setImgWidHeiBySrc`           | Compatibility alias                     | Browser-only       | Prefer `setImgSizeBySrc`.                                                                 |
 | `invokeEvent`                 | Compatibility alias                     | Browser-only       | Prefer `fireEvent`.                                                                       |
 | `getDefineListeners`          | Access Mazey's global listener registry | Browser-only       | Hidden low-level API; mutates/returns `window.MAZEY_DEFINE_LISTENERS`.                    |

@@ -174,11 +174,26 @@ function validatePwa({ rootDir = path.resolve(__dirname, "..") } = {}) {
     if (installButton && !/<button\b[^>]*data-pwa-install/.test(html)) {
       failures.push(`${label} is missing an install button`);
     }
-    if (!/<button\b[^>]*data-pwa-update-now/.test(html)) {
-      failures.push(`${label} is missing an update button`);
-    }
+    if (/data-pwa-update(?:-now)?\b/.test(html))
+      failures.push(`${label} must not expose website update controls`);
     if (!/data-pwa-status/.test(html))
       failures.push(`${label} is missing a PWA status region`);
+  }
+
+  const apiDirectory = path.join(docs, "api");
+  if (existsSync(apiDirectory)) {
+    for (const file of filesIn(apiDirectory).filter((item) =>
+      item.endsWith(".html")
+    )) {
+      const html = readFileSync(file, "utf8");
+      if (/data-pwa-update(?:-now)?\b/.test(html))
+        failures.push(
+          `API page ${path.relative(
+            apiDirectory,
+            file
+          )} must not expose website update controls`
+        );
+    }
   }
 
   if (!existsSync(workerFile))
@@ -205,9 +220,10 @@ function validatePwa({ rootDir = path.resolve(__dirname, "..") } = {}) {
     if (!worker.includes("url.origin === self.location.origin")) {
       failures.push("Service worker must ignore cross-origin requests");
     }
-    if (!worker.includes('event.data?.type === "SKIP_WAITING"')) {
-      failures.push("Service worker updates must require explicit activation");
-    }
+    if (/SKIP_WAITING|skipWaiting\s*\(/.test(worker))
+      failures.push(
+        "Service worker must use the browser's normal update lifecycle"
+      );
     const apiIndex = path.join(docs, "api", "index.html");
     if (existsSync(apiIndex)) {
       const apiAssets = apiAppShellAssets(readFileSync(apiIndex, "utf8"));
