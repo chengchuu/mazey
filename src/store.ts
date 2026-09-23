@@ -1,7 +1,5 @@
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Serialize a value as JSON and store it in `sessionStorage`.
  *
  * Usage:
  *
@@ -14,7 +12,7 @@
  * const ret2 = getLocalStorage("test");
  * console.log(ret1, ret2);
  *
- * // or package in usage
+ * // Wrap the helpers with a project-specific key prefix.
  * const projectName = "mazey";
  * function mSetLocalStorage (key, value) {
  *   return setLocalStorage(`${projectName}_${key}`, value);
@@ -31,8 +29,9 @@
  * 123 123
  * ```
  *
- * @param {string} key 键
- * @returns {void} 返回值
+ * @param {string} key Storage key.
+ * @param value Value to serialize and store.
+ * @returns {void} This function does not return a value.
  * @category Store
  */
 export function setSessionStorage<T>(key: string, value: T | null = null): void {
@@ -43,9 +42,7 @@ export function setSessionStorage<T>(key: string, value: T | null = null): void 
 }
 
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Read a value from `sessionStorage`, parsing JSON when possible.
  *
  * Usage:
  *
@@ -58,7 +55,7 @@ export function setSessionStorage<T>(key: string, value: T | null = null): void 
  * const ret2 = getLocalStorage("test");
  * console.log(ret1, ret2);
  *
- * // or package in usage
+ * // Wrap the helpers with a project-specific key prefix.
  * const projectName = "mazey";
  * function mSetLocalStorage (key, value) {
  *   return setLocalStorage(`${projectName}_${key}`, value);
@@ -75,8 +72,8 @@ export function setSessionStorage<T>(key: string, value: T | null = null): void 
  * 123 123
  * ```
  *
- * @param {string} key 键
- * @returns {any} 返回值
+ * @param {string} key Storage key.
+ * @returns The parsed value, raw stored value, or `null` when no value exists.
  * @category Store
  */
 export function getSessionStorage<T>(key: string): T | null {
@@ -95,9 +92,7 @@ export function getSessionStorage<T>(key: string): T | null {
 }
 
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Serialize a value as JSON and store it in `localStorage`.
  *
  * Usage:
  *
@@ -110,7 +105,7 @@ export function getSessionStorage<T>(key: string): T | null {
  * const ret2 = getLocalStorage("test");
  * console.log(ret1, ret2);
  *
- * // or package in usage
+ * // Wrap the helpers with a project-specific key prefix.
  * const projectName = "mazey";
  * function mSetLocalStorage (key, value) {
  *   return setLocalStorage(`${projectName}_${key}`, value);
@@ -127,8 +122,9 @@ export function getSessionStorage<T>(key: string): T | null {
  * 123 123
  * ```
  *
- * @param {string} key 键
- * @returns {void} 返回值
+ * @param {string} key Storage key.
+ * @param value Value to serialize and store.
+ * @returns {void} This function does not return a value.
  * @category Store
  */
 export function setLocalStorage<T>(key: string, value: T | null = null): void {
@@ -139,9 +135,7 @@ export function setLocalStorage<T>(key: string, value: T | null = null): void {
 }
 
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Read a value from `localStorage`, parsing JSON when possible.
  *
  * Usage:
  *
@@ -154,7 +148,7 @@ export function setLocalStorage<T>(key: string, value: T | null = null): void {
  * const ret2 = getLocalStorage("test");
  * console.log(ret1, ret2);
  *
- * // or package in usage
+ * // Wrap the helpers with a project-specific key prefix.
  * const projectName = "mazey";
  * function mSetLocalStorage (key, value) {
  *   return setLocalStorage(`${projectName}_${key}`, value);
@@ -171,8 +165,8 @@ export function setLocalStorage<T>(key: string, value: T | null = null): void {
  * 123 123
  * ```
  *
- * @param {string} key 键
- * @returns {void} 返回值
+ * @param {string} key Storage key.
+ * @returns The parsed value, raw stored value, or `null` when no value exists.
  * @category Store
  */
 export function getLocalStorage<T>(key: string): T | null {
@@ -255,16 +249,14 @@ function serializeCookieValue(value: string): SerializedCookieValue {
 }
 
 /**
- * EN: Handle Cookie.
- *
- * ZH: 设置/获取 Cookie。
+ * Get a cookie value by name.
  *
  * Usage:
  *
  * ```javascript
  * import { setCookie, getCookie } from "mazey";
  *
- * setCookie("test", "123", 30, "example.com"); // key value day domain
+ * setCookie("test", "123", 30, "example.com"); // name, value, days, domain
  * const ret = getCookie("test");
  * console.log(ret);
  * ```
@@ -275,6 +267,8 @@ function serializeCookieValue(value: string): SerializedCookieValue {
  * 123
  * ```
  *
+ * @param name Cookie name.
+ * @returns The cookie value, or an empty string when the cookie does not exist.
  * @category Store
  */
 export function getCookie(name: string): string {
@@ -297,16 +291,14 @@ export function getCookie(name: string): string {
 }
 
 /**
- * EN: Handle Cookie.
- *
- * ZH: 设置/获取 Cookie。
+ * Set a cookie value.
  *
  * Usage:
  *
  * ```javascript
  * import { setCookie, getCookie } from "mazey";
  *
- * setCookie("test", "123", 30, "example.com"); // key value day domain
+ * setCookie("test", "123", 30, "example.com"); // name, value, days, domain
  * const ret = getCookie("test");
  * console.log(ret);
  * ```
@@ -317,6 +309,11 @@ export function getCookie(name: string): string {
  * 123
  * ```
  *
+ * @param name Cookie name.
+ * @param value Cookie value.
+ * @param days Number of days until expiration. Omit for a session cookie.
+ * @param domain Optional cookie domain.
+ * @returns {void} This function does not return a value.
  * @category Store
  */
 export function setCookie(name: string, value: string, days?: number, domain?: string): void {

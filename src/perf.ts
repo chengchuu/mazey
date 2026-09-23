@@ -280,9 +280,7 @@ export async function getTTFB(): Promise<number> {
 }
 
 /**
- * EN: Get page load time(`PerformanceNavigationTiming`).
- *
- * ZH: 获取页面加载相关的各项数据。
+ * Get page-load metrics from the Navigation Timing APIs.
  *
  * @remarks
  * This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
@@ -293,8 +291,8 @@ export async function getTTFB(): Promise<number> {
  * ```javascript
  * import { getPerformance } from "mazey";
  *
- * // `camelCase：false` (Default) Return underline(`a_b`) data.
- * // `camelCase：true` Return hump(`aB`) data.
+ * // `camelCase: false` (default) returns snake_case keys such as `a_b`.
+ * // `camelCase: true` returns camelCase keys such as `aB`.
  * getPerformance()
  *  .then(res => {
  *   console.log(JSON.stringify(res));
@@ -324,8 +322,8 @@ export async function getTTFB(): Promise<number> {
  * | ssl_time | SSL | number | (Optional) connectEnd - secureConnectionStart |
  * | download_time | Download | number | (Optional) responseEnd - responseStart |
  *
- * @param {boolean} camelCase -- false（默认） 以下划线形式返回数据 true 以驼峰形式返回数据
- * @returns {Promise<object>} 加载数据
+ * @param {boolean} camelCase Whether to return camelCase keys. Defaults to `false`, which returns snake_case keys.
+ * @returns {Promise<object>} The collected page-load metrics.
  * @category Perf
  */
 export async function getPerformance(camelCase = false): Promise<WebPerformance> {
@@ -496,21 +494,21 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
       deviceType: getDeviceType(),
       network: getNetWork(),
       screenDirection: getOrientationStatu(),
-      unloadTime: unloadEventEnd - unloadEventStart, // 上个文档的卸载时间
-      redirectTime: redirectEnd - redirectStart, // * 重定向时间
-      dnsTime: domainLookupEnd - domainLookupStart, // * DNS 查询时间
-      tcpTime: connectEnd - connectStart, // * 服务器连接时间
-      sslTime: getSSLTime(connectEnd, secureConnectionStart), // * SSL 连接时间
-      responseTime: responseStart - requestStart, // * 服务器响应时间
-      downloadTime: responseEnd - responseStart, // * 网页下载时间
-      firstPaintTime: firstPaintTime, // * 首次渲染时间
-      firstContentfulPaintTime: firstContentfulPaintTime, // * 首次渲染内容时间
-      domReadyTime: domContentLoadedEventStart - startTime, // * DOM Ready 时间（总和）
-      onloadTime: loadEventStart - startTime, // * onload 时间（总和）
-      whiteTime: responseStart - startTime, // * 白屏时间
-      renderTime: loadEventEnd - startTime, // 整个过程的时间之和
-      decodedBodySize: decodedBodySize, // 页面压缩前大小
-      encodedBodySize: encodedBodySize, // 页面压缩后大小
+      unloadTime: unloadEventEnd - unloadEventStart, // Time spent unloading the previous document.
+      redirectTime: redirectEnd - redirectStart, // Redirect duration.
+      dnsTime: domainLookupEnd - domainLookupStart, // DNS lookup duration.
+      tcpTime: connectEnd - connectStart, // Server connection duration.
+      sslTime: getSSLTime(connectEnd, secureConnectionStart), // TLS connection duration.
+      responseTime: responseStart - requestStart, // Server response latency.
+      downloadTime: responseEnd - responseStart, // Response download duration.
+      firstPaintTime: firstPaintTime, // Time to first paint.
+      firstContentfulPaintTime: firstContentfulPaintTime, // Time to first contentful paint.
+      domReadyTime: domContentLoadedEventStart - startTime, // Elapsed time until DOM content is ready.
+      onloadTime: loadEventStart - startTime, // Elapsed time until the load event starts.
+      whiteTime: responseStart - startTime, // Time until the first response byte.
+      renderTime: loadEventEnd - startTime, // Total elapsed time through the end of the load event.
+      decodedBodySize: decodedBodySize, // Response body size after decoding.
+      encodedBodySize: encodedBodySize, // Response body size before decoding.
     };
     // Filter abnormal data.
     Object.keys(data).forEach(k => {
@@ -558,7 +556,7 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
     let OSVision: string | undefined = "";
     const u = navigator.userAgent;
     const isAndroid = u.indexOf("Android") > -1; // Android
-    const isIOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); // iOS 终端
+    const isIOS = !!u.match(/\(i[^;]+;( U;)? CPU.+Mac OS X/); // iOS device.
     const uas = navigator.userAgent.split(";");
     if (uas.length < 2) return OSVision;
     const validUaStr = uas[1];
@@ -618,7 +616,7 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
           netWork = "ethernet"; // ethernet
           break;
         case "default":
-          netWork = undefined; // 未知
+          netWork = undefined; // Unknown network type.
           break;
       }
     }
@@ -630,11 +628,11 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
     let orientationStatu = "";
     if (window.screen && window.screen.orientation && typeof window.screen.orientation.angle === "number") {
       if (window.screen.orientation.angle === 180 || window.screen.orientation.angle === 0) {
-        // 竖屏
+        // Portrait orientation.
         orientationStatu = "|";
       }
       if (window.screen.orientation.angle === 90 || window.screen.orientation.angle === -90) {
-        // 横屏
+        // Landscape orientation.
         orientationStatu = "-";
       }
     }

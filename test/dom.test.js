@@ -6,7 +6,7 @@ import {
   genStyleString, getDomain, getBrowserInfo,
   setClass, setImgSizeBySrc, addClass,
   newLine, hasClass, removeClass, addStyle,
-  getPageMeta,
+  extractElementText, getPageMeta, isValidCssSelector,
 } from "../lib/index.esm";
 
 test("newLine: Transfer 'a\nb\nc' to 'a<br />b<br />c'?", () => {
@@ -330,5 +330,68 @@ describe("addClass", () => {
     mockElement.className = "test1 test2";
     addClass(mockElement, [ "test1", "test3" ]);
     expect(mockElement.className).toBe("test1 test2 test3");
+  });
+});
+
+describe("isValidCssSelector", () => {
+  it("validates supported selectors without throwing", () => {
+    expect(isValidCssSelector(".message > img[alt]")).toBe(true);
+    expect(isValidCssSelector("[")).toBe(false);
+    expect(isValidCssSelector(123)).toBe(false);
+  });
+
+  it("allows empty selectors only when requested", () => {
+    expect(isValidCssSelector("")).toBe(false);
+    expect(isValidCssSelector("   ")).toBe(false);
+    expect(isValidCssSelector("", { allowEmpty: true })).toBe(true);
+  });
+
+  it("uses a caller-provided query root", () => {
+    const root = document.createDocumentFragment();
+    const child = document.createElement("div");
+    child.className = "child";
+    root.appendChild(child);
+
+    expect(isValidCssSelector(".child", { root })).toBe(true);
+    expect(isValidCssSelector("[", { root })).toBe(false);
+  });
+});
+
+describe("extractElementText", () => {
+  it("replaces images, removes excluded descendants, and normalizes text", () => {
+    const element = document.createElement("article");
+    element.innerHTML = `
+      Hello&nbsp;
+      <img src="wave.png" alt="wave" />
+      <span data-exclude>secret</span>
+      <strong>world</strong>
+    `;
+
+    expect(
+      extractElementText(element, { excludeSelector: "[data-exclude]" })
+    ).toBe("Hello wave world");
+    expect(element.querySelector("img")).not.toBeNull();
+    expect(element.querySelector("[data-exclude]")).not.toBeNull();
+  });
+
+  it("can preserve whitespace and omit image alternative text", () => {
+    const element = document.createElement("div");
+    element.innerHTML = " Before <img alt=\"icon\" /> After ";
+
+    const text = extractElementText(element, {
+      normalizeWhitespace: false,
+      replaceImagesWithAlt: false,
+    });
+
+    expect(text).toBe(" Before  After ");
+  });
+
+  it("ignores an invalid exclusion selector", () => {
+    const element = document.createElement("div");
+    element.textContent = "kept";
+
+    expect(extractElementText(element, { excludeSelector: "[" })).toBe(
+      "kept"
+    );
   });
 });

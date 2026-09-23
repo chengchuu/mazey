@@ -5,9 +5,7 @@ import { doFn } from "./util";
 import { isValidHttpUrl } from "./url";
 
 /**
- * EN: Load a CSS file from the server.
- *
- * ZH: 动态加载 CSS 文件。
+ * Load a CSS file dynamically.
  *
  * Usage:
  *
@@ -38,9 +36,9 @@ import { isValidHttpUrl } from "./url";
  * Load CSS Success: loaded
  * ```
  *
- * @param {string} url -- css资源路径
- * @param {string} options.id -- link标签id
- * @returns {Promise<string>} true -- 加载成功
+ * @param {string} url URL of the CSS resource.
+ * @param {string} options.id Optional ID for the `<link>` element.
+ * @returns {Promise<string>} A promise that resolves to `"loaded"` after the stylesheet loads.
  * @category Load
  */
 export function loadCSS(url: string, options: { id?: string } = { id: "" }): Promise<string> {
@@ -59,8 +57,8 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     fail(new Error("Not support create link element"));
   }
   const supportOnload = "onload" in node;
-  const isOldWebKit = +navigator.userAgent.replace(/.*(?:AppleWebKit|AndroidWebKit)\/?(\d+).*/i, "$1") < 536; // webkit 旧内核做特殊处理
-  const protectNum = 300000; // 阈值 10 分钟，一秒钟执行 pollCss 500 次
+  const isOldWebKit = +navigator.userAgent.replace(/.*(?:AppleWebKit|AndroidWebKit)\/?(\d+).*/i, "$1") < 536; // Handle legacy WebKit separately.
+  const protectNum = 300000; // Maximum poll count used to prevent infinite polling.
   node.rel = "stylesheet";
   node.type = "text/css";
   node.href = url;
@@ -83,7 +81,7 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
       fail(new Error(`Failed to load CSS: ${url}`));
     };
   } else {
-    // todo: 和 !supportOnload 重复
+    // TODO: This duplicates the `!supportOnload` compatibility path above.
     node.onreadystatechange = function() {
       if (node && /loaded|complete/.test(node.readyState)) {
         onload();
@@ -94,26 +92,26 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     callback();
   }
   function cleanup() {
-    // 确保只跑一次下载操作
+    // Ensure the load handlers run only once.
     if (node) node.onload = node.onerror = node.onreadystatechange = null;
-    // 清空 node 引用，在低版本 IE，不清除会造成内存泄露
+    // Release the node reference to avoid memory leaks in older versions of IE.
     node = null;
   }
-  // 循环判断 CSS 是否已加载成功
+  // Poll until the stylesheet has loaded.
   /*
-   * @param node -- link节点
-   * @param callback -- 回调函数
-   * @param step -- 计步器，避免无限循环
+   * @param node The `<link>` element.
+   * @param callback Callback invoked after loading completes.
+   * @param step Poll count used to prevent an infinite loop.
    */
   function pollCss(node: HTMLLinkElement | null, callback: () => void, step: number) {
     if (!node) return;
     const sheet = node.sheet;
     let isLoaded: boolean;
     step += 1;
-    // 保护，大于 10 分钟，则不再轮询
+    // Stop polling after the safety threshold.
     if (step > protectNum) {
       isLoaded = true;
-      // 清空 node 引用
+      // Release the local node reference.
       if (node) node = null;
       callback();
       return;
@@ -131,7 +129,7 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
         }
       } catch (ex) {
         const err = ex as ErrorEvent;
-        // 火狐特殊版本，通过特定值获知是否下载成功
+        // Detect successful loading in legacy Firefox from its security error.
         // The value of `ex.name` is changed from "NS_ERROR_DOM_SECURITY_ERR"
         // to "SecurityError" since Firefox 13.0. But Firefox is less than 9.0
         // in here, So it is ok to just rely on "NS_ERROR_DOM_SECURITY_ERR"
@@ -142,7 +140,7 @@ export function loadCSS(url: string, options: { id?: string } = { id: "" }): Pro
     }
     setTimeout(function() {
       if (isLoaded) {
-        // 延迟 20ms 是为了给下载的样式留够渲染的时间
+        // Allow 20 milliseconds for the downloaded styles to render.
         callback();
       } else {
         pollCss(node, callback, step);
@@ -186,9 +184,7 @@ function resolveCssUrl(jsUrl: string, cssPath: string): string {
 }
 
 /**
- * EN: Load a JavaScript file from the server and execute it.
- *
- * ZH: 动态加载 JavaScript 文件。
+ * Load and execute a JavaScript file dynamically.
  *
  * Usage:
  *
@@ -220,16 +216,16 @@ function resolveCssUrl(jsUrl: string, cssPath: string): string {
  * Load JavaScript script: loaded
  * ```
  *
- * @param {string} url -- JavaScript 资源路径
- * @param {string} options.id -- DOM ID
- * @param {function} options.callback -- 加载后回调函数
- * @param {number} options.timeout -- 超时时长
- * @param {boolean} options.isDefer -- 是否添加 defer 标签
- * @param {boolean} options.isAsync -- 是否添加 async 标签
- * @param {boolean} options.isCrossOrigin -- 是否跨域
- * @param {object} options.attributes -- 其他属性
- * @param {string} options.cssUrl -- CSS 资源路径
- * @returns {Promise<string>} -- true 成功
+ * @param {string} url URL of the JavaScript resource.
+ * @param {string} options.id Optional ID for the `<script>` element.
+ * @param {function} options.callback Callback invoked after the script loads.
+ * @param {number} options.timeout Timeout in milliseconds.
+ * @param {boolean} options.isDefer Whether to set the `defer` attribute.
+ * @param {boolean} options.isAsync Whether to set the `async` attribute.
+ * @param {boolean} options.isCrossOrigin Whether to request the script anonymously across origins.
+ * @param {object} options.attributes Additional attributes for the `<script>` element.
+ * @param {string} options.cssUrl Optional CSS resource to begin loading before the script is inserted.
+ * @returns {Promise<string>} A promise that resolves to `"loaded"` after the script loads.
  * @category Load
  */
 export function loadScript(
@@ -253,7 +249,7 @@ export function loadScript(
     },
     options
   );
-  // 如果提供了 cssUrl，则先加载 CSS 文件
+  // Begin loading the optional CSS resource before inserting the script.
   if (cssUrl) {
     const resolvedCssUrl = resolveCssUrl(url, cssUrl);
     if (resolvedCssUrl) loadCSS(resolvedCssUrl).catch(err => {
@@ -332,9 +328,8 @@ export function loadScript(
 }
 
 /**
- * EN: Check whether the page is loaded successfully (Keep the compatibility if the browser's `load` event has been triggered).
- *
- * ZH: 页面加载完成。
+ * Wait for the page to finish loading, including when the `load` event has
+ * already fired.
  *
  * Usage:
  *
@@ -356,8 +351,8 @@ export function loadScript(
  * Load Success: load
  * ```
  *
- * @param {number} timeout 超时时间 / 单位：毫秒，默认：30000(30 秒)
- * @returns {Promise<string>} document is loaded? "complete" "load" / "timeout"
+ * @param {number} timeout Timeout in milliseconds. Defaults to 30,000.
+ * @returns {Promise<string>} A promise that resolves to `"complete"` or `"load"`, or rejects on timeout.
  * @category Load
  */
 export function windowLoaded(timeout = 30000): Promise<string> {
