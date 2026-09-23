@@ -144,7 +144,7 @@ export function parseGitHubRepository(value: string): GitHubRepositoryDetails {
   }
 
   const hostWithPort = authority[1].slice(authority[1].lastIndexOf("@") + 1);
-  if (hostWithPort.indexOf(":") !== -1 || typeof URL !== "function") {
+  if (hostWithPort.indexOf(":") !== -1) {
     throw invalidGitHubRepository();
   }
 
@@ -234,7 +234,7 @@ export function getAllQueryParams(url: string = ""): SingleValueUrlParams {
   }
   const result: SingleValueUrlParams = {};
   getQueryEntries(url).forEach(([ key, value ]) => {
-    if (!Object.prototype.hasOwnProperty.call(result, key)) {
+    if (!Object.hasOwn(result, key)) {
       Object.defineProperty(result, key, {
         configurable: true,
         enumerable: true,
@@ -414,13 +414,13 @@ export function getHashQueryParam(param: string): string {
  * @category URL
  */
 export function getDomain(url: string, rules = [ "hostname" ]): string {
-  if (checkIfURLIsSupported(url)) {
-    const u = new window.URL(url);
+  try {
+    const u = new URL(url, document.baseURI);
     return rules.reduce((ret, v) => {
       ret += u[v as keyof URL];
       return ret;
     }, "");
-  } else {
+  } catch (e) {
     const aEl: HTMLAnchorElement = document.createElement("a");
     aEl.href = url;
     return rules.reduce((ret, v) => {
@@ -532,7 +532,7 @@ function isValidHttpHostname(hostname: string): boolean {
   return !/^\d+$/.test(labels[labels.length - 1]);
 }
 
-function isValidHttpUrlFallback(url: string): boolean {
+function hasValidHttpUrlSyntax(url: string): boolean {
   const match = url.match(/^https?:\/\/([^/?#]+)(?:[/?#][^\s<>"`]*)?$/i);
   if (!match || match[1].indexOf("@") !== -1) {
     return false;
@@ -589,41 +589,36 @@ export function isValidHttpUrl(url: string, options: { strict: boolean } = { str
     return false;
   }
   const normalizedUrl = isProtocolRelative ? `http:${url}` : url;
-  if (!isValidHttpUrlFallback(normalizedUrl)) {
+  if (!hasValidHttpUrlSyntax(normalizedUrl)) {
     return false;
-  }
-  if (typeof URL !== "function") {
-    return true;
   }
   try {
     const parsed = new URL(normalizedUrl);
     const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
     return isHttp && isValidHttpHostname(parsed.hostname) && !parsed.username && !parsed.password;
   } catch (e) {
-    try {
-      new URL("http://example.com");
-      return false;
-    } catch (unsupportedError) {
-      return isValidHttpUrlFallback(normalizedUrl);
-    }
+    return false;
   }
 }
 
 /**
- * EN: Get the file type of the url.
+ * Extract the extension from a URL or path after removing query and fragment text.
  *
- * ZH: 获取文件后缀名。
+ * This string-based helper does not inspect file contents or detect MIME types.
+ * It retains everything after the first dot in the final slash-delimited
+ * segment, so `archive.tar.gz` returns `tar.gz`. It does not parse URL authority:
+ * an origin-only input such as `https://example.com` returns `com`.
  *
  * Usage:
  *
  * ```javascript
- * import { getUrlFileType } from "mazey";
+ * import { getURLPathExtension } from "mazey";
  *
- * const ret1 = getUrlFileType("https://example.com/a/b/c.png");
- * const ret2 = getUrlFileType("https://example.com/a/b/c.jpg");
- * const ret3 = getUrlFileType("https://example.com/a/b/c.jpeg");
- * const ret4 = getUrlFileType("/a/b/c.jpeg");
- * const ret5 = getUrlFileType("https://example.com/a/b/c.v/a");
+ * const ret1 = getURLPathExtension("https://example.com/a/b/c.png");
+ * const ret2 = getURLPathExtension("https://example.com/a/b/c.jpg");
+ * const ret3 = getURLPathExtension("https://example.com/a/b/c.jpeg");
+ * const ret4 = getURLPathExtension("/a/b/c.jpeg");
+ * const ret5 = getURLPathExtension("https://example.com/a/b/c.v/a");
  * console.log(ret1, ret2, ret3, ret4, ret5);
  * ```
  *
@@ -633,11 +628,11 @@ export function isValidHttpUrl(url: string, options: { strict: boolean } = { str
  * png jpg jpeg jpeg ""
  * ```
  *
- * @param url
- * @returns
+ * @param url The URL or path to inspect.
+ * @returns The extension without the leading dot, or an empty string when absent.
  * @category URL
  */
-export function getUrlFileType(url: string): boolean | string {
+export function getURLPathExtension(url: string): boolean | string {
   let ret = "";
   if (typeof url != "string" || url == "") {
     return ret;
@@ -652,6 +647,14 @@ export function getUrlFileType(url: string): boolean | string {
   }
   return ret;
 }
+
+/**
+ * Deprecated alias of {@link getURLPathExtension}.
+ *
+ * @deprecated Use `getURLPathExtension` instead.
+ * @category URL
+ */
+export const getUrlFileType = getURLPathExtension;
 
 /**
  * Retrieve a query parameter from a script URL in the browser.
@@ -764,19 +767,6 @@ export function replaceHttp(url: string): string {
   return convertHttpToHttps(url);
 }
 
-function checkIfURLIsSupported(url: string = "") {
-  const URL = window.URL;
-  if (typeof URL !== "function") {
-    return false;
-  }
-  try {
-    const parsed = new URL(url);
-    return Boolean(parsed.href);
-  } catch (e) {
-    return false;
-  }
-}
-
 /**
  * Get the host of the URL.
  *
@@ -800,15 +790,14 @@ function checkIfURLIsSupported(url: string = "") {
  * @category URL
  */
 export function getUrlHost(url: string): string {
-  let ret = "";
-  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.indexOf("//") === 0) {
+  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.startsWith("//")) {
     url = "https:" + url;
   }
-  if (checkIfURLIsSupported(url)) {
-    const urlObj = new URL(url);
-    ret = urlObj.host;
+  try {
+    return new URL(url).host;
+  } catch (e) {
+    return "";
   }
-  return ret;
 }
 
 /**
@@ -834,15 +823,14 @@ export function getUrlHost(url: string): string {
  * @category URL
  */
 export function getUrlPath(url: string): string {
-  let ret = "";
-  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.indexOf("//") === 0) {
+  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.startsWith("//")) {
     url = "https:" + url;
   }
-  if (checkIfURLIsSupported(url)) {
-    const urlObj = new URL(url);
-    ret = urlObj.pathname;
+  try {
+    return new URL(url).pathname;
+  } catch (e) {
+    return "";
   }
-  return ret;
 }
 
 /**

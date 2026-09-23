@@ -10,7 +10,9 @@ English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README.zh-
 [l-image]: https://img.shields.io/npm/l/mazey
 [l-url]: https://github.com/chengchuu/mazey
 
-Mazey is a functional library for daily frontend work. There are already many excellent libraries for frontend development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for frontend needs.
+Mazey is a utility library for everyday frontend development. It provides
+reusable functions that would otherwise be duplicated across project-specific
+`utils.js` or `common.js` files.
 
 - [Project website](https://chengchuu.github.io/mazey/)
 - [Live playground](https://chengchuu.github.io/mazey/playground/)
@@ -36,28 +38,26 @@ yourself.
 
 ## Usage
 
-Example: Use a function to verify if a value is a number suitable for standard calculations and comparisons.
+Example: Format a duration in milliseconds as readable text.
 
-Import from [npm](https://www.npmjs.com/package/mazey).
+Import Mazey from [npm](https://www.npmjs.com/package/mazey).
 
 ```javascript
-import { isNumber } from "mazey";
+import { formatDurationFromMs } from "mazey";
 
-const x = 123;
-const y = "abc";
-const z = Infinity;
-isNumber(x); // Output: true
-isNumber(y); // Output: false
-isNumber(z, { isInfinityAsNumber: true }); // Output: true
+const duration = formatDurationFromMs(90000);
+
+console.log(duration); // Output: "1.5 minutes"
 ```
 
-Import from CDN.
+Use Mazey from CDN.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
-  const x = 123;
-  mazey.isNumber(x); // Output: true
+  const duration = mazey.formatDurationFromMs(90000);
+
+  console.log(duration); // Output: "1.5 minutes"
 </script>
 ```
 
@@ -78,21 +78,41 @@ There are some examples maintained by hand below. For more information, please c
   - [windowLoaded](#windowloaded)
 - [Util](#util)
   - [isNumber](#isnumber)
+  - [isNullish](#isnullish)
   - [isJSONString](#isjsonstring)
+  - [parseJsonSafe](#parsejsonsafe)
+  - [isCNMobileNumber](#iscnmobilenumber)
+  - [escapeHTML and unescapeHTML](#escapehtml-and-unescapehtml)
+  - [truncateByWeightedLength](#truncatebyweightedlength)
+  - [escapeHtmlAttribute](#escapehtmlattribute)
+  - [sha256Hex](#sha256hex)
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
+  - [parseLocalDateTime](#parselocaldatetime)
+  - [formatLocalDateTime](#formatlocaldatetime)
   - [formatDate](#formatdate)
+  - [subYears](#subyears)
   - [isValidDate](#isvaliddate)
+  - [isToday](#istoday)
+  - [isThisYear](#isthisyear)
+  - [isThisMonth](#isthismonth)
+  - [isThisWeek](#isthisweek)
+  - [isThisHour](#isthishour)
+  - [formatDistanceToNow](#formatdistancetonow)
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
+  - [formatByteSize](#formatbytesize)
   - [deepCopy](#deepcopy)
   - [deepFreeze](#deepfreeze)
+  - [assignDefined](#assigndefined)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToUnder](#convertcameltounder)
   - [toJavaScriptGlobalName](#tojavascriptglobalname)
+  - [derivePackageMetadata](#derivepackagemetadata)
 - [URL](#url)
+  - [getURLPathExtension](#geturlpathextension)
   - [getQueryParam](#getqueryparam)
   - [getUrlParam](#geturlparam)
   - [getHashQueryParam](#gethashqueryparam)
@@ -106,17 +126,42 @@ There are some examples maintained by hand below. For more information, please c
   - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
-  - [addStyle](#addstyle)
-  - [genStyleString](#genstylestring)
+  - [hideElements and showElements](#hideelements-and-showelements)
+  - [isValidCssSelector](#isvalidcssselector)
+  - [resolveElementTarget](#resolveelementtarget)
+  - [extractElementText](#extractelementtext)
+  - [injectStyle](#injectstyle)
+  - [createCSSRule](#createcssrule)
   - [newLine](#newline)
+- [Event](#event)
+  - [onEvent](#onevent)
 - [Calculate and Formula](#calculate-and-formula)
-  - [inRate](#inrate)
+  - [calculateAspectRatio](#calculateaspectratio)
+  - [calculateCAGR](#calculatecagr)
+  - [randomBoolean](#randomboolean)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
+  - [getSystemTheme](#getsystemtheme)
+  - [resolveThemePreference](#resolvethemepreference)
+  - [setThemePreference](#setthemepreference)
+  - [resolveLanguagePreference](#resolvelanguagepreference)
+  - [setLanguagePreference](#setlanguagepreference)
+  - [detectVisitorType](#detectvisitortype)
+  - [isPhone](#isphone)
+  - [isDesktop](#isdesktop)
+  - [isTablet](#istablet)
+  - [isIOS](#isios)
+  - [isAndroid](#isandroid)
+  - [isMacOS](#ismacos)
+  - [isWindows](#iswindows)
+  - [isLinux](#islinux)
   - [getBrowserInfo](#getbrowserinfo)
+  - [getBrowserClassNames](#getbrowserclassnames)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
+  - [listenMediaQueryChanges](#listenmediaquerychanges)
+  - [watchServiceWorkerUpdates](#watchserviceworkerupdates)
 - [Web Performance](#web-performance)
   - [getPerformance](#getperformance)
 - [Debug](#debug)
@@ -254,9 +299,13 @@ Load Success: load
 
 ### Util
 
+Use native `Date.now()` to get the current epoch time in milliseconds. The
+former `mNow()` helper remains available as a deprecated compatibility API.
+
 #### isNumber
 
-Check whether it is a right number.
+Check whether a value is an allowed numeric primitive. Optional constraints can
+require an integer or an inclusive minimum and maximum.
 
 Usage:
 
@@ -268,14 +317,35 @@ const ret3 = isNumber(Infinity);
 const ret4 = isNumber(Infinity, { isInfinityAsNumber: true });
 const ret5 = isNumber(NaN);
 const ret6 = isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true });
-console.log(ret1, ret2, ret3, ret4, ret5, ret6);
+const ret7 = isNumber(12, { integer: true, min: 1, max: 31 });
+const ret8 = isNumber(12.5, { integer: true, min: 1, max: 31 });
+console.log(ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8);
 ```
 
 Output:
 
 ```text
-true false false true false true
+true false false true false true true false
 ```
+
+`min` and `max` are inclusive and may be used independently. Invalid or
+reversed bounds return `false`. Existing non-finite-number behavior is unchanged
+when `integer`, `min`, and `max` are omitted.
+
+#### isNullish
+
+Check whether a value is exactly `undefined` or `null`. Other falsy values are
+not nullish.
+
+```javascript
+isNullish(undefined); // true
+isNullish(null); // true
+isNullish(false); // false
+isNullish(0); // false
+isNullish(""); // false
+```
+
+`isUdfOrNul` remains available as a deprecated alias of `isNullish`.
 
 #### isJSONString
 
@@ -295,6 +365,112 @@ Output:
 ```text
 false
 true
+```
+
+#### parseJsonSafe
+
+Parse JSON and return a caller-defined fallback instead of throwing when the
+input is malformed.
+
+```javascript
+const data = parseJsonSafe('{"enabled":true}');
+const fallback = parseJsonSafe("invalid", {});
+console.log(data, fallback);
+```
+
+#### isCNMobileNumber
+
+Check the Chinese mobile-number format: `1` followed by ten digits. This checks
+format only, without verifying assigned prefixes, ownership, or reachability.
+
+```javascript
+import { isCNMobileNumber } from "mazey";
+
+isCNMobileNumber("13800138000"); // true
+isCNMobileNumber("+8613800138000"); // false
+```
+
+`isValidPhoneNumber` and `isMobile` remain deprecated aliases.
+
+#### escapeHTML and unescapeHTML
+
+Escape six HTML-sensitive characters or decode that fixed entity set in one
+pass. These helpers do not sanitize arbitrary HTML or validate URLs.
+`unescapeHTML` preserves unrecognized entities.
+
+```javascript
+import { escapeHTML, unescapeHTML } from "mazey";
+
+escapeHTML('<b title="x">A&B</b>');
+// '&lt;b title=&quot;x&quot;&gt;A&amp;B&lt;&#x2F;b&gt;'
+unescapeHTML("&lt;b&gt;A&amp;B&lt;&#x2F;b&gt;");
+// "<b>A&B</b>"
+```
+
+`sanitizeInput` and `unsanitizeInput` remain deprecated aliases. The legacy
+`unsanitize` alias also remains available.
+
+#### truncateByWeightedLength
+
+Truncate by weighted UTF-16 length: code units from `U+0000` through `U+00FF`
+count as one; all other code units count as two. Optional truncation text is
+appended after the limit. This does not measure bytes or rendered width and can
+split surrogate pairs.
+
+```javascript
+import { truncateByWeightedLength } from "mazey";
+
+truncateByWeightedLength("Hello世界", 7); // "Hello世"
+truncateByWeightedLength("Hello世界", 7, { hasDot: true }); // "Hello世..."
+```
+
+`cutZHString` remains a deprecated alias. The legacy `truncateZHString` and
+`cutCHSString` signatures retain their boolean `hasDot` argument.
+
+#### escapeHtmlAttribute
+
+Escape text for use inside a quoted HTML attribute without escaping `/`.
+Ampersands, angle brackets, and both quote characters are escaped by default.
+
+```javascript
+const rawValue = escapeHtmlAttribute(
+  'https://example.com/?q="Mazey"&page=1'
+);
+const markupValue = escapeHtmlAttribute(
+  "Mazey &amp; TypeScript",
+  { preserveEntities: true }
+);
+
+console.log(rawValue);
+console.log(markupValue);
+```
+
+Output:
+
+```text
+https://example.com/?q=&quot;Mazey&quot;&amp;page=1
+Mazey &amp; TypeScript
+```
+
+With `preserveEntities: true`, syntactically valid named, decimal, and
+hexadecimal character references remain unchanged while bare or malformed
+ampersands are escaped. This helper performs attribute-value escaping; it does
+not sanitize arbitrary HTML or validate URLs.
+
+#### sha256Hex
+
+Generate a lowercase SHA-256 hexadecimal digest with the Web Crypto API.
+String input also requires `TextEncoder`.
+
+```javascript
+const digest = await sha256Hex("hello world");
+console.log(digest);
+```
+
+Output:
+
+```text
+b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9
 ```
 
 #### isValidData
@@ -347,6 +523,59 @@ Output:
 2262490
 ```
 
+#### parseLocalDateTime
+
+Strictly parse a normalized HTML `datetime-local` value as local wall-clock
+time. The function accepts a year with at least four digits, minute values with
+optional seconds and milliseconds, rejects timezone suffixes and impossible
+dates, and returns `null` for invalid input.
+
+Usage:
+
+```javascript
+const date = parseLocalDateTime("2026-07-21T14:30:45.123");
+console.log(date?.getFullYear());
+console.log(date?.getHours());
+console.log(date?.getMilliseconds());
+```
+
+Output:
+
+```text
+2026
+14
+123
+```
+
+#### formatLocalDateTime
+
+Format a `Date` from its local calendar fields for an HTML `datetime-local`
+control. Precision defaults to minutes and can be set to `second` or
+`millisecond`. The year is padded to at least four digits, and the function
+does not convert the value to UTC.
+
+Usage:
+
+```javascript
+const date = new Date(2026, 6, 21, 14, 30, 45, 123);
+const minutes = formatLocalDateTime(date);
+const seconds = formatLocalDateTime(date, { precision: "second" });
+const milliseconds = formatLocalDateTime(date, {
+  precision: "millisecond",
+});
+console.log(minutes);
+console.log(seconds);
+console.log(milliseconds);
+```
+
+Output:
+
+```text
+2026-07-21T14:30
+2026-07-21T14:30:45
+2026-07-21T14:30:45.123
+```
+
 #### formatDate
 
 Return the formatted date string in the given format.
@@ -371,6 +600,24 @@ Default formatDate value: 2023-01-11
 String formatDate value: 2022-01-11 14:12:26
 Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
+```
+
+#### subYears
+
+Subtract calendar years from a `Date` or millisecond timestamp without
+mutating the original date. Positive decimals are rounded down, negative
+decimals are rounded up, and leap-day results are clamped to the destination
+month's final day.
+
+```javascript
+const result = subYears(new Date(2014, 8, 1), 5);
+console.log(formatDate(result, "yyyy-MM-dd"));
+```
+
+Output:
+
+```text
+2009-09-01
 ```
 
 #### isValidDate
@@ -402,6 +649,68 @@ Output:
 ```text
 true true false false
 ```
+
+#### isToday
+
+Check whether a date has the current local year, month, and day.
+
+```javascript
+isToday(new Date());
+```
+
+Output: `true`
+
+#### isThisYear
+
+Check whether a date is in the current local calendar year.
+
+```javascript
+isThisYear(new Date());
+```
+
+Output: `true`
+
+#### isThisMonth
+
+Check whether a date is in the current local calendar month and year.
+
+```javascript
+isThisMonth(new Date());
+```
+
+Output: `true`
+
+#### isThisWeek
+
+Check whether a date is in the current local Monday-first week. The week ends
+before the following Monday.
+
+```javascript
+isThisWeek(new Date());
+```
+
+Output: `true`
+
+#### isThisHour
+
+Check whether a date has the current local year, month, day, and hour.
+
+```javascript
+isThisHour(new Date());
+```
+
+Output: `true`
+
+#### formatDistanceToNow
+
+Format the absolute distance from a date to now without adding `ago` or `in`.
+Past and future dates use the same approximate English wording.
+
+```javascript
+formatDistanceToNow(new Date(Date.now() - 60 * 60 * 1000));
+```
+
+Output: `about 1 hour`
 
 #### generateCalendarVersion
 
@@ -450,6 +759,26 @@ Output:
 1.5 days
 ```
 
+#### formatByteSize
+
+Format a non-negative byte count using 1024-based units and one fractional
+digit by default. Decimal scaling, precision, and the invalid-input fallback
+are configurable. The former `getFileSize` name is a deprecated alias.
+
+```javascript
+formatByteSize(0);
+formatByteSize(1536);
+formatByteSize(1500000, { base: 1000, fractionDigits: 2 });
+```
+
+Output:
+
+```text
+0 B
+1.5 KB
+1.50 MB
+```
+
 #### deepCopy
 
 Copy/Clone Object deeply.
@@ -493,6 +822,26 @@ Output:
 ```text
 true
 true
+```
+
+#### assignDefined
+
+Shallowly mutate a target with defined properties from later sources. The
+helper skips only `undefined`, so `null`, empty strings, `0`, and `false`
+remain valid overrides.
+
+```javascript
+const options = assignDefined(
+  { retries: 3, verbose: true },
+  { retries: undefined, verbose: false }
+);
+console.log(options);
+```
+
+Output:
+
+```text
+{ retries: 3, verbose: false }
 ```
 
 #### debounce
@@ -578,7 +927,61 @@ Output:
 _SCOPE_MY_LIBRARY
 ```
 
+#### derivePackageMetadata
+
+Validate basic `package.json` identity and derive normalized author metadata,
+the unscoped bundle name, Mazey's deterministic IIFE global, and an install
+command. npm is used by default; pnpm and Yarn can be selected explicitly.
+
+```javascript
+const metadata = derivePackageMetadata(
+  {
+    name: "@example/my-library",
+    version: "1.0.0",
+    author: { name: "Example Maintainer" },
+  },
+  { packageManager: "pnpm" }
+);
+
+console.log(metadata);
+```
+
+Output:
+
+```text
+{
+  name: "@example/my-library",
+  version: "1.0.0",
+  description: undefined,
+  license: undefined,
+  author: { name: "Example Maintainer" },
+  unscopedName: "my-library",
+  iifeGlobal: "MY_LIBRARY",
+  installCommand: "pnpm add @example/my-library"
+}
+```
+
+The helper does not read `package.json` itself and does not mutate the supplied
+manifest.
+
 ### URL
+
+#### getURLPathExtension
+
+Extract a file extension from a URL or path, excluding query and fragment text.
+This helper does not detect MIME types or inspect file contents.
+It preserves the existing string-based behavior: `archive.tar.gz` returns
+`tar.gz`, and an origin-only input such as `https://example.com` returns `com`.
+
+```javascript
+import { getURLPathExtension } from "mazey";
+
+getURLPathExtension("https://example.com/image.png?width=200#preview"); // "png"
+getURLPathExtension("/images/photo.jpg"); // "jpg"
+getURLPathExtension("/images/photo"); // ""
+```
+
+`getUrlFileType` remains a deprecated alias.
 
 #### getQueryParam
 
@@ -773,33 +1176,39 @@ Output:
 
 #### Storage Helpers
 
-Handle Storage (Keep fit for JSON, it can transfer format automatically).
+Store JSON-serialized values in Web Storage and parse them when reading.
 
 Usage:
 
 ```javascript
-setSessionStorage("test", "123");
-const ret1 = getSessionStorage("test");
-setLocalStorage("test", "123");
-const ret2 = getLocalStorage("test");
-console.log(ret1, ret2);
+setSessionJSON("preferences", { theme: "dark" });
+const sessionValue = getSessionJSON("preferences");
+setLocalJSON("recentItems", [ "one", "two" ]);
+const localValue = getLocalJSON("recentItems");
+console.log({ sessionValue, localValue });
 
-// or package in usage
+// Wrap the helpers with a project-specific key prefix.
 const projectName = "mazey";
 function mSetLocalStorage (key, value) {
-  return setLocalStorage(`${projectName}_${key}`, value);
+  return setLocalJSON(`${projectName}_${key}`, value);
 }
 
 function mGetLocalStorage (key) {
-  return getLocalStorage(`${projectName}_${key}`);
+  return getLocalJSON(`${projectName}_${key}`);
 }
 ```
 
 Output:
 
 ```text
-123 123
+{
+  sessionValue: { theme: "dark" },
+  localValue: [ "one", "two" ]
+}
 ```
+
+`setSessionStorage`, `getSessionStorage`, `setLocalStorage`, and
+`getLocalStorage` are deprecated aliases of the corresponding `JSON` helpers.
 
 ### DOM
 
@@ -820,18 +1229,87 @@ addClass(dom, "test");
 removeClass(dom, "test");
 ```
 
-#### addStyle
+#### hideElements and showElements
+
+Hide or show a CSS selector, one element, or an iterable or array-like element
+collection. Both helpers return the original target, so a caller can retain its
+own chaining convention. Duplicate elements are changed only once, and invalid
+selectors or unsupported values are ignored.
+
+`hideElements()` preserves a visible element's inline `display` value.
+`showElements()` restores that value, or recovers the element's normal display
+when a stylesheet would otherwise keep it hidden.
+
+```javascript
+import { hideElements, showElements } from "mazey";
+
+const notices = document.querySelectorAll(".notice");
+
+hideElements(notices);
+showElements(notices);
+
+hideElements("#temporary-message");
+showElements(document.querySelector("#temporary-message"));
+```
+
+`hide` and `show` remain available as deprecated aliases.
+
+#### isValidCssSelector
+
+Check whether a value is a CSS selector supported by the supplied query root.
+Invalid selector syntax returns `false` instead of throwing.
+
+```javascript
+isValidCssSelector(".message > img"); // true
+isValidCssSelector("["); // false
+isValidCssSelector("", { allowEmpty: true }); // true
+```
+
+#### resolveElementTarget
+
+Resolve a direct element, scoped selector, optionally unwrapped ref-like value,
+or component-like `$el` value. Invalid or unmatched targets return `null`.
+
+```javascript
+const element = resolveElementTarget("#dialog", {
+  root: document,
+  defaultElement: document.documentElement,
+});
+
+const elementRef = { value: element };
+resolveElementTarget(elementRef, {
+  root: document,
+  unwrap: value => value?.value,
+});
+```
+
+#### extractElementText
+
+Extract normalized text from a cloned element without modifying the original
+DOM. Images can contribute their `alt` text, and matching descendants can be
+excluded.
+
+```javascript
+const message = document.querySelector(".message");
+const text = extractElementText(message, {
+  excludeSelector: ".message-actions",
+});
+```
+
+#### injectStyle
 
 Add `<style>` in `<head>`.
+
+`addStyle` is a deprecated compatibility alias of `injectStyle`.
 
 Usage:
 
 Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle(
+injectStyle(
   "body { background-color: #333; }",
   { id: "test" }
 );
@@ -846,9 +1324,9 @@ Output:
 Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle("body { background-color: #444; }");
+injectStyle("body { background-color: #444; }");
 ```
 
 Output:
@@ -857,18 +1335,18 @@ Output:
 <style>body { background-color: #444; }</style>
 ```
 
-Example 3: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+Example 3: Combine `createCSSRule` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { createCSSRule, injectStyle } from "mazey";
 
-const xStyle = genStyleString(
+const xStyle = createCSSRule(
   ".footer>.x-wish>a:first-child" +
   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
   ",.m-hide",
   [ "display: none" ]
 );
-const yStyle = genStyleString(
+const yStyle = createCSSRule(
   ".footer>.y-wish:before",
   [
     `content: 'Copyright (c) chengchuu'`,
@@ -879,7 +1357,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 Output:
@@ -888,15 +1366,19 @@ Output:
 <style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
 ```
 
-#### genStyleString
+#### createCSSRule
 
-Generate the inline style string from the given parameters. The first parameter is the query selector, and the second parameter is the style array.
+Create CSS rule text from a selector and an array of declarations. The helper
+joins declarations with semicolons without validating or escaping CSS.
+`genStyleString` remains a deprecated alias.
 
 Usage:
 
 ```javascript
-const ret1 = genStyleString(".a", [ "color:red" ]);
-const ret2 = genStyleString("#b", [ "color:red", "font-size:12px" ]);
+import { createCSSRule } from "mazey";
+
+const ret1 = createCSSRule(".a", [ "color:red" ]);
+const ret2 = createCSSRule("#b", [ "color:red", "font-size:12px" ]);
 console.log(ret1);
 console.log(ret2);
 ```
@@ -908,18 +1390,18 @@ Output:
 #b{color:red;font-size:12px;}
 ```
 
-Example: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+Example: Combine `createCSSRule` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { createCSSRule, injectStyle } from "mazey";
 
-const xStyle = genStyleString(
+const xStyle = createCSSRule(
   ".footer>.x-wish>a:first-child" +
   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
   ",.m-hide",
   [ "display: none" ]
 );
-const yStyle = genStyleString(
+const yStyle = createCSSRule(
   ".footer>.y-wish:before",
   [
     `content: 'Copyright (c) chengchuu'`,
@@ -930,7 +1412,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 Output:
@@ -959,16 +1441,104 @@ a<br />b<br />c
 a<br /><br />bc
 ```
 
+### Event
+
+#### onEvent
+
+Register a named Mazey event callback. Duplicate callbacks are allowed.
+`addEvent` is a deprecated compatibility alias of `onEvent`.
+
+```javascript
+import { fireEvent, onEvent } from "mazey";
+
+onEvent("test", event => {
+  console.log("test event:", event);
+});
+
+fireEvent("test", { type: "test" });
+```
+
 ### Calculate and Formula
 
-#### inRate
+#### calculateAspectRatio
 
-Hit probability (1% ~ 100%).
+Calculate the exact simplified aspect ratio of positive safe-integer dimensions. The function reduces the width and height using their greatest common divisor and returns the result with a lowercase `x` separator. It does not approximate the result to a commonly named image or video ratio.
+
+```javascript
+import { calculateAspectRatio } from "mazey";
+
+const portraitRatio = calculateAspectRatio(900, 1200);
+const landscapeRatio = calculateAspectRatio(1920, 1080);
+
+console.log(portraitRatio);
+console.log(landscapeRatio);
+```
+
+Output:
+
+```text
+3x4
+16x9
+```
+
+For example, `calculateAspectRatio(3440, 1440)` returns the mathematically exact ratio `"43x18"`, not the approximate label `"21x9"`. Invalid or unsafe-integer dimensions throw `TypeError`; zero and negative dimensions throw `RangeError`.
+
+#### calculateCAGR
+
+Calculate an investment's Compound Annual Growth Rate (CAGR) from its start date, end date, and total return over the complete period.
+
+```text
+CAGR = (1 + totalReturnRate)^(365 / durationInDays) - 1
+```
+
+The dates may be supported structured date strings, millisecond timestamps, or `Date` instances. The calculation uses the exact elapsed milliseconds, including time-of-day components, and a fixed 365-day financial year.
+
+Number input is a decimal ratio, so `0.202` represents `20.2%`. String input is a percentage value, so `"20.2%"` and `"20.2"` both represent `20.2%`; strict scientific notation such as `"2.02e1%"` is also accepted. The returned CAGR is an unrounded decimal ratio.
+
+```javascript
+import { calculateCAGR, floatToPercent } from "mazey";
+
+const cagr = calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  "20.2%"
+);
+
+console.log({
+  cagr,
+  percentage: floatToPercent(cagr, 2),
+});
+```
+
+Possible output:
+
+```text
+{
+  cagr: 0.053908...,
+  percentage: "5.39%"
+}
+```
+
+The equivalent decimal-number call is:
+
+```javascript
+calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  0.202
+);
+```
+
+Date strings are validated using Mazey's strict date rules. Invalid dates, malformed or non-finite returns, and non-increasing date ranges throw errors. The parsed total return must be greater than `-1`, because `-1` represents a complete loss for which CAGR is undefined.
+
+#### randomBoolean
+
+Return whether a generated random value is less than the supplied probability.
 
 Usage:
 
 ```javascript
-const ret = inRate(0.5); // 0.01 ~ 1 true/false
+const ret = randomBoolean(0.5); // A 50% chance of returning true.
 console.log(ret);
 ```
 
@@ -985,7 +1555,7 @@ Example: Test the precision.
 let trueCount = 0;
 let falseCount = 0;
 new Array(1000000).fill(0).forEach(() => {
-  if (inRate(0.5)) {
+  if (randomBoolean(0.5)) {
     trueCount++;
   } else {
     falseCount++;
@@ -993,6 +1563,9 @@ new Array(1000000).fill(0).forEach(() => {
 });
 console.log(trueCount, falseCount); // 499994 500006
 ```
+
+`randomBoolean` evaluates `Math.random() < rate` without clamping the supplied
+rate. `isHit` is a deprecated alias, and `inRate` remains a compatibility alias.
 
 #### longestComSubstring
 
@@ -1029,6 +1602,369 @@ Output:
 ```
 
 ### Browser Information
+
+#### getSystemTheme
+
+Read the operating system's current `prefers-color-scheme` value directly. The
+function returns `"light"`, `"dark"`, or `null` when the preference cannot be
+determined.
+
+```javascript
+const systemTheme = getSystemTheme();
+
+console.log(systemTheme);
+```
+
+Possible browser output:
+
+```text
+dark
+```
+
+This is a one-time synchronous read. It is safe during SSR and does not inspect
+URL parameters, access project storage, apply a theme, mutate the DOM, or add
+media-query listeners. Use `resolveThemePreference` when URL, storage, system,
+and fallback resolution is required. Use `listenMediaQueryChanges` to observe
+future color-scheme changes.
+
+#### resolveThemePreference
+
+Resolve a project-specific website theme without applying it to the page.
+Resolution checks the URL query named by the supplied storage key, local storage
+under the same key, the current system color scheme, and finally the fixed
+`light` fallback.
+
+```javascript
+const theme = resolveThemePreference(
+  "MY_WEBSITE_THEME"
+);
+
+console.log(theme);
+```
+
+Output:
+
+```text
+{
+  value: "dark",
+  label: "System"
+}
+```
+
+`value` is always the concrete `light` or `dark` theme. `label` identifies the
+preference that selected it: `System`, `Light`, or `Dark`. Only `light` and
+`dark` are accepted from `?MY_WEBSITE_THEME=` in this example; the query value
+is not persisted. Stored values may also be `system`. The resolver is safe
+during SSR, tolerates unavailable browser storage and media queries, and does
+not mutate the DOM or write storage.
+
+#### setThemePreference
+
+Persist an exact `system`, `light`, or `dark` preference under a
+project-specific storage key. The function returns `false` when storage is
+unavailable or rejects the write; it does not apply the theme to the page.
+
+```javascript
+const stored = setThemePreference(
+  "MY_WEBSITE_THEME",
+  "dark"
+);
+```
+
+Output: `true`
+
+#### resolveLanguagePreference
+
+Resolve one current UI language without applying it to the page. Resolution
+checks the fixed `lang` URL query, the supplied local-storage key,
+`navigator.language`, and finally the fixed `en` fallback.
+
+```javascript
+const language =
+  resolveLanguagePreference(
+    "MY_WEBSITE_LANGUAGE"
+  );
+
+console.log(language);
+```
+
+Possible output:
+
+```text
+{
+  value: "ja-JP",
+  label: "日本語（日本）"
+}
+```
+
+Language tags are trimmed, treat `_` as `-`, and are canonicalized. The label
+is generated with `Intl.DisplayNames` when available, so its exact wording may
+vary by runtime; otherwise the canonical language tag is used. Only the
+browser's single `navigator.language` value is read—`navigator.languages` is
+ignored. The resolver is SSR-safe and never writes storage, applies a language,
+loads translations, or mutates the DOM.
+
+#### setLanguagePreference
+
+Canonicalize and persist the language selected by the user. The function
+returns `false` when storage is unavailable or rejects the write.
+
+```javascript
+const stored = setLanguagePreference(
+  "MY_WEBSITE_LANGUAGE",
+  "ja-JP"
+);
+```
+
+Output: `true`
+
+#### listenMediaQueryChanges
+
+Register a media-query change callback using the standard `change` event. The
+returned cleanup function is idempotent.
+
+```javascript
+const media = window.matchMedia("(prefers-color-scheme: dark)");
+const stop = listenMediaQueryChanges(media, event => {
+  console.log(event.matches);
+});
+
+stop();
+```
+
+Pass `null` when a media query is unavailable. The helper does not call
+`matchMedia`, invoke the callback immediately, or mutate the DOM.
+
+#### watchServiceWorkerUpdates
+
+Observe a service-worker registration for waiting or newly installed updates.
+The caller owns the update UI, activation timing, controller-change behavior,
+and reload policy.
+
+```javascript
+const watcher = watchServiceWorkerUpdates(
+  registration,
+  navigator.serviceWorker,
+  {
+    onUpdateAvailable() {
+      console.log("Update available");
+    },
+    onControllerChange() {
+      console.log("Controller changed");
+    },
+  }
+);
+
+watcher.activateWaiting();
+watcher.dispose();
+```
+
+`activateWaiting()` sends `{ type: "SKIP_WAITING" }` by default and returns
+`false` when no update is waiting or messaging fails. The helper does not
+register a worker, change the DOM, or reload the page.
+
+#### detectVisitorType
+
+Conservatively classify a visitor as `"crawler"`, `"automation"`, or
+`"unknown"`. The function first checks a focused list of recognizable crawler,
+indexing, SEO, AI-fetcher, and link-preview user-agent tokens. It then checks
+explicit automation user-agent tokens and `navigator.webdriver === true`.
+
+When no argument is provided, the function safely reads
+`navigator.userAgent`. An explicit user-agent string can be supplied for
+captured-user-agent analysis, deterministic tests, or server-side use. During
+SSR or in Node.js without `navigator`, the default result is `"unknown"`;
+explicit user-agent classification still works.
+
+```javascript
+const visitorType = detectVisitorType();
+
+console.log(visitorType);
+```
+
+Possible output:
+
+```text
+unknown
+```
+
+Explicit crawler example:
+
+```javascript
+const visitorType = detectVisitorType(
+  "Mozilla/5.0 (compatible; Googlebot/2.1)"
+);
+
+console.log(visitorType);
+```
+
+Output:
+
+```text
+crawler
+```
+
+`"unknown"` means that no supported crawler or browser-automation signal was
+detected. User-agent values can be spoofed, and WebDriver signals can be hidden
+or changed, so false positives and false negatives are possible.
+
+> `unknown` does not mean that the visitor has been verified as human. This
+> function uses browser-side heuristics and must not be used as a security
+> boundary or by itself for authentication, authorization, payments, rate
+> limiting, fraud prevention, or access control. Genuine crawler verification
+> generally requires server-side request information and provider-specific
+> validation.
+
+#### isPhone
+
+Check whether the current browser represents a phone or handset-class device.
+The result excludes tablets.
+
+```javascript
+const result = isPhone();
+
+console.log(result);
+```
+
+#### isDesktop
+
+Check whether the current browser represents a desktop or laptop-class device.
+Recognized touchscreen Windows laptops remain desktop devices.
+
+```javascript
+const result = isDesktop();
+
+console.log(result);
+```
+
+#### isTablet
+
+Check whether the current browser represents a tablet. The helper recognizes
+conventional iPads, modern iPadOS desktop mode, Android user agents without a
+`Mobile` token, and bounded `Tablet` tokens.
+
+```javascript
+const result = isTablet();
+
+console.log(result);
+```
+
+You can pass a user-agent string for deterministic or server-side
+classification:
+
+```javascript
+const result = isTablet(
+  "Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36"
+);
+
+console.log(result);
+```
+
+Output:
+
+```text
+true
+```
+
+The three helpers use mutually exclusive form-factor classifications for
+recognized devices:
+
+| Device         | `isPhone` | `isDesktop` | `isTablet` |
+|:---------------|:-----------|:------------|:-----------|
+| iPhone         | `true`     | `false`     | `false`    |
+| Android phone  | `true`     | `false`     | `false`    |
+| iPad           | `false`    | `false`     | `true`     |
+| Android tablet | `false`    | `false`     | `true`     |
+| Windows laptop | `false`    | `true`      | `false`    |
+| MacBook        | `false`    | `true`      | `false`    |
+| Unknown        | `false`    | `false`     | `false`    |
+
+Each helper accepts an optional explicit user-agent string. Explicit input does
+not borrow the current browser's platform or touch signals. Without explicit
+input, all three return `false` during SSR when browser signals are unavailable.
+
+Device classification is heuristic and spoofable. It does not use viewport
+width and is not a security API or a replacement for responsive CSS and feature
+detection. `getBrowserInfo().platform` remains a legacy broad grouping that
+reports iOS and Android as `"mobile"`; the new helpers provide a more specific
+phone, tablet, or desktop classification.
+
+`isPhone` checks device form factor. The separate `isMobile` API is a direct
+alias of `isCNMobileNumber`; it validates an 11-digit Chinese mobile-shaped
+number and does not inspect the browser or device.
+
+#### isIOS
+
+Check whether the current browser represents iOS or iPadOS. The current-browser
+check also recognizes modern iPadOS browsers that identify as macOS.
+
+```javascript
+const result = isIOS();
+
+console.log(result);
+```
+
+Possible output:
+
+```text
+true
+```
+
+#### isAndroid
+
+Check whether the current browser represents Android.
+
+```javascript
+const result = isAndroid();
+
+console.log(result);
+```
+
+#### isMacOS
+
+Check whether the current browser represents macOS. Modern iPadOS desktop-mode
+browsers are excluded when their platform and touch signals are available.
+
+```javascript
+const result = isMacOS();
+
+console.log(result);
+```
+
+#### isWindows
+
+Check whether the current browser represents Windows.
+
+```javascript
+const result = isWindows();
+
+console.log(result);
+```
+
+#### isLinux
+
+Check whether the current browser represents Linux. Android user agents are
+excluded even though they commonly contain the `Linux` token.
+
+```javascript
+const result = isLinux();
+
+console.log(result);
+```
+
+Each helper accepts an optional user-agent string for deterministic or
+server-side classification:
+
+```javascript
+const result = isAndroid(
+  "Mozilla/5.0 (Linux; Android 14; Pixel 8)"
+);
+```
+
+An explicit value is classified without reading the current browser's platform
+or touch signals. Calls without an argument return `false` during SSR or when
+the user agent cannot be read. User-agent detection is heuristic and spoofable;
+do not use these helpers as a security boundary.
 
 #### getBrowserInfo
 
@@ -1069,6 +2005,20 @@ const { system, shell } = getBrowserInfo();
 const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app"].includes(shell);
 ```
 
+#### getBrowserClassNames
+
+Return class-name tokens from the cached browser classification. An optional
+prefix and separator apply to each token; the helper does not modify the DOM.
+
+```javascript
+import { getBrowserClassNames } from "mazey";
+
+console.log(getBrowserClassNames("browser"));
+// Possible output: ["browser-windows", "browser-desktop", "browser-webkit", "browser-chrome"]
+```
+
+`genBrowserAttrs` remains a deprecated alias.
+
 #### isSafePWAEnv
 
 Detect whether the current browser document provides the minimum prerequisites
@@ -1076,7 +2026,10 @@ for PWA functionality that synchronous JavaScript can identify: a secure
 context, Service Worker API support, and, by default, a web app manifest link
 with a non-empty `href`. Pass `{ requireManifest: false }` when only secure
 Service Worker eligibility is needed, or `{ scope: "/app/" }` to require the
-current page to be inside a same-origin path scope.
+current page to be inside a same-origin path scope. Callers that already own
+browser references can pass
+`{ environment: { window, navigator, document } }`; injected objects are used
+exclusively and are never combined with globals.
 
 This check does not validate or request the manifest, verify service worker
 registration, determine whether the app is installed, or guarantee that an
@@ -1090,6 +2043,15 @@ const ret = isSafePWAEnv();
 console.log(ret);
 ```
 
+Site initialization and deterministic tests can use explicit browser objects:
+
+```javascript
+const ret = isSafePWAEnv({
+  scope: "/app/",
+  environment: { window, navigator, document },
+});
+```
+
 Output:
 
 ```text
@@ -1100,7 +2062,9 @@ true
 
 Detect standard standalone display mode with the iOS Safari
 `navigator.standalone` fallback. This is a presentation hint, not proof that
-the app is installed or controlled by a service worker.
+the app is installed or controlled by a service worker. Pass
+`{ environment: { window, navigator } }` to inspect caller-owned browser
+objects without reading globals.
 
 ```javascript
 if (isStandalonePWA()) {
@@ -1108,14 +2072,20 @@ if (isStandalonePWA()) {
 }
 ```
 
+```javascript
+const standalone = isStandalonePWA({
+  environment: { window, navigator },
+});
+```
+
 ### Web Performance
 
 #### getPerformance
 
-Get page load time(`PerformanceNavigationTiming`).
+Get page-load metrics from `PerformanceNavigationTiming`.
 
-This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
-The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
+This function rejects when the browser does not provide a navigation entry. It
+does not fall back to the deprecated `PerformanceTiming` API.
 
 Usage:
 
@@ -1176,6 +2146,14 @@ MazeyLog: I am number. 123 456
 MazeyLog: I am object. {a: 123, b: 456}
 ```
 
+## Browser support
+
+Mazey supports Chrome 109+, Edge 109+, Firefox 115+, Safari 16.4+, iOS Safari
+16.4+, Android Chrome 109+, and Samsung Internet 21+. Package output can
+contain ES2022 syntax and does not include JavaScript polyfills. Internet
+Explorer, Opera Mini, KaiOS, the legacy Android Browser, and older browser
+versions are outside this support policy.
+
 ## Contributing
 
 ### Development Environment
@@ -1189,7 +2167,7 @@ MazeyLog: I am object. {a: 123, b: 456}
 
 | Command               | Purpose                                                         |
 | --------------------- | --------------------------------------------------------------- |
-| `npm install`         | Install development dependencies.                               |
+| `pnpm install`        | Install development dependencies.                               |
 | `npm run dev`         | Start the website and playground development server.            |
 | `npm run build`       | Build the publishable package files.                            |
 | `npm test`            | Run the Jest test suite.                                        |

@@ -52,11 +52,11 @@ function evaluateWorker() {
 
 test("API app-shell assets include local TypeDoc dependencies", () => {
   const html = `
-    <link rel="canonical" href="${projectConfig.site.pages.api.url}">
-    <link rel="stylesheet" href="assets/style.css">
-    <script src="assets/main.js"></script>
-    <svg><use href="assets/icons.svg#icon-search"></use></svg>
-    <script src="https://cdn.example.com/external.js"></script>
+    <link rel=canonical href=${projectConfig.site.pages.api.url} >
+    <link rel=stylesheet href=assets/style.css>
+    <script src=assets/main.js></script>
+    <svg><use href=assets/icons.svg#icon-search></use></svg>
+    <script src=https://cdn.example.com/external.js></script>
   `;
 
   expect(apiAppShellAssets(html)).toEqual(apiAssets);
@@ -86,6 +86,12 @@ test("app-shell installation precaches API entry dependencies", async () => {
       expect.objectContaining({ ok: true })
     );
   }
+});
+
+test("service worker has no forced-update message handler", () => {
+  const { listeners, self } = evaluateWorker();
+  expect(listeners.message).toBeUndefined();
+  expect(self.skipWaiting).not.toHaveBeenCalled();
 });
 
 test("service worker ignores unsafe or out-of-scope requests", () => {

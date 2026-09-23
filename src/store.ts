@@ -1,41 +1,28 @@
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Serialize a value as JSON and store it in `sessionStorage`.
  *
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setSessionJSON, getSessionJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // or package in usage
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setSessionJSON("preferences", { theme: "dark" });
+ * const preferences = getSessionJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
- * @param {string} key 键
- * @returns {void} 返回值
+ * @param {string} key Storage key.
+ * @param value Value to serialize and store.
+ * @returns {void} This function does not return a value.
  * @category Store
  */
-export function setSessionStorage<T>(key: string, value: T | null = null): void {
+export function setSessionJSON<T>(key: string, value: T | null = null): void {
   if (key) {
     const serializedValue = JSON.stringify(value);
     sessionStorage.setItem(key, serializedValue === undefined ? "null" : serializedValue);
@@ -43,43 +30,29 @@ export function setSessionStorage<T>(key: string, value: T | null = null): void 
 }
 
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Read a value from `sessionStorage`, parsing JSON when possible.
  *
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setSessionJSON, getSessionJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // or package in usage
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setSessionJSON("preferences", { theme: "dark" });
+ * const preferences = getSessionJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
- * @param {string} key 键
- * @returns {any} 返回值
+ * @param {string} key Storage key.
+ * @returns The parsed value, raw stored value, or `null` when no value exists.
  * @category Store
  */
-export function getSessionStorage<T>(key: string): T | null {
+export function getSessionJSON<T>(key: string): T | null {
   let ret: T | null = null;
   if (key) {
     const value = sessionStorage.getItem(key);
@@ -95,43 +68,30 @@ export function getSessionStorage<T>(key: string): T | null {
 }
 
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Serialize a value as JSON and store it in `localStorage`.
  *
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setLocalJSON, getLocalJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // or package in usage
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setLocalJSON("preferences", { theme: "dark" });
+ * const preferences = getLocalJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
- * @param {string} key 键
- * @returns {void} 返回值
+ * @param {string} key Storage key.
+ * @param value Value to serialize and store.
+ * @returns {void} This function does not return a value.
  * @category Store
  */
-export function setLocalStorage<T>(key: string, value: T | null = null): void {
+export function setLocalJSON<T>(key: string, value: T | null = null): void {
   if (key) {
     const serializedValue = JSON.stringify(value);
     localStorage.setItem(key, serializedValue === undefined ? "null" : serializedValue);
@@ -139,43 +99,29 @@ export function setLocalStorage<T>(key: string, value: T | null = null): void {
 }
 
 /**
- * EN: Handle Storage (Keep fit for JSON, it can transfer format automatically).
- *
- * ZH: 存储/获取数据到 sessionStorage/localStorage。
+ * Read a value from `localStorage`, parsing JSON when possible.
  *
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setLocalJSON, getLocalJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // or package in usage
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setLocalJSON("preferences", { theme: "dark" });
+ * const preferences = getLocalJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
- * @param {string} key 键
- * @returns {void} 返回值
+ * @param {string} key Storage key.
+ * @returns The parsed value, raw stored value, or `null` when no value exists.
  * @category Store
  */
-export function getLocalStorage<T>(key: string): T | null {
+export function getLocalJSON<T>(key: string): T | null {
   let ret: T | null = null;
   if (key) {
     const value = localStorage.getItem(key);
@@ -189,6 +135,38 @@ export function getLocalStorage<T>(key: string): T | null {
   }
   return ret;
 }
+
+/**
+ * Deprecated alias of {@link setSessionJSON}.
+ *
+ * @deprecated Use `setSessionJSON` instead.
+ * @category Store
+ */
+export const setSessionStorage = setSessionJSON;
+
+/**
+ * Deprecated alias of {@link getSessionJSON}.
+ *
+ * @deprecated Use `getSessionJSON` instead.
+ * @category Store
+ */
+export const getSessionStorage = getSessionJSON;
+
+/**
+ * Deprecated alias of {@link setLocalJSON}.
+ *
+ * @deprecated Use `setLocalJSON` instead.
+ * @category Store
+ */
+export const setLocalStorage = setLocalJSON;
+
+/**
+ * Deprecated alias of {@link getLocalJSON}.
+ *
+ * @deprecated Use `getLocalJSON` instead.
+ * @category Store
+ */
+export const getLocalStorage = getLocalJSON;
 
 const encodedCookieNamePrefix = "__mazey_cookie_name_encoded__-";
 const encodedCookieValueNamePrefix = "__mazey_cookie_value_encoded__-";
@@ -255,16 +233,14 @@ function serializeCookieValue(value: string): SerializedCookieValue {
 }
 
 /**
- * EN: Handle Cookie.
- *
- * ZH: 设置/获取 Cookie。
+ * Get a cookie value by name.
  *
  * Usage:
  *
  * ```javascript
  * import { setCookie, getCookie } from "mazey";
  *
- * setCookie("test", "123", 30, "example.com"); // key value day domain
+ * setCookie("test", "123", 30, "example.com"); // name, value, days, domain
  * const ret = getCookie("test");
  * console.log(ret);
  * ```
@@ -275,6 +251,8 @@ function serializeCookieValue(value: string): SerializedCookieValue {
  * 123
  * ```
  *
+ * @param name Cookie name.
+ * @returns The cookie value, or an empty string when the cookie does not exist.
  * @category Store
  */
 export function getCookie(name: string): string {
@@ -297,16 +275,14 @@ export function getCookie(name: string): string {
 }
 
 /**
- * EN: Handle Cookie.
- *
- * ZH: 设置/获取 Cookie。
+ * Set a cookie value.
  *
  * Usage:
  *
  * ```javascript
  * import { setCookie, getCookie } from "mazey";
  *
- * setCookie("test", "123", 30, "example.com"); // key value day domain
+ * setCookie("test", "123", 30, "example.com"); // name, value, days, domain
  * const ret = getCookie("test");
  * console.log(ret);
  * ```
@@ -317,6 +293,11 @@ export function getCookie(name: string): string {
  * 123
  * ```
  *
+ * @param name Cookie name.
+ * @param value Cookie value.
+ * @param days Number of days until expiration. Omit for a session cookie.
+ * @param domain Optional cookie domain.
+ * @returns {void} This function does not return a value.
  * @category Store
  */
 export function setCookie(name: string, value: string, days?: number, domain?: string): void {

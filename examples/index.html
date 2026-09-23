@@ -14,8 +14,8 @@
       name="theme-color"
       content="<%= THEME_COLOR_PRIMARY %>"
       data-theme-color
-      data-theme-color-light="<%= THEME_COLOR_PRIMARY %>"
-      data-theme-color-dark="<%= THEME_PRIMARY_DARK %>"
+      data-theme-color-light="<%= THEME_COLOR_LIGHT %>"
+      data-theme-color-dark="<%= THEME_COLOR_DARK %>"
     />
     <style>
       :root {
@@ -58,8 +58,16 @@
       (() => {
         try {
           const key = <%= THEME_STORAGE_KEY_JSON %>;
-          const stored = localStorage.getItem(key);
-          const value = stored === "light" || stored === "dark" ? stored : "system";
+          const query = new URL(location.href).searchParams.get("theme");
+          let stored = null;
+          if (query !== "light" && query !== "dark") {
+            try { stored = localStorage.getItem(key); } catch {}
+          }
+          const value = query === "light" || query === "dark"
+            ? query
+            : stored === "system" || stored === "light" || stored === "dark"
+              ? stored
+              : "system";
           const resolved = value === "system"
             ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
             : value;
@@ -75,7 +83,7 @@
       })();
     </script>
   </head>
-  <body>
+  <body class="playground-page d-flex flex-column">
     <a class="skip-link" href="#main-content">Skip to playground controls</a>
     <header class="site-header">
       <nav
@@ -147,180 +155,29 @@
       </nav>
     </header>
 
-    <main id="main-content">
-      <section class="section-band" aria-labelledby="playground-title">
+    <main id="main-content" class="d-flex flex-column flex-grow-1">
+      <section
+        class="section-band section-band--compact"
+        aria-labelledby="playground-title"
+      >
         <div class="container">
-          <div class="section-heading">
-            <p class="text-uppercase fw-semibold text-muted-custom mb-2">
-              Interactive package-root examples
-            </p>
-            <h1 id="playground-title">Mazey utility playground</h1>
-            <p>
-              Enter values and run public Mazey utilities directly in your
-              browser.
+          <h1 id="playground-title" class="visually-hidden">
+            Mazey utility playground
+          </h1>
+          <p class="lead">
+            Try date interval, CAGR, and exact aspect-ratio calculations using
+            Mazey's public utility APIs.
+          </p>
+          <div id="playground-root">
+            <p class="text-muted" role="status">
+              Loading interactive examples…
             </p>
           </div>
-          <form
-            class="playground-panel p-4 mb-4"
-            data-date-time-form
-            novalidate
-          >
-            <h2 class="h4">Calculate date and time interval</h2>
-            <p>
-              Calculate the interval from the start date and time to the end
-              date and time using <code>getDateDifference</code>.
-            </p>
-            <div class="row g-4">
-              <div class="col-lg-6">
-                <label class="form-label" for="date-time-start"
-                  >Start date and time</label
-                >
-                <input
-                  id="date-time-start"
-                  class="form-control"
-                  type="datetime-local"
-                  step="1"
-                  required
-                  data-date-time-start
-                />
-              </div>
-              <div class="col-lg-6">
-                <label class="form-label" for="date-time-end"
-                  >End date and time</label
-                >
-                <input
-                  id="date-time-end"
-                  class="form-control"
-                  type="datetime-local"
-                  step="1"
-                  required
-                  data-date-time-end
-                />
-              </div>
-            </div>
-            <div class="d-flex flex-wrap gap-2 mt-4">
-              <button class="btn btn-primary" type="submit">
-                Calculate interval
-              </button>
-              <button
-                class="btn btn-outline-secondary"
-                type="button"
-                data-date-time-reset
-              >
-                Reset to current time
-              </button>
-            </div>
-            <p
-              class="alert alert-danger playground-error mt-3 mb-0"
-              role="alert"
-              data-date-time-error
-            ></p>
-            <div
-              class="playground-output mt-3"
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <strong>Interval</strong><br />
-              <code data-date-time-result>0 seconds</code>
-            </div>
-          </form>
-
-          <form class="playground-panel p-4" data-utility-form novalidate>
-            <div class="row g-4">
-              <div class="col-lg-4">
-                <label class="form-label" for="duration-ms"
-                  >Duration in milliseconds</label
-                >
-                <input
-                  id="duration-ms"
-                  class="form-control"
-                  type="number"
-                  min="0"
-                  step="1"
-                  value="90000"
-                  required
-                  data-duration
-                />
-                <div class="form-text">Example: 90000 becomes 1.5 minutes.</div>
-              </div>
-              <div class="col-lg-4">
-                <label class="form-label" for="identifier"
-                  >Camel-case identifier</label
-                >
-                <input
-                  id="identifier"
-                  class="form-control"
-                  type="text"
-                  value="helloWorld"
-                  maxlength="100"
-                  data-identifier
-                />
-                <div class="form-text">
-                  Example: helloWorld becomes hello-world.
-                </div>
-              </div>
-              <div class="col-lg-4">
-                <label class="form-label" for="email">Email address</label>
-                <input
-                  id="email"
-                  class="form-control"
-                  type="email"
-                  value="dev@example.com"
-                  maxlength="254"
-                  data-email
-                />
-                <div class="form-text">
-                  The result reflects Mazey's email validator.
-                </div>
-              </div>
-            </div>
-            <button class="btn btn-primary mt-4" type="submit">
-              Run utilities
-            </button>
-            <p
-              class="alert alert-danger playground-error mt-3 mb-0"
-              role="alert"
-              data-error
-            ></p>
-          </form>
-
-          <section class="mt-4" aria-labelledby="results-title">
-            <h2 id="results-title" class="h4">Results</h2>
-            <div
-              class="row g-3"
-              role="status"
-              aria-live="polite"
-              aria-atomic="true"
-            >
-              <div class="col-lg-4">
-                <div class="playground-output">
-                  <strong>Duration</strong><br /><code data-duration-result
-                    >1.5 minutes</code
-                  >
-                </div>
-              </div>
-              <div class="col-lg-4">
-                <div class="playground-output">
-                  <strong>Identifier</strong><br /><code data-identifier-result
-                    >hello-world</code
-                  >
-                </div>
-              </div>
-              <div class="col-lg-4">
-                <div class="playground-output">
-                  <strong>Email valid</strong><br /><code data-email-result
-                    >true</code
-                  >
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </section>
 
       <section
-        class="section-band section-band--muted"
+        class="section-band section-band--muted flex-grow-1"
         aria-labelledby="continue-title"
       >
         <div class="container">
@@ -347,19 +204,6 @@
       </section>
     </main>
 
-    <aside
-      class="pwa-update-notice"
-      aria-label="Website update"
-      data-pwa-update
-      hidden
-    >
-      <span
-        >A new version of the <%= DISPLAY_NAME %> website is available.</span
-      >
-      <button class="btn btn-primary btn-sm" type="button" data-pwa-update-now>
-        Update now
-      </button>
-    </aside>
     <noscript>
       <div class="container py-4">
         <p class="alert alert-warning">

@@ -200,6 +200,15 @@ describe("getPerformance navigation timing", () => {
     });
   });
 
+  it("rejects when the browser provides no navigation entry", async () => {
+    Object.defineProperty(window.performance, "getEntriesByType", {
+      configurable: true,
+      value: jest.fn(() => []),
+    });
+
+    await expect(getPerformance()).rejects.toThrow("NavigationTiming is not supported");
+  });
+
   it("defers an incomplete timing entry until the next task", async () => {
     const navigationTiming = createNavigationTiming({
       domContentLoadedEventStart: 0,

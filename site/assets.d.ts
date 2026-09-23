@@ -16,3 +16,13 @@ declare module "bootstrap/js/dist/collapse" {
     toggle(): void;
   }
 }
+
+declare module "bootstrap/js/dist/tab" {
+  export default class Tab {
+    constructor(element: Element);
+    static getInstance(element: Element): Tab | null;
+    static getOrCreateInstance(element: Element): Tab;
+    dispose(): void;
+    show(): void;
+  }
+}

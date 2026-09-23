@@ -15,8 +15,8 @@
       name="theme-color"
       content="<%= THEME_COLOR_PRIMARY %>"
       data-theme-color
-      data-theme-color-light="<%= THEME_COLOR_PRIMARY %>"
-      data-theme-color-dark="<%= THEME_PRIMARY_DARK %>"
+      data-theme-color-light="<%= THEME_COLOR_LIGHT %>"
+      data-theme-color-dark="<%= THEME_COLOR_DARK %>"
     />
     <style>
       :root {
@@ -59,8 +59,16 @@
       (() => {
         try {
           const key = <%= THEME_STORAGE_KEY_JSON %>;
-          const stored = localStorage.getItem(key);
-          const value = stored === "light" || stored === "dark" ? stored : "system";
+          const query = new URL(location.href).searchParams.get("theme");
+          let stored = null;
+          if (query !== "light" && query !== "dark") {
+            try { stored = localStorage.getItem(key); } catch {}
+          }
+          const value = query === "light" || query === "dark"
+            ? query
+            : stored === "system" || stored === "light" || stored === "dark"
+              ? stored
+              : "system";
           const theme = value === "system"
             ? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")
             : value;
@@ -365,20 +373,6 @@ isValidEmail("dev@example.com"); // true</code></pre>
         </div>
       </section>
     </main>
-
-    <aside
-      class="pwa-update-notice"
-      aria-label="Website update"
-      data-pwa-update
-      hidden
-    >
-      <span
-        >A new version of the <%= DISPLAY_NAME %> website is available.</span
-      >
-      <button class="btn btn-primary btn-sm" type="button" data-pwa-update-now>
-        Update now
-      </button>
-    </aside>
 
     <footer class="site-footer">
       <div class="container d-lg-flex justify-content-between gap-4">

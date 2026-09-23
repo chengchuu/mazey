@@ -14,14 +14,7 @@ import type { DefineListeners, MazeyFn, MazeyObject } from "./typing";
  * @category Event
  */
 export function cancelBubble(e: Event): void {
-  const ev = e || window.event;
-  if (ev.stopPropagation) {
-    // W3C
-    ev.stopPropagation();
-  } else {
-    // IE
-    ev.cancelBubble = true;
-  }
+  e.stopPropagation();
 }
 
 /**
@@ -56,17 +49,17 @@ export function getDefineListeners(): DefineListeners {
 }
 
 /**
- * Add event.
+ * Register a named Mazey event callback.
  *
  * Usage:
  *
  * ```javascript
- * import { addEvent } from "mazey";
+ * import { fireEvent, onEvent } from "mazey";
  *
- * addEvent("test", (e) => {
+ * onEvent("test", (e) => {
  *  console.log("test event:", e);
  * });
- * fireEvent("test");
+ * fireEvent("test", { type: "test" });
  * ```
  *
  * Output:
@@ -79,7 +72,7 @@ export function getDefineListeners(): DefineListeners {
  * @param fn
  * @category Event
  */
-export function addEvent(type: string, fn: MazeyFn): void {
+export function onEvent(type: string, fn: MazeyFn): void {
   const defineListeners = getDefineListeners();
   if (!Array.isArray(defineListeners[type])) {
     Object.defineProperty(defineListeners, type, {
@@ -93,6 +86,14 @@ export function addEvent(type: string, fn: MazeyFn): void {
     defineListeners[type].push(fn);
   }
 }
+
+/**
+ * Deprecated alias of `onEvent`.
+ *
+ * @deprecated Use `onEvent` instead.
+ * @category Event
+ */
+export const addEvent = onEvent;
 
 /**
  * Fire/Invoke event.

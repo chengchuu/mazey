@@ -4,6 +4,7 @@ const { existsSync, readFileSync, readdirSync, statSync } = require("node:fs");
 const path = require("node:path");
 const projectConfig = require("../project.config");
 const { apiAppShellAssets } = require("./build-pages");
+const { parseHtmlAttributes } = require("./html-attributes");
 const manifestDisplayModes = new Set([
   "browser",
   "fullscreen",
@@ -52,13 +53,7 @@ function filesIn(directory) {
 
 function findTag(html, tagName, attributeName, value) {
   return [...html.matchAll(new RegExp(`<${tagName}\\b[^>]*>`, "gi"))]
-    .map((match) =>
-      Object.fromEntries(
-        [...match[0].matchAll(/([:\w-]+)(?:=["']([^"']*)["'])?/g)].map(
-          (attribute) => [attribute[1].toLowerCase(), attribute[2] ?? ""]
-        )
-      )
-    )
+    .map((match) => parseHtmlAttributes(match[0]))
     .find((attributes) => attributes[attributeName] === value);
 }
 
@@ -163,26 +158,42 @@ function validatePwa({ rootDir = path.resolve(__dirname, "..") } = {}) {
     if (!themeColor || !Object.hasOwn(themeColor, "data-theme-color")) {
       failures.push(`${label} is missing dynamic theme-color metadata`);
     } else {
-      const lightThemeColor = projectConfig.site.theme.colorPrimary;
-      const darkThemeColor = projectConfig.site.theme.primary.dark.base;
-      if (
-        themeColor.content !== lightThemeColor ||
-        themeColor["data-theme-color-light"] !== lightThemeColor
-      ) {
-        failures.push(`${label} must use the light primary theme color`);
+      const defaultThemeColor = projectConfig.site.theme.colorPrimary;
+      const lightThemeColor = projectConfig.site.theme.colorLight;
+      const darkThemeColor = projectConfig.site.theme.colorDark;
+      if (themeColor.content !== defaultThemeColor) {
+        failures.push(`${label} must use the default primary theme color`);
+      }
+      if (themeColor["data-theme-color-light"] !== lightThemeColor) {
+        failures.push(`${label} must use the light navbar background color`);
       }
       if (themeColor["data-theme-color-dark"] !== darkThemeColor) {
-        failures.push(`${label} must use the dark primary theme color`);
+        failures.push(`${label} must use the dark navbar background color`);
       }
     }
     if (installButton && !/<button\b[^>]*data-pwa-install/.test(html)) {
       failures.push(`${label} is missing an install button`);
     }
-    if (!/<button\b[^>]*data-pwa-update-now/.test(html)) {
-      failures.push(`${label} is missing an update button`);
-    }
+    if (/data-pwa-update(?:-now)?\b/.test(html))
+      failures.push(`${label} must not expose website update controls`);
     if (!/data-pwa-status/.test(html))
       failures.push(`${label} is missing a PWA status region`);
+  }
+
+  const apiDirectory = path.join(docs, "api");
+  if (existsSync(apiDirectory)) {
+    for (const file of filesIn(apiDirectory).filter((item) =>
+      item.endsWith(".html")
+    )) {
+      const html = readFileSync(file, "utf8");
+      if (/data-pwa-update(?:-now)?\b/.test(html))
+        failures.push(
+          `API page ${path.relative(
+            apiDirectory,
+            file
+          )} must not expose website update controls`
+        );
+    }
   }
 
   if (!existsSync(workerFile))
@@ -209,9 +220,10 @@ function validatePwa({ rootDir = path.resolve(__dirname, "..") } = {}) {
     if (!worker.includes("url.origin === self.location.origin")) {
       failures.push("Service worker must ignore cross-origin requests");
     }
-    if (!worker.includes('event.data?.type === "SKIP_WAITING"')) {
-      failures.push("Service worker updates must require explicit activation");
-    }
+    if (/SKIP_WAITING|skipWaiting\s*\(/.test(worker))
+      failures.push(
+        "Service worker must use the browser's normal update lifecycle"
+      );
     const apiIndex = path.join(docs, "api", "index.html");
     if (existsSync(apiIndex)) {
       const apiAssets = apiAppShellAssets(readFileSync(apiIndex, "utf8"));
@@ -270,6 +282,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  findTag,
   manifestMetadataFailures,
   pngDimensions,
   validatePwa,

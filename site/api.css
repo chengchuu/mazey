@@ -48,7 +48,14 @@
   border: 1px solid var(--color-accent);
   border-radius: 0.35rem;
   color: inherit;
-  background: transparent;
+  color-scheme: var(--color-scheme);
+  background-color: var(--color-background-secondary);
+}
+
+.site-project-links select option,
+.tsd-theme-toggle select option {
+  color: var(--color-text);
+  background-color: var(--color-background-secondary);
 }
 
 .tsd-typography a {
@@ -69,42 +76,6 @@
   clip-path: inset(50%);
 }
 
-.site-pwa-update {
-  position: fixed;
-  z-index: 101;
-  right: 1rem;
-  bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  width: min(32rem, calc(100% - 2rem));
-  padding: 0.75rem;
-  border: 1px solid var(--color-accent);
-  border-radius: 0.5rem;
-  color: var(--color-text);
-  background: var(--color-background);
-  box-shadow: 0 0.75rem 2rem rgb(15 23 42 / 18%);
-}
-
-.site-pwa-update[hidden] {
-  display: none;
-}
-
-.site-pwa-update span {
-  flex: 1;
-}
-
-.site-pwa-update button {
-  min-height: 1.75rem;
-  padding: 0.15rem 0.5rem;
-  border: 1px solid var(--color-link);
-  border-radius: 0.35rem;
-  color: var(--color-background);
-  background: var(--color-link);
-  font: inherit;
-  font-weight: 600;
-}
-
 @media (max-width: 600px) {
   .tsd-toolbar-contents > a.title {
     display: none;
@@ -120,11 +91,6 @@
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
-  }
-
-  .site-pwa-update {
-    align-items: stretch;
-    flex-direction: column;
   }
 }
 
