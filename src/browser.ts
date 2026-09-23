@@ -256,7 +256,7 @@ function resolveOperatingSystem(
  * @remarks Device classification is heuristic and spoofable. Do not use this
  * helper as a security boundary or as a substitute for responsive CSS or
  * feature detection. It does not inspect viewport dimensions. The separate
- * `isMobile` export is an alias of the `isValidPhoneNumber` string validator.
+ * `isMobile` export is an alias of the `isCNMobileNumber` string validator.
  * @category Browser Information
  */
 export function isPhone(userAgent?: string): boolean {
@@ -1112,14 +1112,17 @@ export function getBrowserInfo(): BrowserInfo {
 }
 
 /**
- * Generate browser attributes from the detected browser information.
+ * Get CSS class-name tokens from the cached browser classification.
+ *
+ * Each available classification value receives the optional prefix and
+ * separator. This function returns strings without modifying the DOM.
  *
  * Usage:
  *
  * ```javascript
- * import { genBrowserAttrs } from "mazey";
+ * import { getBrowserClassNames } from "mazey";
  *
- * const attrs = genBrowserAttrs();
+ * const attrs = getBrowserClassNames();
  * console.log(attrs);
  * ```
  *
@@ -1130,11 +1133,12 @@ export function getBrowserInfo(): BrowserInfo {
  * ```
  *
  * @remarks Browser only.
- * @param {string} prefix
- * @returns {array} Browser attributes
+ * @param prefix Optional prefix for every class name.
+ * @param separator Separator between a non-empty prefix and each value. Defaults to `-`.
+ * @returns Browser classification class names.
  * @category Browser Information
  */
-export function genBrowserAttrs(prefix = "", separator = "-"): string[] {
+export function getBrowserClassNames(prefix = "", separator = "-"): string[] {
   const keys = [ "system", "platform", "engine", "supporter", "shell", "appleType" ];
   const info = getBrowserInfo() as MazeyObject;
   const attrs: string[] = [];
@@ -1150,6 +1154,14 @@ export function genBrowserAttrs(prefix = "", separator = "-"): string[] {
   });
   return attrs;
 }
+
+/**
+ * Deprecated alias of {@link getBrowserClassNames}.
+ *
+ * @deprecated Use `getBrowserClassNames` instead.
+ * @category Browser Information
+ */
+export const genBrowserAttrs = getBrowserClassNames;
 
 let webpSupport = "";
 

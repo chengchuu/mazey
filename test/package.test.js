@@ -199,4 +199,25 @@ describe("package API catalog", () => {
     expect(consoleConstants).toEqual([ "mazeyCon", "timeCon" ]);
     expect(undocumentedExports).toEqual([]);
   });
+
+  it("publishes the additional canonical names and typed deprecated aliases", () => {
+    const declarations = fs.readFileSync(
+      path.join(process.cwd(), "lib", "index.d.ts"), "utf8"
+    );
+    const renames = {
+      isValidPhoneNumber: "isCNMobileNumber",
+      sanitizeInput: "escapeHTML",
+      unsanitizeInput: "unescapeHTML",
+      genStyleString: "createCSSRule",
+      genBrowserAttrs: "getBrowserClassNames",
+      getUrlFileType: "getURLPathExtension",
+      cutZHString: "truncateByWeightedLength",
+    };
+    Object.entries(renames).forEach(([ legacy, canonical ]) => {
+      expect(declarations).toContain(`declare function ${canonical}(`);
+      expect(declarations).toContain(`declare const ${legacy}: typeof ${canonical};`);
+      expect(declarations).toContain(`@deprecated Use \`${canonical}\` instead.`);
+    });
+    expect(declarations).toContain("getURLPathExtension(url: string): boolean | string;");
+  });
 });
