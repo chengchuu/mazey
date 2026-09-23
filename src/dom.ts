@@ -57,10 +57,10 @@ export function hasClass(obj: MazeyElement, cls: string): boolean {
  * Advanced Usage:
  *
  * ```javascript
- * import { addClass, genBrowserAttrs } from "mazey";
+ * import { addClass, getBrowserClassNames } from "mazey";
  *
  * const ele = document.querySelector("html");
- * addClass(ele, genBrowserAttrs());
+ * addClass(ele, getBrowserClassNames());
  * ```
  *
  * Output:
@@ -179,18 +179,18 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  * <style>body { background-color: #444; }</style>
  * ```
  *
- * Example 3: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
+ * Example 3: Combine `createCSSRule` and `injectStyle` to add multiple styles at once.
  *
  * ```javascript
- * import { genStyleString, injectStyle } from "mazey";
+ * import { createCSSRule, injectStyle } from "mazey";
  *
- * const xStyle = genStyleString(
+ * const xStyle = createCSSRule(
  *   ".footer>.x-wish>a:first-child" +
  *   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
  *   ",.m-hide",
  *   [ "display: none" ]
  * );
- * const yStyle = genStyleString(
+ * const yStyle = createCSSRule(
  *   ".footer>.y-wish:before",
  *   [
  *     `content: 'Copyright (c) chengchuu'`,
@@ -340,13 +340,16 @@ export function setImgWidHeiBySrc(): boolean {
 }
 
 /**
- * Generate the inline style string from the given parameters. The first parameter is the query selector, and the second parameter is the style array.
+ * Create CSS rule text from a selector and an array of declarations.
+ *
+ * Declarations are joined with semicolons. The selector and declarations are
+ * used verbatim without validation or escaping; this function does not modify the DOM.
  *
  * Usage:
  *
  * ```javascript
- * const ret1 = genStyleString(".a", [ "color:red" ]);
- * const ret2 = genStyleString("#b", [ "color:red", "font-size:12px" ]);
+ * const ret1 = createCSSRule(".a", [ "color:red" ]);
+ * const ret2 = createCSSRule("#b", [ "color:red", "font-size:12px" ]);
  * console.log(ret1);
  * console.log(ret2);
  * ```
@@ -358,18 +361,18 @@ export function setImgWidHeiBySrc(): boolean {
  * #b{color:red;font-size:12px;}
  * ```
  *
- * Example: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
+ * Example: Combine `createCSSRule` and `injectStyle` to add multiple styles at once.
  *
  * ```javascript
- * import { genStyleString, injectStyle } from "mazey";
+ * import { createCSSRule, injectStyle } from "mazey";
  *
- * const xStyle = genStyleString(
+ * const xStyle = createCSSRule(
  *   ".footer>.x-wish>a:first-child" +
  *   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
  *   ",.m-hide",
  *   [ "display: none" ]
  * );
- * const yStyle = genStyleString(
+ * const yStyle = createCSSRule(
  *   ".footer>.y-wish:before",
  *   [
  *     `content: 'Copyright (c) chengchuu'`,
@@ -391,16 +394,24 @@ export function setImgWidHeiBySrc(): boolean {
  *
  * @param {string} selector
  * @param {array} styleArray
- * @returns {string} The inline style string.
+ * @returns {string} The CSS selector and declaration block.
  * @category DOM
  */
-export function genStyleString(selector: string, styleArray: Array<string>): string {
+export function createCSSRule(selector: string, styleArray: Array<string>): string {
   let style = "";
   if (styleArray && styleArray.length > 0) {
     style = styleArray.join(";") + ";";
   }
   return `${selector}{${style}}`;
 }
+
+/**
+ * Deprecated alias of {@link createCSSRule}.
+ *
+ * @deprecated Use `createCSSRule` instead.
+ * @category DOM
+ */
+export const genStyleString = createCSSRule;
 
 /**
  * Get the value of the meta tag by the given name.

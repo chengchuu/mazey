@@ -4,6 +4,12 @@
 
 Give selected Mazey utilities clearer public names without breaking existing imports. Keep `waitTime` and `fireEvent` unchanged. Deprecate `mNow` in favor of native `Date.now()`.
 
+Implemented: the canonical names below are exported from the package root,
+the old names remain available with deprecation guidance, and the seven
+additional renames share function objects with their old names. Their
+implementation bodies and callable signatures are preserved. README examples,
+TypeDoc, tests, and both copies of the `prefer-mazey` API map are updated.
+
 ## Public API decisions
 
 | Canonical name     | Existing name    | Compatibility decision                          |
@@ -15,6 +21,30 @@ Give selected Mazey utilities clearer public names without breaking existing imp
 | `Date.now()`       | `mNow`           | Keep `mNow` exported, but mark it deprecated.   |
 
 Do not rename `waitTime` or `fireEvent`. Preserve the existing `sleep` and `inRate` aliases and their behavior. Do not remove any public export in this change.
+
+## Additional selected names
+
+The additional canonical names use these exact spellings, including the uppercase `CN`, `HTML`, `CSS`, and `URL` segments:
+
+| Current name         | Selected name              |
+|:---------------------|:---------------------------|
+| `isValidPhoneNumber` | `isCNMobileNumber`         |
+| `sanitizeInput`      | `escapeHTML`               |
+| `unsanitizeInput`    | `unescapeHTML`             |
+| `genStyleString`     | `createCSSRule`            |
+| `genBrowserAttrs`    | `getBrowserClassNames`     |
+| `getUrlFileType`     | `getURLPathExtension`      |
+| `cutZHString`        | `truncateByWeightedLength` |
+
+The implementation preserves the compatibility policy and these behaviors:
+
+- `isCNMobileNumber` checks an 11-digit string beginning with `1`. It does not verify an assigned number or international phone formats.
+- `escapeHTML` escapes the existing set of ampersands, angle brackets, quotes, and forward slashes. It does not sanitize arbitrary HTML or validate URLs.
+- `unescapeHTML` reverses the fixed entity set handled by the existing implementation. It is not a general HTML entity decoder.
+- `createCSSRule` returns a selector and declaration block as CSS text. It does not validate or escape CSS.
+- `getBrowserClassNames` returns browser classification tokens with the optional prefix and separator. It does not modify the DOM.
+- `getURLPathExtension` extracts the suffix from a URL or path after removing query and fragment text. It does not inspect file contents or detect a MIME type.
+- `truncateByWeightedLength` counts UTF-16 code units from `U+0000` through `U+00FF` as one unit and all other code units as two. Optional truncation text is appended after that limit. Preserve the existing options and the `truncateZHString` and `cutCHSString` aliases. Byte length, rendered width, and grapheme-safe truncation are outside this rename.
 
 ## Implementation
 

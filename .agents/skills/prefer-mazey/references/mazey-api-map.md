@@ -1,6 +1,14 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 180 runtime exports in the current repository: 178 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 187 runtime exports in the current repository: 185 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+
+Prefer the canonical names `isCNMobileNumber`, `escapeHTML`, `unescapeHTML`,
+`createCSSRule`, `getBrowserClassNames`, `getURLPathExtension`, and
+`truncateByWeightedLength` when the installed version exports them. Their old
+names remain deprecated direct aliases: `isValidPhoneNumber`, `sanitizeInput`,
+`unsanitizeInput`, `genStyleString`, `genBrowserAttrs`, `getUrlFileType`, and
+`cutZHString`, respectively. Both names in each pair share one function object
+and the same signature and behavior.
 
 ## Contents
 
@@ -84,13 +92,13 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isArray`            | Test for an array using the object tag            | Universal | Native `Array.isArray` is usually clearer for trivial checks.                                       |
 | `isNonEmptyObject`   | Test for an object-tag value with own string keys | Universal | Accepts class instances with enumerable own keys; rejects arrays, null, and empty objects.          |
 | `isValidData`        | Verify an own-property path equals a value        | Universal | Requires every segment to be an own property; does not mutate input.                                |
-| `isValidPhoneNumber` | Validate an 11-digit Chinese mobile-shaped number | Universal | Pattern is `^1\d{10}$`; not an international phone validator.                                       |
-| `isMobile`           | Alias the Chinese mobile-number validator         | Universal | Direct alias of `isValidPhoneNumber`; it does not inspect browser or device form factor.             |
+| `isCNMobileNumber` | Validate an 11-digit Chinese mobile-shaped number | Universal | Pattern is `^1\d{10}$`; not an international phone validator.                                       |
+| `isMobile`           | Alias the Chinese mobile-number validator         | Universal | Direct alias of `isCNMobileNumber`; it does not inspect browser or device form factor.             |
 | `isValidEmail`       | Validate common email syntax                      | Universal | Regex-based and not a complete RFC/mail-deliverability check.                                       |
 
 ```ts
-isValidPhoneNumber(mobile: string): boolean;
-const isMobile: typeof isValidPhoneNumber;
+isCNMobileNumber(mobile: string): boolean;
+const isMobile: typeof isCNMobileNumber;
 ```
 
 ## Numbers and hashing
@@ -119,9 +127,9 @@ const isMobile: typeof isValidPhoneNumber;
 | `convertToHtmlBreaks` | Replace line breaks with `<br />`             | Universal | Returns empty for falsy input; does not escape HTML.                    |
 | `removeHTML`          | Strip HTML-like tags from text                | Universal | Regex-based, optional newline removal; not an HTML parser or sanitizer. |
 | `escapeHtmlAttribute` | Escape a quoted HTML attribute value          | Universal | Escapes `&`, `<`, `>`, and both quotes without escaping `/`; optionally preserves syntactically valid named and numeric references. |
-| `sanitizeInput`       | Escape six HTML-sensitive characters          | Universal | Context-limited escaping, not a complete XSS sanitizer.                 |
-| `unsanitizeInput`     | Decode entities emitted by `sanitizeInput`    | Universal | Decodes only Mazey's fixed entity set.                                  |
-| `cutZHString`         | Truncate text using a Chinese-width heuristic | Universal | Supports `hasDot`/`dotText`; nullish input returns empty.               |
+| `escapeHTML`       | Escape six HTML-sensitive characters          | Universal | Context-limited escaping, not a complete XSS sanitizer.                 |
+| `unescapeHTML`     | Decode entities emitted by `escapeHTML`    | Universal | Decodes only Mazey's fixed entity set.                                  |
+| `truncateByWeightedLength` | Truncate text by weighted UTF-16 length | Universal | U+0000–U+00FF code units count as one; others as two. Supports `hasDot`/`dotText` outside the limit; nullish input returns empty. Can split surrogate pairs; not byte or rendered width. |
 
 ## Objects and arrays
 
@@ -144,7 +152,7 @@ const isMobile: typeof isValidPhoneNumber;
 | `isValidUrl`           | Match a scheme URL                                  | Universal         | Regex-based and broader than HTTP; not equivalent to WHATWG `URL` validation.                                             |
 | `isValidHttpUrl`       | Validate strict HTTP/HTTPS URLs                     | Universal         | Rejects credentials and malformed hosts/ports; `strict: false` permits protocol-relative URLs.                            |
 | `parseGitHubRepository` | Parse GitHub shorthands and Git transport URLs      | Universal         | Returns owner/name/slug/HTTPS URL; bounded strict-ASCII grammar; permits only the conventional `git` username and rejects passwords, ports, queries, fragments, and encoding. |
-| `getUrlFileType`       | Extract the final path extension                    | Universal         | Ignores query/hash; returns an empty string when absent despite the broader declaration.                                  |
+| `getURLPathExtension` | Extract a suffix from URL/path text | Universal | Ignores query/hash; uses the first dot in the final slash-delimited segment (`archive.tar.gz` → `tar.gz`, origin-only `https://example.com` → `com`). Returns an empty string when absent despite the broader declaration. |
 | `getScriptQueryParam`  | Read a query value from matching script tags        | Browser-only      | Scans `document` script `src` attributes; default match substring is `.js`.                                               |
 | `convertObjectToQuery` | Encode own string properties as a query             | Universal         | Returns `?key=value`; empty object returns empty; excludes inherited properties.                                          |
 | `convertHttpToHttps`   | Replace a leading `http:` with `https:`             | Universal         | Simple prefix replacement; does not validate the URL.                                                                     |
@@ -164,7 +172,7 @@ const isMobile: typeof isValidPhoneNumber;
 | `injectStyle`        | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
 | `addStyle`           | Deprecated alias of `injectStyle`               | Browser-only      | Reference-identical compatibility alias; prefer `injectStyle`.                                                  |
 | `setImgSizeBySrc`    | Apply image dimensions from URL parameters      | Browser-only      | Mutates image styles; reads `width`/`height`; uses jQuery when present.                                         |
-| `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
+| `createCSSRule`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
 | `getPageMeta`        | Read the first named meta tag's content         | Browser-only      | Scans DOM meta elements with exact name matching.                                                               |
 | `isValidCssSelector` | Validate selector syntax against a query root   | Browser-preferred | Trims input; empty values require `allowEmpty`; non-empty values return false without `document` or a root.     |
 | `resolveElementTarget` | Resolve direct, selector, wrapped, or `$el` targets | Browser-only      | Scopes selectors to a required root; supports an unwrap adapter; invalid or unmatched targets return `null`; does not mutate the DOM. |
@@ -215,7 +223,7 @@ const isMobile: typeof isValidPhoneNumber;
 | `isWindows`                 | Check whether a user agent represents Windows              | Browser-preferred | Optional explicit user agent; SSR-safe false; heuristic only.                                                                                                      |
 | `isLinux`                   | Check whether a user agent represents Linux                | Browser-preferred | Optional explicit user agent; excludes Android despite its common Linux token; SSR-safe false; heuristic only.                                                      |
 | `getBrowserInfo`            | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                              |
-| `genBrowserAttrs`           | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                         |
+| `getBrowserClassNames` | Get browser classification class-name tokens | Browser-only | Calls cached `getBrowserInfo`; optional prefix/separator; does not modify the DOM. |
 | `isSupportWebp`             | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                                 |
 | `isBrowser`                 | Detect the presence of a browser-like `window` global      | Universal         | Safe in Node.js; only a `true` browser result is cached, while `false` is re-evaluated.                                                                            |
 
@@ -300,7 +308,7 @@ security controls. `getBrowserInfo().platform` remains the legacy broad
 `desktop` or `mobile` grouping.
 
 `isPhone` is the device-form-factor helper. The separate `isMobile` export is
-the same function object as `isValidPhoneNumber`; it validates an 11-digit
+the same function object as `isCNMobileNumber`; it validates an 11-digit
 Chinese mobile-shaped number and does not read browser signals.
 
 Both resolvers return only a machine-readable `value` and a human-readable
@@ -412,9 +420,9 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `removeHtml`                  | Compatibility alias                     | Universal          | Prefer `removeHTML`.                                                                      |
 | `clearHTML`                   | Compatibility alias                     | Universal          | Prefer `removeHTML`.                                                                      |
 | `clearHtml`                   | Compatibility alias                     | Universal          | Prefer `removeHTML`.                                                                      |
-| `unsanitize`                  | Compatibility alias                     | Universal          | Prefer `unsanitizeInput`.                                                                 |
-| `truncateZHString`            | Legacy truncation signature             | Universal          | Delegates to `cutZHString` with boolean `hasDot`.                                         |
-| `cutCHSString`                | Compatibility alias                     | Universal          | Prefer `cutZHString` or `truncateZHString`.                                               |
+| `unsanitize`                  | Compatibility alias                     | Universal          | Prefer `unescapeHTML`.                                                                 |
+| `truncateZHString`            | Legacy truncation signature             | Universal          | Delegates to `truncateByWeightedLength` with boolean `hasDot`.                                         |
+| `cutCHSString`                | Compatibility alias                     | Universal          | Prefer `truncateByWeightedLength` or `truncateZHString`.                                               |
 | `zAxiosIsValidRes`            | Validate a legacy Axios-shaped response | Universal          | Hidden and schema-specific: status range plus `data.code`; do not use for unrelated APIs. |
 | `getCurrentVersion`           | Return Mazey's hard-coded major marker  | Universal          | Hidden; currently returns `v4`; not the package version.                                  |
 | `sleep`                       | Compatibility alias                     | Node.js-compatible | Prefer `waitTime`.                                                                        |
