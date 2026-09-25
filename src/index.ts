@@ -11,4 +11,5 @@ export * from "./store";
 export * from "./load";
 export * from "./perf";
 export * from "./browser";
+export * from "./theme";
 export * from "./debug";

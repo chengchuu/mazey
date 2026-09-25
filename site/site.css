@@ -86,8 +86,7 @@ a {
   z-index: 1030;
   top: 0;
   border-bottom: 1px solid var(--mz-border);
-  background: color-mix(in srgb, var(--mz-bg) 94%, transparent);
-  backdrop-filter: blur(12px);
+  background: var(--mz-bg);
 }
 
 .site-navbar {
