@@ -5,6 +5,63 @@ export type InvestmentReturnRate = number | string;
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
 
+function greatestCommonDivisor(a: number, b: number): number {
+  while (b !== 0) {
+    const remainder = a % b;
+    a = b;
+    b = remainder;
+  }
+  return a;
+}
+
+/**
+ * Calculate the exact simplified aspect ratio of a width and height.
+ *
+ * The ratio is reduced using the greatest common divisor and returned with a
+ * lowercase `x` separator. The function does not approximate the result to a
+ * commonly named image or video ratio.
+ *
+ * Usage:
+ *
+ * ```typescript
+ * import { calculateAspectRatio } from "mazey";
+ *
+ * const portraitRatio = calculateAspectRatio(900, 1200);
+ * const landscapeRatio = calculateAspectRatio(1920, 1080);
+ *
+ * console.log(portraitRatio);
+ * console.log(landscapeRatio);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 3x4
+ * 16x9
+ * ```
+ *
+ * @param width Positive safe-integer width.
+ * @param height Positive safe-integer height.
+ * @returns The exact simplified aspect ratio in `WxH` form.
+ * @throws {TypeError} If width or height is not a safe integer.
+ * @throws {RangeError} If width or height is not greater than zero.
+ * @category Calculate and Formula
+ */
+export function calculateAspectRatio(width: number, height: number): string {
+  if (!Number.isSafeInteger(width)) {
+    throw new TypeError("width must be a safe integer.");
+  }
+  if (!Number.isSafeInteger(height)) {
+    throw new TypeError("height must be a safe integer.");
+  }
+  if (width <= 0 || height <= 0) {
+    throw new RangeError("width and height must be greater than zero.");
+  }
+
+  const divisor = greatestCommonDivisor(width, height);
+  return `${width / divisor}x${height / divisor}`;
+}
+
 function parseInvestmentReturnRate(value: InvestmentReturnRate): number {
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {

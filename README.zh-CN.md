@@ -28,6 +28,12 @@ npm install mazey
 
 你也可以下载 [jsdelivr/lib/mazey.min.js](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)，并自行托管该文件。
 
+## 浏览器支持
+
+Mazey 支持 Chrome 109 及以上版本、Edge 109 及以上版本、Firefox 115 及以上版本、Safari 16.4 及以上版本、iOS Safari 16.4 及以上版本、Android Chrome 109 及以上版本，以及 Samsung Internet 21 及以上版本。软件包输出可能包含 ES2022 语法，并且不包含 JavaScript polyfill。Internet Explorer、Opera Mini、KaiOS、旧版 Android Browser 和更早的浏览器版本不在支持范围内。
+
+开发和持续集成环境使用 Node.js 22。Mazey 未声明 Node.js 运行时兼容范围。
+
 ## 使用
 
 下面的示例使用一个函数，判断某个值是否适合参与常规计算和比较。
@@ -101,16 +107,22 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [Storage 工具](#storage-工具)
 - [DOM](#dom)
   - [Class 工具](#class-工具)
-  - [addStyle](#addstyle)
+  - [injectStyle](#injectstyle)
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
+- [事件](#事件)
+  - [onEvent](#onevent)
 - [计算与公式](#计算与公式)
+  - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [浏览器信息](#浏览器信息)
   - [detectVisitorType](#detectvisitortype)
+  - [isPhone](#isphone)
+  - [isDesktop](#isdesktop)
+  - [isTablet](#istablet)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -796,33 +808,39 @@ console.log(ret);
 
 #### Storage 工具
 
-操作 Web Storage。函数适用于 JSON 数据，并会自动转换格式。
+在 Web Storage 中存储 JSON 序列化值，并在读取时解析这些值。
 
 用法:
 
 ```javascript
-setSessionStorage("test", "123");
-const ret1 = getSessionStorage("test");
-setLocalStorage("test", "123");
-const ret2 = getLocalStorage("test");
-console.log(ret1, ret2);
+setSessionJSON("preferences", { theme: "dark" });
+const sessionValue = getSessionJSON("preferences");
+setLocalJSON("recentItems", [ "one", "two" ]);
+const localValue = getLocalJSON("recentItems");
+console.log({ sessionValue, localValue });
 
-// 也可以按项目封装键名
+// 也可以按项目封装键名。
 const projectName = "mazey";
 function mSetLocalStorage (key, value) {
-  return setLocalStorage(`${projectName}_${key}`, value);
+  return setLocalJSON(`${projectName}_${key}`, value);
 }
 
 function mGetLocalStorage (key) {
-  return getLocalStorage(`${projectName}_${key}`);
+  return getLocalJSON(`${projectName}_${key}`);
 }
 ```
 
 输出:
 
 ```text
-123 123
+{
+  sessionValue: { theme: "dark" },
+  localValue: [ "one", "two" ]
+}
 ```
+
+`setSessionStorage`、`getSessionStorage`、`setLocalStorage` 和
+`getLocalStorage` 是对应 `JSON` 工具的弃用别名。
 
 ### DOM
 
@@ -843,18 +861,20 @@ addClass(dom, "test");
 removeClass(dom, "test");
 ```
 
-#### addStyle
+#### injectStyle
 
 在 `<head>` 中添加 `<style>` 元素。
+
+`addStyle` 是 `injectStyle` 的弃用兼容别名。
 
 用法:
 
 示例 1: 添加带有 `id` 的 `<style>`。重复调用会更新内容，不会添加新元素。
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle(
+injectStyle(
   "body { background-color: #333; }",
   { id: "test" }
 );
@@ -869,9 +889,9 @@ addStyle(
 示例 2: 添加不带 `id` 的 `<style>`。重复调用会添加新元素。
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle("body { background-color: #444; }");
+injectStyle("body { background-color: #444; }");
 ```
 
 输出:
@@ -880,10 +900,10 @@ addStyle("body { background-color: #444; }");
 <style>body { background-color: #444; }</style>
 ```
 
-示例 3: 组合使用 `genStyleString` 和 `addStyle`，一次添加多条样式。
+示例 3: 组合使用 `genStyleString` 和 `injectStyle`，一次添加多条样式。
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -902,7 +922,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 输出:
@@ -931,10 +951,10 @@ console.log(ret2);
 #b{color:red;font-size:12px;}
 ```
 
-下面的示例组合使用 `genStyleString` 和 `addStyle`，一次添加多条样式。
+下面的示例组合使用 `genStyleString` 和 `injectStyle`，一次添加多条样式。
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -953,7 +973,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 输出:
@@ -982,7 +1002,47 @@ a<br />b<br />c
 a<br /><br />bc
 ```
 
+### 事件
+
+#### onEvent
+
+注册具名的 Mazey 事件回调。函数允许重复注册同一个回调。
+`addEvent` 是 `onEvent` 的弃用兼容别名。
+
+```javascript
+import { fireEvent, onEvent } from "mazey";
+
+onEvent("test", event => {
+  console.log("test event:", event);
+});
+
+fireEvent("test", { type: "test" });
+```
+
 ### 计算与公式
+
+#### calculateAspectRatio
+
+根据正安全整数形式的宽度和高度，计算精确的最简宽高比。函数使用最大公约数约分，并使用小写 `x` 连接结果。函数不会将结果近似为常见的图片或视频宽高比。
+
+```javascript
+import { calculateAspectRatio } from "mazey";
+
+const portraitRatio = calculateAspectRatio(900, 1200);
+const landscapeRatio = calculateAspectRatio(1920, 1080);
+
+console.log(portraitRatio);
+console.log(landscapeRatio);
+```
+
+输出：
+
+```text
+3x4
+16x9
+```
+
+例如，`calculateAspectRatio(3440, 1440)` 返回数学意义上精确的 `"43x18"`，而不是近似标签 `"21x9"`。无效或不安全的整数尺寸会抛出 `TypeError`。零或负数尺寸会抛出 `RangeError`。
 
 #### calculateCAGR
 
@@ -1139,6 +1199,70 @@ crawler
 
 > `unknown` 不表示访问者已经通过真人验证。此函数只使用浏览器端启发式规则，不能作为安全边界。请勿单独使用此结果进行身份验证、授权、支付决策、速率限制、欺诈防范或访问控制。验证真实爬虫通常需要服务端请求信息，以及服务提供商规定的验证流程。
 
+#### isPhone
+
+检查当前浏览器是否代表手机或手持设备。此结果不包含平板电脑。
+
+```javascript
+const result = isPhone();
+
+console.log(result);
+```
+
+#### isDesktop
+
+检查当前浏览器是否代表桌面或笔记本电脑。触摸屏 Windows 笔记本电脑仍归类为桌面设备。
+
+```javascript
+const result = isDesktop();
+
+console.log(result);
+```
+
+#### isTablet
+
+检查当前浏览器是否代表平板电脑。此函数支持常规 iPad 和 iPadOS 桌面模式。他还支持不含 `Mobile` 令牌的 Android User-Agent，以及独立的 `Tablet` 令牌。
+
+```javascript
+const result = isTablet();
+
+console.log(result);
+```
+
+可以传入 User-Agent 字符串。此方式适合确定性测试或服务端分类。
+
+```javascript
+const result = isTablet(
+  "Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36"
+);
+
+console.log(result);
+```
+
+输出：
+
+```text
+true
+```
+
+对于已识别的设备，这 3 个函数使用互斥的设备形态分类：
+
+| 设备             | `isPhone` | `isDesktop` | `isTablet` |
+|:-----------------|:-----------|:------------|:-----------|
+| iPhone           | `true`     | `false`     | `false`    |
+| Android 手机     | `true`     | `false`     | `false`    |
+| iPad             | `false`    | `false`     | `true`     |
+| Android 平板电脑 | `false`    | `false`     | `true`     |
+| Windows 笔记本   | `false`    | `true`      | `false`    |
+| MacBook          | `false`    | `true`      | `false`    |
+| 未知设备         | `false`    | `false`     | `false`    |
+
+每个函数都接受可选的 User-Agent 字符串。显式输入不会读取当前浏览器的平台或触摸信号。SSR 环境无法读取浏览器信号且没有显式输入时，这 3 个函数均返回 `false`。
+
+设备分类使用可伪造的启发式规则，不读取视口宽度。这些函数不能作为安全 API，也不能替代响应式 CSS 和功能检测。`getBrowserInfo().platform` 保留原有的宽泛分类，并将 iOS 和 Android 报告为 `"mobile"`。新函数提供更具体的手机、平板电脑或桌面设备分类。
+
+`isPhone` 用于检查设备形态。独立的 `isMobile` API 是 `isValidPhoneNumber` 的直接别名，用于验证 11 位中国手机号码形式的字符串，不会检查浏览器或设备。
+
 #### getBrowserInfo
 
 获取浏览器信息。
@@ -1213,9 +1337,9 @@ if (isStandalonePWA()) {
 
 #### getPerformance
 
-获取页面加载时间 (`PerformanceNavigationTiming`)。
+通过 `PerformanceNavigationTiming` 获取页面加载指标。
 
-该函数使用 [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API 获取页面加载数据。与已弃用的 [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API 相比，新 API 提供的数据更准确，也更详细。
+如果浏览器未提供导航条目，该函数返回的 Promise 会进入 rejected 状态。函数不会回退到已弃用的 `PerformanceTiming` API。
 
 用法:
 

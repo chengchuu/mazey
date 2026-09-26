@@ -3,11 +3,15 @@
  */
 
 export * from "./calc";
+export * from "./package";
 export {
   mNow,
   getDateDifference,
   getFriendlyInterval,
   formatDurationFromMs,
+  parseLocalDateTime,
+  formatLocalDateTime,
+  subYears,
   isValidDate,
   isToday,
   isThisYear,
@@ -18,6 +22,7 @@ export {
   formatDate,
   generateCalendarVersion,
 } from "./date";
+export type { LocalDateTimePrecision } from "./date";
 export * from "./util";
 export * from "./url";
 export * from "./dom";
@@ -28,5 +33,5 @@ export * from "./perf";
 export * from "./browser";
 export * from "./theme";
 export * from "./language";
-export type { PreferenceResult } from "./typing";
+export type { IsNumberOptions, PreferenceResult } from "./typing";
 export * from "./debug";

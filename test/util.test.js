@@ -5,19 +5,20 @@
 import {
   camelCaseToKebabCase, camelCase2Underscore,
   deepCopy, deepCopyObject, deepFreeze, assignDefined, repeatUntilConditionMet,
-  formatDate, generateCalendarVersion, isValidDate,
+  formatDate, parseLocalDateTime, formatLocalDateTime, subYears,
+  generateCalendarVersion, isValidDate,
   isToday, isThisYear, isThisMonth, isThisWeek, isThisHour,
   formatDistanceToNow, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   parseJsonSafe,
-  isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
+  isValidData, isValidEmail, isMobile, isValidPhoneNumber, isNonEmptyArray,
   getDateDifference, getFriendlyInterval, formatDurationFromMs,
   getFileSize, formatByteSize, getCurrentVersion,
   genUniqueNumString, generateRndNum, genHashCode, sha256Hex,
   floatToPercent, floatFixed, throttle, debounce,
-  doFn, mTrim, removeHtml, truncateZHString,
+  doFn, mNow, mTrim, removeHtml, truncateZHString,
   convertKebabToCamel, convert10To26, zAxiosIsValidRes,
-  unsanitize, sanitizeInput, unsanitizeInput,
+  unsanitize, sanitizeInput, unsanitizeInput, escapeHtmlAttribute,
   isFunction, isString, isBoolean, isUdfOrNul, toJavaScriptGlobalName,
 } from "../lib/index.esm";
 import { webcrypto } from "node:crypto";
@@ -31,6 +32,50 @@ test("isNumber: Is -1/123/Infinity/NaN Number?", () => {
   expect(isNumber(Infinity, { isInfinityAsNumber: true })).toBe(true);
   expect(isNumber(NaN)).toBe(false);
   expect(isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true })).toBe(true);
+});
+
+test("isNumber: Preserve isUnFiniteAsNumber compatibility", () => {
+  expect(isNumber(Infinity, { isUnFiniteAsNumber: true })).toBe(true);
+  expect(isNumber(-Infinity, { isUnFiniteAsNumber: true })).toBe(true);
+  expect(isNumber(NaN, { isUnFiniteAsNumber: true })).toBe(false);
+  expect(isNumber(NaN, {
+    isNaNAsNumber: true,
+    isUnFiniteAsNumber: true,
+  })).toBe(true);
+});
+
+describe("isNumber constraints", () => {
+  test("applies inclusive minimum and maximum bounds independently", () => {
+    expect(isNumber(-5, { min: -5 })).toBe(true);
+    expect(isNumber(-6, { min: -5 })).toBe(false);
+    expect(isNumber(10, { max: 10 })).toBe(true);
+    expect(isNumber(11, { max: 10 })).toBe(false);
+  });
+
+  test("combines integer and inclusive range constraints", () => {
+    const options = { integer: true, min: 1, max: 31 };
+
+    expect(isNumber(1, options)).toBe(true);
+    expect(isNumber(31, options)).toBe(true);
+    expect(isNumber(0, options)).toBe(false);
+    expect(isNumber(32, options)).toBe(false);
+    expect(isNumber(12.5, options)).toBe(false);
+  });
+
+  test("rejects invalid or reversed bounds without throwing", () => {
+    expect(isNumber(5, { min: Number.NaN })).toBe(false);
+    expect(isNumber(5, { max: Number.NaN })).toBe(false);
+    expect(isNumber(5, { min: 10, max: 1 })).toBe(false);
+    expect(isNumber(5, { min: "1" })).toBe(false);
+  });
+
+  test("does not allow constrained NaN or non-integer infinities", () => {
+    expect(isNumber(NaN, { isNaNAsNumber: true, min: 0 })).toBe(false);
+    expect(isNumber(NaN, { isNaNAsNumber: true, integer: true })).toBe(false);
+    expect(isNumber(Infinity, { isInfinityAsNumber: true, min: 0 })).toBe(true);
+    expect(isNumber(Infinity, { isInfinityAsNumber: true, integer: true })).toBe(false);
+    expect(isNumber(Infinity, { isUnFiniteAsNumber: true, max: 100 })).toBe(false);
+  });
 });
 
 test("camelCaseToKebabCase: Transfer 'aBC' to 'a-b-c'?", () => {
@@ -71,6 +116,18 @@ test("mTrim: Transfer ' 1 2 3 ' to '1 2 3'?", () => {
 
 test("mTrim: Transfer 'abc ' to 'abc'?", () => {
   expect(mTrim("abc ")).toBe("abc");
+});
+
+test("mTrim: Trims Unicode and all-whitespace strings", () => {
+  expect(mTrim("\u00a0\u3000Mazey\u3000\u00a0")).toBe("Mazey");
+  expect(mTrim("\t\n\u3000")).toBe("");
+});
+
+test("mNow: Delegates to Date.now", () => {
+  const now = jest.spyOn(Date, "now").mockReturnValue(123456789);
+  expect(mNow()).toBe(123456789);
+  expect(now).toHaveBeenCalledTimes(1);
+  now.mockRestore();
 });
 
 test("deepCopyObject: Transfer 'abc' to 'abc'?", () => {
@@ -244,21 +301,11 @@ describe("deepCopy", () => {
     expect(value.read()).toBe(42);
   });
 
-  it("clones primitives and circular plain objects without WeakMap", () => {
-    const originalWeakMap = global.WeakMap;
+  it("clones circular plain objects with native WeakMap tracking", () => {
     const value = { nested: { id: 1 } };
     value.self = value;
-    let primitiveResult;
-    let objectResult;
-    try {
-      global.WeakMap = undefined;
-      primitiveResult = deepCopy("abc");
-      objectResult = deepCopy(value);
-    } finally {
-      global.WeakMap = originalWeakMap;
-    }
+    const objectResult = deepCopy(value);
 
-    expect(primitiveResult).toBe("abc");
     expect(objectResult).toEqual(value);
     expect(objectResult).not.toBe(value);
     expect(objectResult.nested).not.toBe(value.nested);
@@ -475,6 +522,182 @@ test("formatDate: Preserves epoch timestamps and replaces repeated tokens", () =
 
 test("formatDate: Rejects invalid dates", () => {
   expect(() => formatDate("not-a-date")).toThrow(RangeError);
+});
+
+describe("local datetime utilities", () => {
+  test.each([
+    [ "2026-07-21T14:30", [ 2026, 6, 21, 14, 30, 0, 0 ] ],
+    [ "2026-07-21T14:30:45", [ 2026, 6, 21, 14, 30, 45, 0 ] ],
+    [ "2026-07-21T14:30:45.1", [ 2026, 6, 21, 14, 30, 45, 100 ] ],
+    [ "2026-07-21T14:30:45.12", [ 2026, 6, 21, 14, 30, 45, 120 ] ],
+    [ "2026-07-21T14:30:45.123", [ 2026, 6, 21, 14, 30, 45, 123 ] ],
+    [ "2024-02-29T00:00", [ 2024, 1, 29, 0, 0, 0, 0 ] ],
+    [ "10000-01-01T00:00", [ 10000, 0, 1, 0, 0, 0, 0 ] ],
+  ])("parses the strict local value %s", (value, expected) => {
+    const date = parseLocalDateTime(value);
+
+    expect(date).not.toBeNull();
+    expect([
+      date.getFullYear(),
+      date.getMonth(),
+      date.getDate(),
+      date.getHours(),
+      date.getMinutes(),
+      date.getSeconds(),
+      date.getMilliseconds(),
+    ]).toEqual(expected);
+  });
+
+  test.each([
+    "",
+    " 2026-07-21T14:30 ",
+    "2026-07-21",
+    "2026-07-21 14:30",
+    "2026-7-21T14:30",
+    "0000-01-01T00:00",
+    "2023-02-29T14:30",
+    "2026-04-31T14:30",
+    "2026-07-21T24:00",
+    "2026-07-21T14:60",
+    "2026-07-21T14:30:60",
+    "2026-07-21T14:30:45.1234",
+    "2026-07-21T14:30Z",
+  ])("rejects the invalid or unsupported local value %s", value => {
+    expect(parseLocalDateTime(value)).toBeNull();
+  });
+
+  test("returns null for non-string runtime input", () => {
+    expect(parseLocalDateTime(null)).toBeNull();
+    expect(parseLocalDateTime(new Date())).toBeNull();
+  });
+
+  test("formats local fields at each supported precision", () => {
+    const date = new Date(2026, 6, 21, 4, 5, 6, 7);
+
+    expect(formatLocalDateTime(date)).toBe("2026-07-21T04:05");
+    expect(formatLocalDateTime(date, { precision: "second" })).toBe(
+      "2026-07-21T04:05:06"
+    );
+    expect(formatLocalDateTime(date, { precision: "millisecond" })).toBe(
+      "2026-07-21T04:05:06.007"
+    );
+  });
+
+  test("pads years to at least four digits", () => {
+    const date = new Date(0);
+    date.setFullYear(42, 0, 2);
+    date.setHours(3, 4, 0, 0);
+
+    expect(formatLocalDateTime(date)).toBe("0042-01-02T03:04");
+    expect(parseLocalDateTime("0042-01-02T03:04")?.getFullYear()).toBe(42);
+
+    date.setFullYear(10000, 0, 2);
+    expect(formatLocalDateTime(date)).toBe("10000-01-02T03:04");
+    expect(parseLocalDateTime("10000-01-02T03:04")?.getFullYear()).toBe(10000);
+  });
+
+  test("round-trips local wall-clock fields without mutating the input", () => {
+    const original = new Date(2026, 6, 21, 14, 30, 45, 123);
+    const originalTime = original.getTime();
+    const value = formatLocalDateTime(original, { precision: "millisecond" });
+    const parsed = parseLocalDateTime(value);
+
+    expect(parsed).not.toBeNull();
+    expect(parsed.getTime()).toBe(originalTime);
+    expect(original.getTime()).toBe(originalTime);
+  });
+
+  test("supports Date objects from another realm", () => {
+    const date = runInNewContext("new Date(2026, 6, 21, 14, 30, 45, 123)");
+
+    expect(formatLocalDateTime(date, { precision: "millisecond" })).toBe(
+      "2026-07-21T14:30:45.123"
+    );
+  });
+
+  test("rejects invalid dates, non-Date values, and unsupported precision", () => {
+    expect(() => formatLocalDateTime(new Date("invalid"))).toThrow(RangeError);
+    expect(() => formatLocalDateTime("2026-07-21T14:30")).toThrow(TypeError);
+    expect(() => formatLocalDateTime(new Date(), { precision: "hour" })).toThrow(
+      TypeError
+    );
+  });
+});
+
+describe("subYears", () => {
+  test("subtracts calendar years from Date and timestamp inputs", () => {
+    const date = new Date(2014, 8, 1, 14, 30, 45, 123);
+    const originalTime = date.getTime();
+    const result = subYears(date, 5);
+
+    expect([
+      result.getFullYear(),
+      result.getMonth(),
+      result.getDate(),
+      result.getHours(),
+      result.getMinutes(),
+      result.getSeconds(),
+      result.getMilliseconds(),
+    ]).toEqual([ 2009, 8, 1, 14, 30, 45, 123 ]);
+    expect(subYears(date.getTime(), 5).getTime()).toBe(result.getTime());
+    expect(date.getTime()).toBe(originalTime);
+  });
+
+  test.each([
+    [ 1.9, 2025 ],
+    [ 1.1, 2025 ],
+    [ -1.9, 2027 ],
+    [ -1.1, 2027 ],
+    [ 0.9, 2026 ],
+    [ -0.9, 2026 ],
+  ])("rounds an amount of %s to the year %s", (amount, expectedYear) => {
+    expect(subYears(new Date(2026, 6, 21), amount).getFullYear()).toBe(
+      expectedYear
+    );
+  });
+
+  test("clamps leap day to the final day of the destination month", () => {
+    const result = subYears(new Date(2024, 1, 29, 12, 30), 1);
+
+    expect([
+      result.getFullYear(),
+      result.getMonth(),
+      result.getDate(),
+      result.getHours(),
+      result.getMinutes(),
+    ]).toEqual([ 2023, 1, 28, 12, 30 ]);
+    expect(subYears(new Date(2024, 1, 29), 4).getDate()).toBe(29);
+  });
+
+  test("returns a new Date without mutating the input", () => {
+    const date = new Date(2026, 6, 21, 14, 30);
+    const originalTime = date.getTime();
+    const result = subYears(date, 0);
+
+    expect(result).not.toBe(date);
+    expect(result.getTime()).toBe(originalTime);
+    expect(date.getTime()).toBe(originalTime);
+  });
+
+  test("supports Date objects from another realm", () => {
+    const date = runInNewContext("new Date(2026, 6, 21, 14, 30)");
+
+    expect(subYears(date, 2).getFullYear()).toBe(2024);
+  });
+
+  test.each([
+    [ new Date("invalid"), 1 ],
+    [ NaN, 1 ],
+    [ Infinity, 1 ],
+    [ new Date(), NaN ],
+    [ new Date(), Infinity ],
+    [ new Date(), null ],
+    [ new Date(), true ],
+    [ new Date(), "1" ],
+    [ new Date(), Symbol("years") ],
+  ])("returns an invalid Date for invalid input", (date, amount) => {
+    expect(Number.isNaN(subYears(date, amount).getTime())).toBe(true);
+  });
 });
 
 describe("isValidDate", () => {
@@ -992,6 +1215,14 @@ describe("isValidPhoneNumber", () => {
     expect(isValidPhoneNumber("02345678901")).toBe(false);
     expect(isValidPhoneNumber("00000000000")).toBe(false);
   });
+
+  it("exposes isMobile as the same phone-number validator", () => {
+    expect(isMobile).toBe(isValidPhoneNumber);
+    [ "13800138000", "15012345678", "1380013800", "1380013800a" ]
+      .forEach(mobile => {
+        expect(isMobile(mobile)).toBe(isValidPhoneNumber(mobile));
+      });
+  });
 });
 
 describe("genUniqueNumString", () => {
@@ -1275,6 +1506,54 @@ describe("sanitizeInput", () => {
   it("should throw an error if the input is not a string", () => {
     const input = 123;
     expect(() => sanitizeInput(input)).toThrow("Input must be a string");
+  });
+});
+
+describe("escapeHtmlAttribute", () => {
+  it("escapes the five attribute-sensitive characters without escaping slashes", () => {
+    expect(escapeHtmlAttribute("https://example.com/<path>?a=\"b\"&c='d'")).toBe(
+      "https://example.com/&lt;path&gt;?a=&quot;b&quot;&amp;c=&#39;d&#39;"
+    );
+  });
+
+  it("escapes existing character references by default", () => {
+    expect(escapeHtmlAttribute("&amp; &#38; &#x26; &AElig;")).toBe(
+      "&amp;amp; &amp;#38; &amp;#x26; &amp;AElig;"
+    );
+  });
+
+  it("preserves syntactically valid named and numeric character references", () => {
+    expect(
+      escapeHtmlAttribute("&amp; &#38; &#x26; &#X2F; &AElig;", {
+        preserveEntities: true,
+      })
+    ).toBe("&amp; &#38; &#x26; &#X2F; &AElig;");
+  });
+
+  it("escapes bare and malformed ampersands while preserving valid references", () => {
+    expect(
+      escapeHtmlAttribute("A & B &copy &#; &#x; &1bad;", {
+        preserveEntities: true,
+      })
+    ).toBe("A &amp; B &amp;copy &amp;#; &amp;#x; &amp;1bad;");
+  });
+
+  it("still escapes brackets and quotes when preserving references", () => {
+    expect(
+      escapeHtmlAttribute("</a href=\"x\" title='y'> &amp;", {
+        preserveEntities: true,
+      })
+    ).toBe("&lt;/a href=&quot;x&quot; title=&#39;y&#39;&gt; &amp;");
+  });
+
+  it("handles empty and unchanged input", () => {
+    expect(escapeHtmlAttribute("")).toBe("");
+    expect(escapeHtmlAttribute("Mazey 5.6")).toBe("Mazey 5.6");
+  });
+
+  it("rejects non-string runtime input", () => {
+    expect(() => escapeHtmlAttribute(123)).toThrow(TypeError);
+    expect(() => escapeHtmlAttribute(123)).toThrow("value must be a string.");
   });
 });
 

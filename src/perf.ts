@@ -283,8 +283,7 @@ export async function getTTFB(): Promise<number> {
  * Get page-load metrics from the Navigation Timing APIs.
  *
  * @remarks
- * This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
- * The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
+ * This function rejects when the browser does not provide a navigation entry. It does not fall back to the deprecated `PerformanceTiming` API.
  *
  * Usage:
  *
@@ -331,18 +330,18 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
     return Promise.reject(new Error("navigation is not supported"));
   }
   const performance = window.performance;
-  if (!(performance && typeof performance.getEntries === "function" && typeof performance.getEntriesByType === "function")) {
+  if (!(performance && typeof performance.getEntriesByType === "function")) {
     return Promise.reject(new Error("performance is not supported"));
   }
   let success: (v: WebPerformance) => void;
   const status: Promise<WebPerformance> = new Promise(resolve => {
     [ success ] = [ resolve ];
   });
-  let navigationTiming: PerformanceNavigationTiming | null = null;
   const navs = performance.getEntriesByType("navigation");
-  if (isNonEmptyArray(navs)) {
-    navigationTiming = navs[0] as PerformanceNavigationTiming;
+  if (!isNonEmptyArray(navs)) {
+    return Promise.reject(new Error("NavigationTiming is not supported"));
   }
+  const navigationTiming = navs[0] as PerformanceNavigationTiming;
   let [
     unloadEventEnd,
     unloadEventStart,
@@ -364,54 +363,27 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
     decodedBodySize,
     encodedBodySize,
   ] = new Array(19).fill(0);
-  const timing = performance.timing;
-  let source = "";
-  if (navigationTiming) {
-    source = "PerformanceNavigationTiming";
-    ({ decodedBodySize, encodedBodySize } = navigationTiming);
-    ({
-      unloadEventEnd,
-      unloadEventStart,
-      redirectEnd,
-      redirectStart,
-      domainLookupEnd,
-      domainLookupStart,
-      connectEnd,
-      connectStart,
-      secureConnectionStart,
-      responseStart,
-      requestStart,
-      responseEnd,
-      domContentLoadedEventStart,
-      loadEventStart,
-      loadEventEnd,
-      startTime: navigationStart,
-      fetchStart,
-    } = navigationTiming);
-  } else if (timing) {
-    source = "PerformanceTiming";
-    ({
-      unloadEventEnd,
-      unloadEventStart,
-      redirectEnd,
-      redirectStart,
-      domainLookupEnd,
-      domainLookupStart,
-      connectEnd,
-      connectStart,
-      secureConnectionStart,
-      responseStart,
-      requestStart,
-      responseEnd,
-      domContentLoadedEventStart,
-      loadEventStart,
-      loadEventEnd,
-      navigationStart,
-      fetchStart,
-    } = timing);
-  } else {
-    return Promise.reject(new Error("NavigationTiming and Timing are not supported"));
-  }
+  const source = "PerformanceNavigationTiming";
+  ({ decodedBodySize, encodedBodySize } = navigationTiming);
+  ({
+    unloadEventEnd,
+    unloadEventStart,
+    redirectEnd,
+    redirectStart,
+    domainLookupEnd,
+    domainLookupStart,
+    connectEnd,
+    connectStart,
+    secureConnectionStart,
+    responseStart,
+    requestStart,
+    responseEnd,
+    domContentLoadedEventStart,
+    loadEventStart,
+    loadEventEnd,
+    startTime: navigationStart,
+    fetchStart,
+  } = navigationTiming);
   let startTime = 0;
   if (isNumber(navigationStart)) {
     startTime = navigationStart;
@@ -437,48 +409,26 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
     });
   }
   function getTiming() {
-    if (navigationTiming) {
-      ({ decodedBodySize, encodedBodySize } = navigationTiming);
-      ({
-        unloadEventEnd,
-        unloadEventStart,
-        redirectEnd,
-        redirectStart,
-        domainLookupEnd,
-        domainLookupStart,
-        connectEnd,
-        connectStart,
-        secureConnectionStart,
-        responseStart,
-        requestStart,
-        responseEnd,
-        domContentLoadedEventStart,
-        loadEventStart,
-        loadEventEnd,
-        startTime: navigationStart,
-        fetchStart,
-      } = navigationTiming);
-    } else if (timing) {
-      ({
-        unloadEventEnd,
-        unloadEventStart,
-        redirectEnd,
-        redirectStart,
-        domainLookupEnd,
-        domainLookupStart,
-        connectEnd,
-        connectStart,
-        secureConnectionStart,
-        responseStart,
-        requestStart,
-        responseEnd,
-        domContentLoadedEventStart,
-        loadEventStart,
-        loadEventEnd,
-        navigationStart,
-        fetchStart,
-      } = timing);
-    }
+    ({ decodedBodySize, encodedBodySize } = navigationTiming);
+    ({
+      unloadEventEnd,
+      unloadEventStart,
+      redirectEnd,
+      redirectStart,
+      domainLookupEnd,
+      domainLookupStart,
+      connectEnd,
+      connectStart,
+      secureConnectionStart,
+      responseStart,
+      requestStart,
+      responseEnd,
+      domContentLoadedEventStart,
+      loadEventStart,
+      loadEventEnd,
+      startTime: navigationStart,
+      fetchStart,
+    } = navigationTiming);
     if (isNumber(navigationStart)) {
       startTime = navigationStart;
     } else if (isNumber(fetchStart)) {

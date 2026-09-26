@@ -1,60 +1,25 @@
 import type { ResolvedTheme, ThemePreference } from "../src/theme";
-
-type ThemeMediaQuery = Pick<MediaQueryList, "matches"> &
-  Partial<
-    Pick<
-      MediaQueryList,
-      | "addEventListener"
-      | "removeEventListener"
-      | "addListener"
-      | "removeListener"
-    >
-  >;
+import { listenMediaQueryChanges } from "../src/browser";
 
 function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || value === "light" || value === "dark";
 }
 
-function getThemeMedia(windowRef: Window): ThemeMediaQuery {
+function getThemeMedia(windowRef: Window): MediaQueryList | null {
   try {
     const matchMedia = windowRef.matchMedia;
     return typeof matchMedia === "function"
       ? matchMedia.call(windowRef, "(prefers-color-scheme: dark)")
-      : { matches: false };
+      : null;
   } catch {
-    return { matches: false };
+    return null;
   }
-}
-
-function listenForMediaChanges(
-  media: ThemeMediaQuery,
-  listener: () => void
-): () => void {
-  const addEventListener = media.addEventListener;
-  const removeEventListener = media.removeEventListener;
-  if (
-    typeof addEventListener === "function" &&
-    typeof removeEventListener === "function"
-  ) {
-    addEventListener.call(media, "change", listener);
-    return () => removeEventListener.call(media, "change", listener);
-  }
-  const addListener = media.addListener;
-  const removeListener = media.removeListener;
-  if (
-    typeof addListener === "function" &&
-    typeof removeListener === "function"
-  ) {
-    addListener.call(media, listener);
-    return () => removeListener.call(media, listener);
-  }
-  return () => undefined;
 }
 
 function resolveCurrentTheme(
   windowRef: Window,
   storageKey: string,
-  media: ThemeMediaQuery
+  media: MediaQueryList | null
 ): { preference: ThemePreference; resolvedTheme: ResolvedTheme } {
   let queryPreference: ThemePreference | null = null;
   try {
@@ -85,7 +50,7 @@ function resolveCurrentTheme(
   }
   return {
     preference: "system",
-    resolvedTheme: media.matches ? "dark" : "light",
+    resolvedTheme: media?.matches ? "dark" : "light",
   };
 }
 
@@ -108,7 +73,7 @@ export function initializeThemeControls(
     currentPreference = selected;
     const resolved =
       resolvedTheme ??
-      (selected === "system" ? (media.matches ? "dark" : "light") : selected);
+      (selected === "system" ? (media?.matches ? "dark" : "light") : selected);
 
     root.dataset.bsTheme = resolved;
     root.dataset.theme = resolved;
@@ -154,7 +119,7 @@ export function initializeThemeControls(
   };
   const handleSystemTheme = () => {
     if (currentPreference === "system") {
-      apply("system", false, media.matches ? "dark" : "light");
+      apply("system", false, media?.matches ? "dark" : "light");
     }
   };
 
@@ -162,7 +127,7 @@ export function initializeThemeControls(
   const initialTheme = resolveCurrentTheme(windowRef, storageKey, media);
   apply(initialTheme.preference, false, initialTheme.resolvedTheme);
   documentRef.addEventListener("change", handleChange);
-  const removeMediaListener = listenForMediaChanges(media, handleSystemTheme);
+  const removeMediaListener = listenMediaQueryChanges(media, handleSystemTheme);
 
   return () => {
     documentRef.removeEventListener("change", handleChange);

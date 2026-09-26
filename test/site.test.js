@@ -18,13 +18,41 @@ import {
   packageDetails,
   repositoryDetails,
 } from "../scripts/project-config-utils";
-import { manifestMetadataFailures } from "../scripts/validate-pwa";
+import { parseHtmlAttributes } from "../scripts/html-attributes";
+import { findTag, manifestMetadataFailures } from "../scripts/validate-pwa";
 import {
+  attribute,
+  hasNavigationToggle,
+  jsonLdBlocks,
   localFragmentError,
   localFragmentErrors,
 } from "../scripts/validate-seo";
 
 const typeDocHtml = `<!doctype html><html><head><title>mazey</title></head><body><header><div class="tsd-toolbar-contents container"><a href="index.html" class="title">mazey</a><button id="tsd-search-trigger" class="tsd-widget" aria-label="Search"></button><dialog id="tsd-search" aria-label="Search"><input role="combobox" id="tsd-search-input" aria-controls="tsd-search-results"><ul role="listbox" id="tsd-search-results"></ul></dialog></div></header><div class="tsd-page-title"><h2>mazey</h2></div><main><p>Public API documentation content.</p></main></body></html>`;
+
+test("HTML helpers parse production-minified unquoted attributes", () => {
+  const html = `<!doctype html><html lang=en data-bs-theme=light><head><meta name=description content="Mazey utilities"><link rel=canonical href=https://chengchuu.github.io/mazey/ ><link rel=manifest href=/mazey/manifest.webmanifest><script type=application/ld+json>{"url":"https://chengchuu.github.io/mazey/"}</script></head><body><button aria-expanded=false data-nav-toggle>Menu</button></body></html>`;
+
+  expect(
+    parseHtmlAttributes("<html lang=en data-bs-theme=light>")
+  ).toMatchObject({
+    lang: "en",
+    "data-bs-theme": "light",
+  });
+  expect(attribute(html, "meta", "name", "description").content).toBe(
+    "Mazey utilities"
+  );
+  expect(attribute(html, "link", "rel", "canonical").href).toBe(
+    "https://chengchuu.github.io/mazey/"
+  );
+  expect(findTag(html, "link", "rel", "manifest").href).toBe(
+    "/mazey/manifest.webmanifest"
+  );
+  expect(jsonLdBlocks(html)).toEqual([
+    '{"url":"https://chengchuu.github.io/mazey/"}',
+  ]);
+  expect(hasNavigationToggle(html)).toBe(true);
+});
 
 test("project configuration derives deployment identity from package metadata", () => {
   expect(pkg.private).not.toBe(true);
@@ -39,6 +67,10 @@ test("project configuration derives deployment identity from package metadata", 
     basePath: "/mazey/",
   });
   expect(projectConfig.pwa.serviceWorkerUrl).toBe("/mazey/service-worker.js");
+  expect(projectConfig.pwa).toMatchObject({
+    name: projectConfig.brand.displayName,
+    shortName: projectConfig.brand.shortName,
+  });
   expect(projectConfig.site.theme.storageKey).toBe("mazey-theme");
   expect(projectConfig.urls.cdn).toBe(
     "https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"
@@ -134,16 +166,17 @@ test("generated cross-page fragments require a real target ID", () => {
   }
 });
 
-test("Pages CI builds package outputs before running Jest", () => {
+test("Pages CI builds package outputs before running Jest normally", () => {
   const workflow = fs.readFileSync(
     path.join(process.cwd(), ".github", "workflows", "pages.yml"),
     "utf8"
   );
   const build = workflow.indexOf("run: npm run build");
-  const test = workflow.indexOf("run: npm test -- --runInBand");
+  const test = workflow.indexOf("run: npm test");
 
   expect(build).toBeGreaterThan(-1);
   expect(test).toBeGreaterThan(build);
+  expect(workflow).not.toContain("--runInBand");
 });
 
 test.each([
@@ -194,6 +227,49 @@ test("site navbar uses the same mode background as browser chrome", () => {
   );
 });
 
+test("playground primary section uses compact vertical spacing", () => {
+  const playground = fs.readFileSync(
+    path.join(process.cwd(), "examples", "index.html"),
+    "utf8"
+  );
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(playground).toContain('class="section-band section-band--compact"');
+  expect(siteCss).toMatch(
+    /\.section-band--compact\s*{[^}]*padding:\s*3\.5rem 0;[^}]*}/
+  );
+  expect(siteCss).toMatch(
+    /@media \(max-width: 575\.98px\)\s*{[\s\S]*?\.section-band--compact\s*{[^}]*padding:\s*2rem 0;[^}]*}/
+  );
+});
+
+test("playground layout fills the dynamic viewport above the footer", () => {
+  const playground = fs.readFileSync(
+    path.join(process.cwd(), "examples", "index.html"),
+    "utf8"
+  );
+  const siteCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "site.css"),
+    "utf8"
+  );
+
+  expect(playground).toContain(
+    '<body class="playground-page d-flex flex-column">'
+  );
+  expect(playground).toContain(
+    '<main id="main-content" class="d-flex flex-column flex-grow-1">'
+  );
+  expect(playground).toContain(
+    'class="section-band section-band--muted flex-grow-1"'
+  );
+  expect(siteCss).toMatch(
+    /\.playground-page\s*{[^}]*min-height:\s*100dvh;[^}]*}/
+  );
+});
+
 test("API toolbar preserves TypeDoc's search dialog", () => {
   const transformed = transformApiHtml(typeDocHtml, "index.html");
   const apiCss = fs.readFileSync(
@@ -210,6 +286,20 @@ test("API toolbar preserves TypeDoc's search dialog", () => {
   );
   expect(apiCss).not.toContain(
     ".tsd-page-toolbar .tsd-toolbar-contents > #tsd-search"
+  );
+});
+
+test("API theme controls use readable native option colors", () => {
+  const apiCss = fs.readFileSync(
+    path.join(process.cwd(), "site", "api.css"),
+    "utf8"
+  );
+
+  expect(apiCss).toMatch(
+    /\.site-project-links select,\s*\.tsd-theme-toggle select\s*{[^}]*color-scheme:\s*var\(--color-scheme\);[^}]*background-color:\s*var\(--color-background-secondary\);[^}]*}/
+  );
+  expect(apiCss).toMatch(
+    /\.site-project-links select option,\s*\.tsd-theme-toggle select option\s*{[^}]*color:\s*var\(--color-text\);[^}]*background-color:\s*var\(--color-background-secondary\);[^}]*}/
   );
 });
 

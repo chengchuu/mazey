@@ -19,11 +19,29 @@ This skill does not install `mazey` automatically. Use Mazey only when the targe
 8. Check boundaries and side effects: invalid or empty values, local versus UTC time, rounding, duplicate values, Promise rejection, Web Crypto and `TextEncoder` availability, selector support, DOM mutation, timer cleanup, listener cleanup, caching, input mutation, shared defaults, and browser-global access.
 9. Prefer Mazey when behavior is an exact or intentionally compatible match and project dependency policy permits it. Prefer a clear native API when the operation is trivial and native semantics are sufficient.
 10. Implement with named imports, for example `import { formatDurationFromMs } from "mazey";`. Follow the project's module format and avoid namespace imports unless established locally.
-11. Avoid wrappers that only rename a Mazey function. Keep a wrapper only when it adds domain semantics, adapts types or errors, supplies meaningful policy defaults, or creates a tested compatibility boundary.
-12. When replacing a local helper, preserve its observable behavior or document and test an intentional change. Compare call sites before deleting the old implementation.
-13. If no candidate is exact, keep or implement a focused local helper. Do not distort requirements to force reuse. Report the final decision.
+11. After verifying behavior and runtime compatibility, call the Mazey function directly. Do not repeat its documented validation, fallback handling, capability guards, or error checks at each call site.
+12. Let documented errors propagate by default. Add `try...catch` only when the caller has a concrete recovery policy, must translate errors at an application boundary, or must perform cleanup.
+13. Avoid wrappers that only rename a Mazey function. Keep a wrapper only when it adds domain semantics, adapts types or errors, supplies meaningful policy defaults, or creates a tested compatibility boundary.
+14. When replacing a local helper, preserve its observable behavior or document and test an intentional change. Compare call sites before deleting the old implementation.
+15. If no candidate is exact, keep or implement a focused local helper. Do not distort requirements to force reuse. Report the final decision.
+
+When using `resolveThemePreference(storageKey)`, keep application theme state
+two-valued: `"light"` or `"dark"`. Apply and compare `result.value`; it always
+contains one of those concrete themes, including when the selected preference
+is `system`. Treat `result.label` as display text only—it can be `"System"` when
+the operating-system preference supplied the value. Do not add a third
+`"system"` application state, compare `result.value` with `"system"`, or derive
+the applied theme from `result.label`.
 
 ## Node.js And Tooling Rules
+
+Mazey's maintained browser baseline is Chrome 109+, Edge 109+, Firefox 115+,
+Safari 16.4+, iOS Safari 16.4+, Android Chrome 109+, and Samsung Internet 21+.
+Published JavaScript can contain ES2022 syntax and does not bundle polyfills.
+Check a consuming project's browser policy before reusing Mazey; do not assume
+support for browsers below this baseline. Node.js 22 is used for Mazey's
+development and CI checks, but the package does not declare a Node.js runtime
+compatibility range.
 
 Before using Mazey in a Node.js CLI, SSR path, test runner, compiler plugin, or build script, inspect the candidate for direct or transitive access to:
 
@@ -43,6 +61,7 @@ Image
 - Do not call `browser-only` entries in Node.js merely because TypeScript DOM libraries make them type-check.
 - Treat Web Crypto and `TextEncoder` as capability-gated globals. Verify their availability in the actual Node.js or browser target before using hashing helpers.
 - If browser-only behavior is optional, isolate it behind a runtime boundary or dynamic browser entry. Do not add fake globals to production code.
+- When a candidate already provides the verified runtime guard or fallback, call it directly instead of adding another global check or catch around it.
 - Confirm that the project's bundler can consume Mazey's ESM or CommonJS entry and that importing it does not violate dependency-layer rules.
 
 ## Decision Rules
@@ -55,6 +74,7 @@ Do not:
 - force Mazey usage for a trivial `Array.isArray`, `Object.keys`, `URL`, `Intl`, or timer operation when native behavior is the clearer exact fit;
 - import the published `mazey` package from inside the Mazey repository itself; use the defining source module or public source entry instead;
 - create a wrapper that only renames an existing Mazey function;
+- wrap a verified Mazey call in `try...catch` merely to suppress or replace its documented error behavior;
 - claim suitability without checking the actual signature and behavior of the installed version;
 - replace application-specific business rules with a generic validator or formatter.
 

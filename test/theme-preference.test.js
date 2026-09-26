@@ -2,6 +2,7 @@
 /* eslint-env jest, node */
 
 import {
+  getSystemTheme,
   resolveThemePreference,
   setThemePreference,
 } from "../lib/index.esm";
@@ -54,14 +55,135 @@ function expectThemeResult(result, value, label) {
   expect(Object.keys(result).sort()).toEqual([ "label", "value" ]);
 }
 
+describe("getSystemTheme", () => {
+  test("is available from the package root", () => {
+    expect(getSystemTheme).toEqual(expect.any(Function));
+  });
+
+  test.each([
+    [ "dark", true ],
+    [ "light", false ],
+  ])("returns %s when dark matching is %s", (expected, matches) => {
+    const matchMedia = jest.fn(() => ({ matches }));
+
+    withWindow(createWindow({ matchMedia }), () => {
+      expect(getSystemTheme()).toBe(expected);
+    });
+    expect(matchMedia).toHaveBeenCalledTimes(1);
+    expect(matchMedia).toHaveBeenCalledWith(
+      "(prefers-color-scheme: dark)"
+    );
+  });
+
+  test("returns null when window is unavailable", () => {
+    withWindow(undefined, () => {
+      expect(getSystemTheme()).toBeNull();
+    });
+  });
+
+  test.each([
+    {},
+    { matchMedia: null },
+    { matchMedia: "not-a-function" },
+  ])("returns null for unavailable matchMedia", (windowValue) => {
+    withWindow(windowValue, () => {
+      expect(getSystemTheme()).toBeNull();
+    });
+  });
+
+  test("returns null when accessing or invoking matchMedia throws", () => {
+    const inaccessibleWindow = {};
+    Object.defineProperty(inaccessibleWindow, "matchMedia", {
+      get() {
+        throw new Error("matchMedia is inaccessible");
+      },
+    });
+    withWindow(inaccessibleWindow, () => {
+      expect(getSystemTheme()).toBeNull();
+    });
+
+    withWindow(
+      createWindow({
+        matchMedia: () => {
+          throw new Error("matchMedia failed");
+        },
+      }),
+      () => {
+        expect(getSystemTheme()).toBeNull();
+      }
+    );
+  });
+
+  test("does not read URL or storage, mutate the DOM, or add listeners", () => {
+    const locationGetter = jest.fn(() => {
+      throw new Error("location must not be read");
+    });
+    const storageGetter = jest.fn(() => {
+      throw new Error("storage must not be read");
+    });
+    const media = {
+      matches: true,
+      addEventListener: jest.fn(),
+      addListener: jest.fn(),
+    };
+    const windowValue = {
+      matchMedia: jest.fn(() => media),
+    };
+    Object.defineProperties(windowValue, {
+      location: { get: locationGetter },
+      localStorage: { get: storageGetter },
+    });
+
+    const documentDescriptor = Object.getOwnPropertyDescriptor(
+      global,
+      "document"
+    );
+    const setAttribute = jest.fn();
+    Object.defineProperty(global, "document", {
+      configurable: true,
+      value: { documentElement: { setAttribute } },
+    });
+    try {
+      withWindow(windowValue, () => {
+        expect(getSystemTheme()).toBe("dark");
+      });
+    } finally {
+      if (documentDescriptor) {
+        Object.defineProperty(global, "document", documentDescriptor);
+      } else {
+        delete global.document;
+      }
+    }
+
+    expect(locationGetter).not.toHaveBeenCalled();
+    expect(storageGetter).not.toHaveBeenCalled();
+    expect(setAttribute).not.toHaveBeenCalled();
+    expect(media.addEventListener).not.toHaveBeenCalled();
+    expect(media.addListener).not.toHaveBeenCalled();
+  });
+
+  test("matches resolveThemePreference system resolution", () => {
+    const windowValue = createWindow({ systemDark: true });
+
+    withWindow(windowValue, () => {
+      expect(getSystemTheme()).toBe("dark");
+      expectThemeResult(
+        resolveThemePreference(storageKey),
+        "dark",
+        "System"
+      );
+    });
+  });
+});
+
 describe("resolveThemePreference URL priority", () => {
   test.each([
     [ "dark", "dark", "Dark" ],
     [ "light", "light", "Light" ],
-  ])("resolves ?theme=%s", (query, value, label) => {
+  ])("resolves the storage-key query value %s", (query, value, label) => {
     const storage = createStorage(query === "dark" ? "light" : "dark");
     const windowValue = createWindow({
-      url: `https://example.com/?theme=${query}`,
+      url: `https://example.com/?${storageKey}=${query}`,
       storage,
       systemDark: query === "light",
     });
@@ -70,30 +192,26 @@ describe("resolveThemePreference URL priority", () => {
       expectThemeResult(resolveThemePreference(storageKey), value, label);
     });
     expect(storage.getItem).not.toHaveBeenCalled();
-    expect(storage.setItem).toHaveBeenCalledWith(storageKey, query);
+    expect(storage.setItem).not.toHaveBeenCalled();
   });
 
-  test("returns a valid query preference when storage rejects the write", () => {
-    const storage = createStorage("light");
-    storage.setItem.mockImplementation(() => {
-      throw new Error("Storage unavailable");
+  test("does not access storage for a valid query preference", () => {
+    const windowValue = createWindow({
+      url: `https://example.com/?${storageKey}=dark`,
+    });
+    Object.defineProperty(windowValue, "localStorage", {
+      get() {
+        throw new Error("Storage must not be accessed");
+      },
     });
 
-    withWindow(
-      createWindow({
-        url: "https://example.com/?theme=dark",
-        storage,
-      }),
-      () => {
-        expectThemeResult(
-          resolveThemePreference(storageKey),
-          "dark",
-          "Dark"
-        );
-      }
-    );
-    expect(storage.getItem).not.toHaveBeenCalled();
-    expect(storage.setItem).toHaveBeenCalledWith(storageKey, "dark");
+    withWindow(windowValue, () => {
+      expectThemeResult(
+        resolveThemePreference(storageKey),
+        "dark",
+        "Dark"
+      );
+    });
   });
 
   test.each([ "system", "unsupported", "" ])(
@@ -102,7 +220,7 @@ describe("resolveThemePreference URL priority", () => {
       const storage = createStorage("dark");
       withWindow(
         createWindow({
-          url: `https://example.com/?theme=${query}`,
+          url: `https://example.com/?${storageKey}=${query}`,
           storage,
         }),
         () => {
@@ -121,7 +239,7 @@ describe("resolveThemePreference URL priority", () => {
     const storage = createStorage("dark");
     withWindow(
       createWindow({
-        url: "https://example.com/?theme=light&theme=dark",
+        url: `https://example.com/?${storageKey}=light&${storageKey}=dark`,
         storage,
         systemDark: true,
       }),
@@ -133,8 +251,27 @@ describe("resolveThemePreference URL priority", () => {
         );
       }
     );
-    expect(storage.setItem).toHaveBeenCalledTimes(1);
-    expect(storage.setItem).toHaveBeenCalledWith(storageKey, "light");
+    expect(storage.getItem).not.toHaveBeenCalled();
+    expect(storage.setItem).not.toHaveBeenCalled();
+  });
+
+  test("does not use the fixed theme query name", () => {
+    const storage = createStorage("dark");
+    withWindow(
+      createWindow({
+        url: "https://example.com/?theme=light",
+        storage,
+      }),
+      () => {
+        expectThemeResult(
+          resolveThemePreference(storageKey),
+          "dark",
+          "Dark"
+        );
+      }
+    );
+    expect(storage.getItem).toHaveBeenCalledWith(storageKey);
+    expect(storage.setItem).not.toHaveBeenCalled();
   });
 });
 

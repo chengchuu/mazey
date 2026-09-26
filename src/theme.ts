@@ -34,7 +34,35 @@ function isThemePreference(value: unknown): value is ThemePreference {
   return value === "system" || isResolvedTheme(value);
 }
 
-function getSystemTheme(): ResolvedTheme | null {
+/**
+ * Read the operating system's current color-scheme preference.
+ *
+ * This performs one synchronous
+ * `(prefers-color-scheme: dark)` media-query check. It returns `dark` when
+ * the query matches, `light` when the query is available and does not match,
+ * or `null` when the preference cannot be read safely.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { getSystemTheme } from "mazey";
+ *
+ * const systemTheme = getSystemTheme();
+ *
+ * console.log(systemTheme);
+ * ```
+ *
+ * Possible browser output:
+ *
+ * ```text
+ * dark
+ * ```
+ *
+ * @returns The current `light` or `dark` system theme, or `null` during SSR and in unsupported or inaccessible environments.
+ * @remarks Unlike `resolveThemePreference`, this function does not inspect URL parameters or storage and does not provide a fallback theme. It performs a one-time read without mutating the DOM, applying a theme, writing storage, or adding media-query listeners. Use `listenMediaQueryChanges` when future changes must be observed.
+ * @category Browser Information
+ */
+export function getSystemTheme(): ResolvedTheme | null {
   if (typeof window === "undefined") return null;
   try {
     const matchMedia = window.matchMedia;
@@ -57,13 +85,12 @@ function createThemeResult(
 /**
  * Resolve the current website theme.
  *
- * Resolution checks the fixed `theme` URL query, the supplied local-storage
- * key, the current `prefers-color-scheme` media query, and finally the fixed
- * `light` fallback. Query values accept only `light` and `dark`. Storage also
- * accepts `system`, which resolves to a concrete value while retaining the
- * `System` label. A valid query preference is written under the supplied
- * storage key when browser storage is available; resolution still succeeds
- * when the write fails.
+ * Resolution checks the URL query named by `storageKey`, local storage under
+ * the same key, the current `prefers-color-scheme` media query, and finally
+ * the fixed `light` fallback. Query values accept only `light` and `dark`.
+ * Storage also accepts `system`, which resolves to a concrete value while
+ * retaining the `System` label. URL query preferences apply only to the
+ * current resolution and are not persisted.
  *
  * Resolution matrix:
  *
@@ -108,10 +135,10 @@ function createThemeResult(
  * }
  * ```
  *
- * @param storageKey Project-specific local-storage key.
+ * @param storageKey Project-specific URL query and local-storage key.
  * @returns The concrete `light` or `dark` value and the label of the preference that selected it.
  * @throws {TypeError} If `storageKey` is not a non-empty string.
- * @remarks Safe during SSR and resilient to unavailable or throwing browser APIs. A valid URL preference is written to storage when possible; other resolution paths remain read-only. The function never mutates the DOM or adds listeners.
+ * @remarks Safe during SSR and resilient to unavailable or throwing browser APIs. Resolution is read-only: the function never writes storage, mutates the DOM, or adds listeners.
  * @category Browser Information
  */
 export function resolveThemePreference(
@@ -119,9 +146,8 @@ export function resolveThemePreference(
 ): PreferenceResult<ResolvedTheme> {
   validateStorageKey(storageKey);
 
-  const queryPreference = getUrlQueryValue("theme");
+  const queryPreference = getUrlQueryValue(storageKey);
   if (isResolvedTheme(queryPreference)) {
-    writeLocalStorage(storageKey, queryPreference);
     return createThemeResult(queryPreference, queryPreference);
   }
 

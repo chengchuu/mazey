@@ -53,11 +53,12 @@ function createLocalDate(
   day: number,
   hour: number,
   minute: number,
-  second: number
+  second: number,
+  millisecond = 0
 ): Date {
   const date = new Date(0);
   date.setFullYear(year, month - 1, day);
-  date.setHours(hour, minute, second, 0);
+  date.setHours(hour, minute, second, millisecond);
   return date;
 }
 
@@ -176,6 +177,244 @@ export function toValidDate(value: unknown): Date | null {
 }
 
 /**
+ * Precision used by `formatLocalDateTime`.
+ *
+ * @category Util
+ */
+export type LocalDateTimePrecision = "minute" | "second" | "millisecond";
+
+const localDateTimePattern = /^(\d{4,})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?$/;
+
+function padLocalDateTimeComponent(value: number, width: number): string {
+  const input = String(value);
+  return input.length >= width
+    ? input
+    : `${"0".repeat(width - input.length)}${input}`;
+}
+
+/**
+ * Parse an HTML `datetime-local` value into a local `Date`.
+ *
+ * Accepted normalized values use a year with at least four digits followed by
+ * `-MM-DDTHH:mm`, with optional seconds and 1-3 fractional-second digits.
+ * Components are validated strictly, so impossible dates and times return
+ * `null` instead of being normalized by `Date`.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { parseLocalDateTime } from "mazey";
+ *
+ * const date = parseLocalDateTime("2026-07-21T14:30:45.123");
+ * console.log(date?.getFullYear());
+ * console.log(date?.getHours());
+ * console.log(date?.getMilliseconds());
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2026
+ * 14
+ * 123
+ * ```
+ *
+ * @param value A normalized HTML `datetime-local` value without a timezone.
+ * @returns A local `Date`, or `null` when the value is malformed or represents an impossible local date and time.
+ * @remarks The value is interpreted using the runtime's local timezone. Timezone suffixes, surrounding whitespace, and date-only values are rejected.
+ * @category Util
+ */
+export function parseLocalDateTime(value: string): Date | null {
+  if (typeof value !== "string") return null;
+
+  const match = localDateTimePattern.exec(value);
+  if (!match) return null;
+
+  const [ year, month, day, hour, minute, second = "0", fraction = "" ] =
+    match.slice(1);
+  const numericYear = Number(year);
+  const numericMonth = Number(month);
+  const numericDay = Number(day);
+  const numericHour = Number(hour);
+  const numericMinute = Number(minute);
+  const numericSecond = Number(second);
+  const millisecond = Number(`${fraction}00`.slice(0, 3));
+
+  if (numericYear < 1 || !hasMatchingDateComponents(
+    numericYear,
+    numericMonth,
+    numericDay,
+    numericHour,
+    numericMinute,
+    numericSecond,
+    millisecond
+  )) {
+    return null;
+  }
+
+  return createLocalDate(
+    numericYear,
+    numericMonth,
+    numericDay,
+    numericHour,
+    numericMinute,
+    numericSecond,
+    millisecond
+  );
+}
+
+/**
+ * Format a `Date` as an HTML `datetime-local` value using local fields.
+ *
+ * | Precision     | Output shape                  |
+ * | ------------- | ----------------------------- |
+ * | `minute`      | `YYYY-MM-DDTHH:mm`            |
+ * | `second`      | `YYYY-MM-DDTHH:mm:ss`         |
+ * | `millisecond` | `YYYY-MM-DDTHH:mm:ss.SSS`     |
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { formatLocalDateTime } from "mazey";
+ *
+ * const date = new Date(2026, 6, 21, 14, 30, 45, 123);
+ * const minutes = formatLocalDateTime(date);
+ * const seconds = formatLocalDateTime(date, { precision: "second" });
+ * const milliseconds = formatLocalDateTime(date, {
+ *   precision: "millisecond",
+ * });
+ * console.log(minutes);
+ * console.log(seconds);
+ * console.log(milliseconds);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2026-07-21T14:30
+ * 2026-07-21T14:30:45
+ * 2026-07-21T14:30:45.123
+ * ```
+ *
+ * @param date A valid `Date` to format.
+ * @param options Formatting options. Precision defaults to `minute`.
+ * @returns A normalized HTML `datetime-local` value containing local calendar fields. The year is padded to at least four digits.
+ * @throws {TypeError} If `date` is not a `Date` or `precision` is unsupported.
+ * @throws {RangeError} If `date` is invalid or its local year is earlier than 1.
+ * @remarks This function does not call `toISOString()` and does not convert the value to UTC. It does not mutate the supplied `Date`.
+ * @category Util
+ */
+export function formatLocalDateTime(
+  date: Date,
+  options: { precision?: LocalDateTimePrecision } = {}
+): string {
+  const dateTime = typeof date === "object" && date !== null
+    ? getDateTime(date)
+    : null;
+  if (dateTime === null) {
+    throw new TypeError("date must be a Date");
+  }
+  if (!Number.isFinite(dateTime)) {
+    throw new RangeError("Invalid date");
+  }
+
+  const precision = options.precision ?? "minute";
+  if (precision !== "minute"
+    && precision !== "second"
+    && precision !== "millisecond") {
+    throw new TypeError("precision must be minute, second, or millisecond");
+  }
+
+  const localDate = new Date(dateTime);
+  const year = localDate.getFullYear();
+  if (year < 1) {
+    throw new RangeError("Date year must be greater than zero");
+  }
+
+  const formattedDate = [
+    padLocalDateTimeComponent(year, 4),
+    padLocalDateTimeComponent(localDate.getMonth() + 1, 2),
+    padLocalDateTimeComponent(localDate.getDate(), 2),
+  ].join("-");
+  const formattedTime = [
+    padLocalDateTimeComponent(localDate.getHours(), 2),
+    padLocalDateTimeComponent(localDate.getMinutes(), 2),
+  ];
+
+  if (precision !== "minute") {
+    formattedTime.push(padLocalDateTimeComponent(localDate.getSeconds(), 2));
+  }
+
+  let output = `${formattedDate}T${formattedTime.join(":")}`;
+  if (precision === "millisecond") {
+    output += `.${padLocalDateTimeComponent(localDate.getMilliseconds(), 3)}`;
+  }
+  return output;
+}
+
+/**
+ * Subtract a number of calendar years from a date.
+ *
+ * Positive decimal amounts are rounded with `Math.floor`; negative decimal
+ * amounts are rounded with `Math.ceil`. A negative amount therefore adds
+ * calendar years. When the destination year does not contain the original
+ * day, the result is clamped to the final day of that month.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { formatDate, subYears } from "mazey";
+ *
+ * const result = subYears(new Date(2014, 8, 1), 5);
+ * console.log(formatDate(result, "yyyy-MM-dd"));
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2009-09-01
+ * ```
+ *
+ * @param date Date or timestamp in milliseconds to change.
+ * @param amount Number of years to subtract. Positive decimals use `Math.floor`; negative decimals use `Math.ceil`.
+ * @returns A new `Date` with the specified number of calendar years subtracted. Invalid inputs produce an invalid `Date`.
+ * @remarks The calculation uses local calendar fields and preserves the local month, time, and day where possible. The supplied `Date` is not mutated.
+ * @category Util
+ */
+export function subYears(date: Date | number, amount: number): Date {
+  const dateTime = typeof date === "number"
+    ? date
+    : typeof date === "object" && date !== null
+      ? getDateTime(date)
+      : null;
+  const result = new Date(dateTime ?? NaN);
+  const integerAmount = typeof amount === "number"
+    ? amount < 0
+      ? Math.ceil(amount)
+      : Math.floor(amount)
+    : NaN;
+
+  if (!Number.isFinite(result.getTime()) || !Number.isFinite(integerAmount)) {
+    return new Date(NaN);
+  }
+  if (integerAmount === 0) return result;
+
+  const originalMonth = result.getMonth();
+  const originalDay = result.getDate();
+  const targetYear = result.getFullYear() - integerAmount;
+  const endOfTargetMonth = new Date(result.getTime());
+  endOfTargetMonth.setFullYear(targetYear, originalMonth + 1, 0);
+  const daysInTargetMonth = endOfTargetMonth.getDate();
+
+  if (originalDay >= daysInTargetMonth) {
+    return endOfTargetMonth;
+  }
+
+  result.setFullYear(targetYear, originalMonth, originalDay);
+  return result;
+}
+
+/**
  * Get the current timestamp in milliseconds.
  *
  * Usage:
@@ -197,13 +436,7 @@ export function toValidDate(value: unknown): Date | null {
  * @category Util
  */
 export function mNow(): number {
-  let ret = 0;
-  if (Date.now) {
-    ret = Date.now();
-  } else {
-    ret = new Date().getTime();
-  }
-  return ret;
+  return Date.now();
 }
 
 

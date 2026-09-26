@@ -7,57 +7,17 @@ import type {
 } from "./typing";
 import { getDateTime, mNow } from "./date";
 
-interface CloneCache {
-  get(source: object): unknown;
-  set(source: object, clone: unknown): void;
-}
-
-function createCloneCache(): CloneCache {
-  if (typeof WeakMap !== "undefined") {
-    return new WeakMap<object, unknown>();
-  }
-
-  const sources: object[] = [];
-  const clones: unknown[] = [];
-  return {
-    get(source) {
-      const index = sources.indexOf(source);
-      return index === -1 ? undefined : clones[index];
-    },
-    set(source, clone) {
-      sources.push(source);
-      clones.push(clone);
-    },
-  };
+function createCloneCache(): WeakMap<object, unknown> {
+  return new WeakMap<object, unknown>();
 }
 
 function getRegExpFlags(value: RegExp): string {
-  if (typeof value.flags === "string") {
-    return value.flags;
-  }
-
-  const modernRegExp = value as RegExp & {
-    hasIndices?: boolean;
-    unicodeSets?: boolean;
-  };
-  let flags = "";
-  if (modernRegExp.hasIndices) flags += "d";
-  if (value.global) flags += "g";
-  if (value.ignoreCase) flags += "i";
-  if (value.multiline) flags += "m";
-  if (value.dotAll) flags += "s";
-  if (value.unicode) flags += "u";
-  if (modernRegExp.unicodeSets) flags += "v";
-  if (value.sticky) flags += "y";
-  return flags;
+  return value.flags;
 }
 
 function getCloneKeys(source: object): PropertyKey[] {
   const keys: PropertyKey[] = Object.getOwnPropertyNames(source);
-  if (typeof Object.getOwnPropertySymbols === "function") {
-    return keys.concat(Object.getOwnPropertySymbols(source));
-  }
-  return keys;
+  return keys.concat(Object.getOwnPropertySymbols(source));
 }
 
 const objectConstructorSource = Function.prototype.toString.call(Object);
@@ -92,7 +52,7 @@ function isPlainObjectValue(value: object): boolean {
   if (prototype === null) {
     return true;
   }
-  const constructor = Object.prototype.hasOwnProperty.call(prototype, "constructor")
+  const constructor = Object.hasOwn(prototype, "constructor")
     ? prototype.constructor
     : null;
   return typeof constructor === "function" &&
@@ -143,7 +103,7 @@ export function deepCopy<T>(obj: T): T {
   return cloneValue(obj, createCloneCache());
 }
 
-function cloneValue<T>(value: T, seen: CloneCache): T {
+function cloneValue<T>(value: T, seen: WeakMap<object, unknown>): T {
   if (value === null || typeof value !== "object") {
     return value;
   }
@@ -335,7 +295,7 @@ export function assignDefined<T extends object>(
         const writableTarget = target as unknown as Record<string, unknown>;
         if (
           key === "__proto__" &&
-          !Object.prototype.hasOwnProperty.call(target, key)
+          !Object.hasOwn(target, key)
         ) {
           Object.defineProperty(target, key, {
             configurable: true,
@@ -531,9 +491,9 @@ export function toJavaScriptGlobalName(value: string): string {
 }
 
 /**
- * Remove leading and trailing whitespace or specified characters from string.
+ * Remove leading and trailing whitespace from a string.
  *
- * Note: This method is used to replace the native `String.prototype.trim()`. But it is not necessary to use it in modern browsers.
+ * This established helper delegates to `String.prototype.trim()`.
  *
  * Usage:
  *
@@ -559,13 +519,7 @@ export function toJavaScriptGlobalName(value: string): string {
  * @hidden
  */
 export function mTrim(str: string): string {
-  str = str.replace(/^\s+/, ""); // Remove leading whitespace.
-  let end = str.length - 1;
-  const ws = /\s/;
-  while (ws.test(str.charAt(end))) {
-    end--; // Index of the last non-whitespace character.
-  }
-  return str.slice(0, end + 1);
+  return str.trim();
 }
 
 /**
@@ -929,22 +883,32 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
  * const ret4 = isNumber(Infinity, { isInfinityAsNumber: true });
  * const ret5 = isNumber(NaN);
  * const ret6 = isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true });
- * console.log(ret1, ret2, ret3, ret4, ret5, ret6);
+ * const ret7 = isNumber(12, { integer: true, min: 1, max: 31 });
+ * const ret8 = isNumber(12.5, { integer: true, min: 1, max: 31 });
+ * console.log(ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8);
  * ```
  *
  * Output:
  *
  * ```text
- * true false false true false true
+ * true false false true false true true false
  * ```
  *
  * @param {*} num Value to check.
- * @param options Controls whether `NaN`, `Infinity`, or other non-finite values count as numbers.
+ * @param options Controls non-finite values and optional integer or inclusive range constraints.
  * @returns {boolean} Whether the value is an allowed number.
+ * @remarks Invalid bounds, reversed bounds, and `NaN` combined with an integer or range constraint return `false`. Omitting the new constraints preserves the existing non-finite-number behavior.
  * @category Util
  */
 export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
-  const { isNaNAsNumber = false, isInfinityAsNumber = false, isUnFiniteAsNumber = false } = options;
+  const {
+    isNaNAsNumber = false,
+    isInfinityAsNumber = false,
+    isUnFiniteAsNumber = false,
+    integer = false,
+    min,
+    max,
+  } = options;
   if (typeof num !== "number") {
     return false;
   }
@@ -956,6 +920,24 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
   //   return false;
   // }
   if (!isNaNAsNumber && isNaN(num)) {
+    return false;
+  }
+  if (min !== undefined && (typeof min !== "number" || Number.isNaN(min))) {
+    return false;
+  }
+  if (max !== undefined && (typeof max !== "number" || Number.isNaN(max))) {
+    return false;
+  }
+  if (min !== undefined && max !== undefined && min > max) {
+    return false;
+  }
+  if (integer === true && !Number.isInteger(num)) {
+    return false;
+  }
+  if ((min !== undefined || max !== undefined) && Number.isNaN(num)) {
+    return false;
+  }
+  if ((min !== undefined && num < min) || (max !== undefined && num > max)) {
     return false;
   }
   return true;
@@ -1344,6 +1326,69 @@ export function clearHtml(str: string, options: { removeNewLine?: boolean } = {}
 }
 
 /**
+ * Escape a string for use inside a quoted HTML attribute.
+ *
+ * By default, the function escapes ampersands, angle brackets, double quotes,
+ * and single quotes. Set `preserveEntities` to retain syntactically valid
+ * named, decimal, and hexadecimal character references that already appear in
+ * source markup. Bare or malformed ampersands are still escaped. Forward
+ * slashes are never escaped.
+ *
+ * Usage:
+ *
+ * ```ts
+ * import { escapeHtmlAttribute } from "mazey";
+ *
+ * const rawValue = escapeHtmlAttribute(
+ *   'https://example.com/?q="Mazey"&page=1'
+ * );
+ * const markupValue = escapeHtmlAttribute(
+ *   "Mazey &amp; TypeScript",
+ *   { preserveEntities: true }
+ * );
+ *
+ * console.log(rawValue);
+ * console.log(markupValue);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * https://example.com/?q=&quot;Mazey&quot;&amp;page=1
+ * Mazey &amp; TypeScript
+ * ```
+ *
+ * @param value Text to escape for a quoted HTML attribute.
+ * @param options Escaping options. Existing character references are escaped unless `preserveEntities` is `true`.
+ * @returns The escaped attribute value.
+ * @throws {TypeError} If `value` is not a string.
+ * @remarks This function performs context-specific escaping only. It does not validate URLs, sanitize arbitrary HTML, or make an unsafe attribute name or surrounding markup safe.
+ * @category Util
+ */
+export function escapeHtmlAttribute(
+  value: string,
+  options: { preserveEntities?: boolean } = {}
+): string {
+  if (typeof value !== "string") {
+    throw new TypeError("value must be a string.");
+  }
+
+  const ampersandPattern = options.preserveEntities
+    ? /&(?!(?:#[0-9]+|#x[0-9a-f]+|[a-z][a-z0-9]+);)/gi
+    : /&/g;
+  const replacements: Record<string, string> = {
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;",
+  };
+
+  return value
+    .replace(ampersandPattern, "&amp;")
+    .replace(/[<>"']/g, character => replacements[character]);
+}
+
+/**
  * Sanitizes user input to prevent XSS attacks.
  *
  * Usage:
@@ -1602,7 +1647,7 @@ export function isValidData(data: MazeyObject, attributes: string[], validValue:
     if (
       foundValue === null ||
       (typeof foundValue !== "object" && typeof foundValue !== "function") ||
-      !Object.prototype.hasOwnProperty.call(foundValue, attribute)
+      !Object.hasOwn(foundValue, attribute)
     ) {
       return false;
     }
@@ -1787,12 +1832,12 @@ export async function sha256Hex(input: string | BufferSource): Promise<string> {
  * Usage:
  *
  * ```javascript
- * import { isMobile } from "mazey";
+ * import { isValidPhoneNumber } from "mazey";
  *
- * const ret1 = isMobile("13800138000");
- * const ret2 = isMobile("1380013800");
- * const ret3 = isMobile("138001380000");
- * const ret4 = isMobile("1380013800a");
+ * const ret1 = isValidPhoneNumber("13800138000");
+ * const ret2 = isValidPhoneNumber("1380013800");
+ * const ret3 = isValidPhoneNumber("138001380000");
+ * const ret4 = isValidPhoneNumber("1380013800a");
  * console.log(ret1, ret2, ret3, ret4);
  * ```
  *
@@ -1810,6 +1855,17 @@ export function isValidPhoneNumber(mobile: string): boolean {
   const reg = /^1\d{10}$/;
   return reg.test(mobile);
 }
+
+/**
+ * Deprecated alias of {@link isValidPhoneNumber}.
+ *
+ * This helper validates an 11-digit Chinese mobile-shaped number. It does not
+ * detect a browser's device form factor; use `isPhone` for that purpose.
+ *
+ * @deprecated Use `isValidPhoneNumber` instead.
+ * @category Util
+ */
+export const isMobile = isValidPhoneNumber;
 
 /**
  * Check if the given string is a valid email.

@@ -1,9 +1,9 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
-    "target": "ES2015",
+    "target": "ES2022",
     "module": "ESNext",
-    "lib": ["es5", "DOM", "ScriptHost", "ESNext"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "allowJs": true,
     "declaration": true,
     "declarationMap": true,
