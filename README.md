@@ -93,8 +93,10 @@ There are some examples maintained by hand below. For more information, please c
   - [formatDistanceToNow](#formatdistancetonow)
   - [generateCalendarVersion](#generatecalendarversion)
   - [formatDurationFromMs](#formatdurationfromms)
+  - [formatByteSize](#formatbytesize)
   - [deepCopy](#deepcopy)
   - [deepFreeze](#deepfreeze)
+  - [assignDefined](#assigndefined)
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
@@ -120,12 +122,16 @@ There are some examples maintained by hand below. For more information, please c
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [Calculate and Formula](#calculate-and-formula)
+  - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
   - [resolveThemePreference](#resolvethemepreference)
   - [setThemePreference](#setthemepreference)
+  - [resolveLanguagePreference](#resolvelanguagepreference)
+  - [setLanguagePreference](#setlanguagepreference)
+  - [detectVisitorType](#detectvisitortype)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -551,6 +557,26 @@ Output:
 1.5 days
 ```
 
+#### formatByteSize
+
+Format a non-negative byte count using 1024-based units and one fractional
+digit by default. Decimal scaling, precision, and the invalid-input fallback
+are configurable. The former `getFileSize` name is a deprecated alias.
+
+```javascript
+formatByteSize(0);
+formatByteSize(1536);
+formatByteSize(1500000, { base: 1000, fractionDigits: 2 });
+```
+
+Output:
+
+```text
+0 B
+1.5 KB
+1.50 MB
+```
+
 #### deepCopy
 
 Copy/Clone Object deeply.
@@ -594,6 +620,26 @@ Output:
 ```text
 true
 true
+```
+
+#### assignDefined
+
+Shallowly mutate a target with defined properties from later sources. The
+helper skips only `undefined`, so `null`, empty strings, `0`, and `false`
+remain valid overrides.
+
+```javascript
+const options = assignDefined(
+  { retries: 3, verbose: true },
+  { retries: undefined, verbose: false }
+);
+console.log(options);
+```
+
+Output:
+
+```text
+{ retries: 3, verbose: false }
 ```
 
 #### debounce
@@ -1086,6 +1132,54 @@ a<br /><br />bc
 
 ### Calculate and Formula
 
+#### calculateCAGR
+
+Calculate an investment's Compound Annual Growth Rate (CAGR) from its start date, end date, and total return over the complete period.
+
+```text
+CAGR = (1 + totalReturnRate)^(365 / durationInDays) - 1
+```
+
+The dates may be supported structured date strings, millisecond timestamps, or `Date` instances. The calculation uses the exact elapsed milliseconds, including time-of-day components, and a fixed 365-day financial year.
+
+Number input is a decimal ratio, so `0.202` represents `20.2%`. String input is a percentage value, so `"20.2%"` and `"20.2"` both represent `20.2%`; strict scientific notation such as `"2.02e1%"` is also accepted. The returned CAGR is an unrounded decimal ratio.
+
+```javascript
+import { calculateCAGR, floatToPercent } from "mazey";
+
+const cagr = calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  "20.2%"
+);
+
+console.log({
+  cagr,
+  percentage: floatToPercent(cagr, 2),
+});
+```
+
+Possible output:
+
+```text
+{
+  cagr: 0.053908...,
+  percentage: "5.39%"
+}
+```
+
+The equivalent decimal-number call is:
+
+```javascript
+calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  0.202
+);
+```
+
+Date strings are validated using Mazey's strict date rules. Invalid dates, malformed or non-finite returns, and non-increasing date ranges throw errors. The parsed total return must be greater than `-1`, because `-1` represents a complete loss for which CAGR is undefined.
+
 #### inRate
 
 Hit probability (1% ~ 100%).
@@ -1157,16 +1251,14 @@ Output:
 
 #### resolveThemePreference
 
-Resolve a project-specific website theme preference without applying it to the
-page. Resolution checks a `light` or `dark` URL query override, persisted
-`system`/`light`/`dark` storage, the current system color scheme, and finally a
-`light` fallback, in that order.
+Resolve a project-specific website theme without applying it to the page.
+Resolution checks the fixed `theme` URL query, the supplied local-storage key,
+the current system color scheme, and finally the fixed `light` fallback.
 
 ```javascript
-const theme = resolveThemePreference({
-  storageKey: "MY_WEBSITE_THEME",
-  url: "https://example.com/?theme=dark",
-});
+const theme = resolveThemePreference(
+  "MY_WEBSITE_THEME"
+);
 
 console.log(theme);
 ```
@@ -1175,17 +1267,17 @@ Output:
 
 ```text
 {
-  preference: "dark",
-  resolvedTheme: "dark",
-  displayName: "Dark",
-  source: "query"
+  value: "dark",
+  label: "System"
 }
 ```
 
-`preference` is the selected `system`, `light`, or `dark` value, while
-`resolvedTheme` is always the effective `light` or `dark` theme. The resolver
-is safe during SSR, tolerates unavailable browser storage and media queries,
-and does not mutate the DOM or write to storage.
+`value` is always the concrete `light` or `dark` theme. `label` identifies the
+preference that selected it: `System`, `Light`, or `Dark`. Only `light` and
+`dark` are accepted from `?theme=` and are persisted under the supplied storage
+key when browser storage is available; stored values may also be `system`. The
+resolver is safe during SSR, tolerates unavailable browser storage and media
+queries, and does not mutate the DOM.
 
 #### setThemePreference
 
@@ -1194,13 +1286,110 @@ project-specific storage key. The function returns `false` when storage is
 unavailable or rejects the write; it does not apply the theme to the page.
 
 ```javascript
-const stored = setThemePreference({
-  storageKey: "MY_WEBSITE_THEME",
-  preference: "dark",
-});
+const stored = setThemePreference(
+  "MY_WEBSITE_THEME",
+  "dark"
+);
 ```
 
 Output: `true`
+
+#### resolveLanguagePreference
+
+Resolve one current UI language without applying it to the page. Resolution
+checks the fixed `lang` URL query, the supplied local-storage key,
+`navigator.language`, and finally the fixed `en` fallback.
+
+```javascript
+const language =
+  resolveLanguagePreference(
+    "MY_WEBSITE_LANGUAGE"
+  );
+
+console.log(language);
+```
+
+Possible output:
+
+```text
+{
+  value: "ja-JP",
+  label: "日本語（日本）"
+}
+```
+
+Language tags are trimmed, treat `_` as `-`, and are canonicalized. The label
+is generated with `Intl.DisplayNames` when available, so its exact wording may
+vary by runtime; otherwise the canonical language tag is used. Only the
+browser's single `navigator.language` value is read—`navigator.languages` is
+ignored. The resolver is SSR-safe and never writes storage, applies a language,
+loads translations, or mutates the DOM.
+
+#### setLanguagePreference
+
+Canonicalize and persist the language selected by the user. The function
+returns `false` when storage is unavailable or rejects the write.
+
+```javascript
+const stored = setLanguagePreference(
+  "MY_WEBSITE_LANGUAGE",
+  "ja-JP"
+);
+```
+
+Output: `true`
+
+#### detectVisitorType
+
+Conservatively classify a visitor as `"crawler"`, `"automation"`, or
+`"unknown"`. The function first checks a focused list of recognizable crawler,
+indexing, SEO, AI-fetcher, and link-preview user-agent tokens. It then checks
+explicit automation user-agent tokens and `navigator.webdriver === true`.
+
+When no argument is provided, the function safely reads
+`navigator.userAgent`. An explicit user-agent string can be supplied for
+captured-user-agent analysis, deterministic tests, or server-side use. During
+SSR or in Node.js without `navigator`, the default result is `"unknown"`;
+explicit user-agent classification still works.
+
+```javascript
+const visitorType = detectVisitorType();
+
+console.log(visitorType);
+```
+
+Possible output:
+
+```text
+unknown
+```
+
+Explicit crawler example:
+
+```javascript
+const visitorType = detectVisitorType(
+  "Mozilla/5.0 (compatible; Googlebot/2.1)"
+);
+
+console.log(visitorType);
+```
+
+Output:
+
+```text
+crawler
+```
+
+`"unknown"` means that no supported crawler or browser-automation signal was
+detected. User-agent values can be spoofed, and WebDriver signals can be hidden
+or changed, so false positives and false negatives are possible.
+
+> `unknown` does not mean that the visitor has been verified as human. This
+> function uses browser-side heuristics and must not be used as a security
+> boundary or by itself for authentication, authorization, payments, rate
+> limiting, fraud prevention, or access control. Genuine crawler verification
+> generally requires server-side request information and provider-specific
+> validation.
 
 #### getBrowserInfo
 

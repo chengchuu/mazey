@@ -3,6 +3,21 @@
  */
 
 export * from "./calc";
+export {
+  mNow,
+  getDateDifference,
+  getFriendlyInterval,
+  formatDurationFromMs,
+  isValidDate,
+  isToday,
+  isThisYear,
+  isThisMonth,
+  isThisWeek,
+  isThisHour,
+  formatDistanceToNow,
+  formatDate,
+  generateCalendarVersion,
+} from "./date";
 export * from "./util";
 export * from "./url";
 export * from "./dom";
@@ -12,4 +27,6 @@ export * from "./load";
 export * from "./perf";
 export * from "./browser";
 export * from "./theme";
+export * from "./language";
+export type { PreferenceResult } from "./typing";
 export * from "./debug";

@@ -4,14 +4,15 @@
 /* eslint-disable no-undef */
 import {
   camelCaseToKebabCase, camelCase2Underscore,
-  deepCopy, deepCopyObject, deepFreeze, repeatUntilConditionMet,
+  deepCopy, deepCopyObject, deepFreeze, assignDefined, repeatUntilConditionMet,
   formatDate, generateCalendarVersion, isValidDate,
   isToday, isThisYear, isThisMonth, isThisWeek, isThisHour,
   formatDistanceToNow, isBrowser, waitTime, isArray,
   isJsonString, isNumber, isPureObject, isNonEmptyObject,
   parseJsonSafe,
   isValidData, isValidEmail, isValidPhoneNumber, isNonEmptyArray,
-  getDateDifference, getFriendlyInterval, formatDurationFromMs, getFileSize, getCurrentVersion,
+  getDateDifference, getFriendlyInterval, formatDurationFromMs,
+  getFileSize, formatByteSize, getCurrentVersion,
   genUniqueNumString, generateRndNum, genHashCode, sha256Hex,
   floatToPercent, floatFixed, throttle, debounce,
   doFn, mTrim, removeHtml, truncateZHString,
@@ -262,6 +263,81 @@ describe("deepCopy", () => {
     expect(objectResult).not.toBe(value);
     expect(objectResult.nested).not.toBe(value.nested);
     expect(objectResult.self).toBe(objectResult);
+  });
+});
+
+describe("assignDefined", () => {
+  it("mutates and returns the target while applying sources from left to right", () => {
+    const target = { value: "initial", count: 1 };
+    const first = { value: "first", count: 2 };
+    const second = { value: "second", count: undefined };
+
+    const result = assignDefined(target, first, undefined, second);
+
+    expect(result).toBe(target);
+    expect(result).toEqual({ value: "second", count: 2 });
+    expect(first).toEqual({ value: "first", count: 2 });
+    expect(second).toEqual({ value: "second", count: undefined });
+  });
+
+  it("skips only undefined property values", () => {
+    const target = {
+      nullValue: "default",
+      emptyValue: "default",
+      zeroValue: 1,
+      falseValue: true,
+      undefinedValue: "default",
+    };
+
+    assignDefined(target, {
+      nullValue: null,
+      emptyValue: "",
+      zeroValue: 0,
+      falseValue: false,
+      undefinedValue: undefined,
+    });
+
+    expect(target).toEqual({
+      nullValue: null,
+      emptyValue: "",
+      zeroValue: 0,
+      falseValue: false,
+      undefinedValue: "default",
+    });
+  });
+
+  it("copies only own enumerable string-keyed properties, including array indices", () => {
+    const symbolKey = Symbol("symbol");
+    const inherited = { inherited: "ignored" };
+    const source = Object.create(inherited);
+    source.visible = "copied";
+    source[symbolKey] = "ignored";
+    Object.defineProperty(source, "hidden", {
+      enumerable: false,
+      value: "ignored",
+    });
+    const target = {};
+
+    assignDefined(target, source, [ "first", undefined, "third" ]);
+
+    expect(target).toEqual({
+      0: "first",
+      2: "third",
+      visible: "copied",
+    });
+    expect(target[symbolKey]).toBeUndefined();
+  });
+
+  it("copies __proto__ as an own property without changing the target prototype", () => {
+    const target = {};
+    const source = JSON.parse("{\"__proto__\":{\"polluted\":true}}");
+
+    assignDefined(target, source);
+
+    expect(Object.getPrototypeOf(target)).toBe(Object.prototype);
+    expect(Object.prototype.hasOwnProperty.call(target, "__proto__")).toBe(true);
+    expect(target.__proto__).toEqual({ polluted: true });
+    expect(target.polluted).toBeUndefined();
   });
 });
 
@@ -1310,40 +1386,63 @@ describe("zAxiosIsValidRes", () => {
 });
 
 describe("getFileSize", () => {
-  it("should return the correct file size in bytes", () => {
-    expect(getFileSize(100)).toBe("100 B");
-    expect(getFileSize(1023)).toBe("1023 B");
+  it.each([
+    [ 0, undefined ],
+    [ 1024, undefined ],
+    [ 1536, undefined ],
+    [ -1, undefined ],
+    [ Infinity, undefined ],
+    [ 1500000, { base: 1000, fractionDigits: 2 } ],
+    [ NaN, { invalidValue: "unknown" } ],
+  ])("delegates formatting of %p with options %p", (size, options) => {
+    expect(getFileSize(size, options)).toBe(formatByteSize(size, options));
+  });
+});
+
+describe("formatByteSize", () => {
+  it("preserves byte values and uses one decimal place for scaled values", () => {
+    expect(formatByteSize(0)).toBe("0 B");
+    expect(formatByteSize(512)).toBe("512 B");
+    expect(formatByteSize(1024)).toBe("1.0 KB");
+    expect(formatByteSize(1536)).toBe("1.5 KB");
+    expect(formatByteSize(29_300_000)).toBe("27.9 MB");
+    expect(formatByteSize(591_400_000)).toBe("564.0 MB");
   });
 
-  it("should return the correct file size in kilobytes", () => {
-    expect(getFileSize(1024)).toBe("1 KB");
-    expect(getFileSize(2048)).toBe("2 KB");
-    expect(getFileSize(3072)).toBe("3 KB");
+  it("supports decimal scaling and configurable precision", () => {
+    expect(formatByteSize(1500, { base: 1000 })).toBe("1.5 KB");
+    expect(formatByteSize(1500000, {
+      base: 1000,
+      fractionDigits: 2,
+    })).toBe("1.50 MB");
+    expect(formatByteSize(1536, { fractionDigits: 0 })).toBe("2 KB");
+    expect(formatByteSize(1.25, { fractionDigits: 1 })).toBe("1.3 B");
   });
 
-  it("should return the correct file size in megabytes", () => {
-    expect(getFileSize(1048576)).toBe("1 MB");
-    expect(getFileSize(2097152)).toBe("2 MB");
-    expect(getFileSize(3145728)).toBe("3 MB");
+  it("keeps boundary rounding in the selected unit and caps units at terabytes", () => {
+    expect(formatByteSize((1024 ** 2) - 1)).toBe("1024.0 KB");
+    expect(formatByteSize(1024 ** 4)).toBe("1.0 TB");
+    expect(formatByteSize(1024 ** 5)).toBe("1024.0 TB");
   });
 
-  it("should return the correct file size in gigabytes", () => {
-    expect(getFileSize(1073741824)).toBe("1 G");
-    expect(getFileSize(2147483648)).toBe("2 G");
-    expect(getFileSize(3221225472)).toBe("3 G");
-  });
+  it("returns the configured fallback for invalid values and options", () => {
+    const options = { invalidValue: "unknown" };
 
-  it("should return the correct file size in terabytes", () => {
-    expect(getFileSize(1099511627776)).toBe("1 T");
-    expect(getFileSize(2199023255552)).toBe("2 T");
-    expect(getFileSize(3298534883328)).toBe("3 T");
-  });
-
-  it("should return an empty string for invalid file sizes", () => {
-    expect(getFileSize(0)).toBe("");
-    expect(getFileSize(-100)).toBe("");
-    expect(getFileSize(NaN)).toBe("");
-    expect(getFileSize(Infinity)).toBe("");
+    expect(formatByteSize(-1, options)).toBe("unknown");
+    expect(formatByteSize(NaN, options)).toBe("unknown");
+    expect(formatByteSize(Infinity, options)).toBe("unknown");
+    expect(formatByteSize(1024, {
+      ...options,
+      fractionDigits: -1,
+    })).toBe("unknown");
+    expect(formatByteSize(1024, {
+      ...options,
+      fractionDigits: 1.5,
+    })).toBe("unknown");
+    expect(formatByteSize(1024, {
+      ...options,
+      base: 512,
+    })).toBe("unknown");
   });
 });
 

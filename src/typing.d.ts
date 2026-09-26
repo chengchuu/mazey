@@ -16,6 +16,18 @@ export interface BrowserInfo {
   colorScheme: string;
 }
 
+/**
+ * A resolved preference value and its human-readable label.
+ *
+ * @category Browser Information
+ */
+export interface PreferenceResult<T extends string = string> {
+  /** Machine-readable value used by application logic. */
+  value: T;
+  /** Human-readable label suitable for display. */
+  label: string;
+}
+
 export interface DefineListeners {
   [key: string]: any;
 }

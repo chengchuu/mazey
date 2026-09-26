@@ -105,10 +105,12 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [计算与公式](#计算与公式)
+  - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [浏览器信息](#浏览器信息)
+  - [detectVisitorType](#detectvisitortype)
   - [getBrowserInfo](#getbrowserinfo)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
@@ -982,6 +984,54 @@ a<br /><br />bc
 
 ### 计算与公式
 
+#### calculateCAGR
+
+根据投资的开始日期、结束日期和整个周期的总回报率，计算复合年增长率（Compound Annual Growth Rate，CAGR）。
+
+```text
+CAGR = (1 + totalReturnRate)^(365 / durationInDays) - 1
+```
+
+日期可以是支持的结构化日期字符串、毫秒时间戳或 `Date` 实例。计算使用精确的毫秒间隔，包括日期中的时分秒，并固定以 365 天作为一个财务年度。
+
+数值输入使用十进制比率，因此 `0.202` 表示 `20.2%`。字符串输入使用百分比数值，因此 `"20.2%"` 和 `"20.2"` 都表示 `20.2%`；也支持 `"2.02e1%"` 这类严格的科学记数法。返回的 CAGR 是未经舍入的十进制比率。
+
+```javascript
+import { calculateCAGR, floatToPercent } from "mazey";
+
+const cagr = calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  "20.2%"
+);
+
+console.log({
+  cagr,
+  percentage: floatToPercent(cagr, 2),
+});
+```
+
+可能的输出：
+
+```text
+{
+  cagr: 0.053908...,
+  percentage: "5.39%"
+}
+```
+
+等效的十进制数值调用如下：
+
+```javascript
+calculateCAGR(
+  "2022-04-01",
+  "2025-10-01",
+  0.202
+);
+```
+
+日期字符串遵循 Mazey 的严格日期校验规则。无效日期、格式错误或非有限的回报率，以及没有递增的日期范围都会抛出错误。解析后的总回报率必须大于 `-1`，因为 `-1` 表示本金完全损失，此时 CAGR 没有定义。
+
 #### inRate
 
 按照指定概率返回命中结果。有效概率范围为 1%～100%。
@@ -1050,6 +1100,44 @@ console.log(ret);
 ```
 
 ### 浏览器信息
+
+#### detectVisitorType
+
+此函数使用保守的启发式规则，将访问者分类为 `"crawler"`、`"automation"` 或 `"unknown"`。函数首先检查一组明确的 User-Agent 令牌。这些令牌来自爬虫、索引、SEO、AI 抓取和链接预览客户端。随后，函数检查显式的自动化 User-Agent 令牌，以及 `navigator.webdriver === true`。
+
+省略参数时，函数会安全地读取 `navigator.userAgent`。也可以传入明确的 User-Agent 字符串。此方式适合分析已捕获的 User-Agent、编写确定性测试或在服务端分类。SSR 或 Node.js 环境没有 `navigator` 时，默认返回 `"unknown"`。此时仍可传入明确的 User-Agent 进行分类。
+
+```javascript
+const visitorType = detectVisitorType();
+
+console.log(visitorType);
+```
+
+可能的输出：
+
+```text
+unknown
+```
+
+下面的示例传入爬虫 User-Agent：
+
+```javascript
+const visitorType = detectVisitorType(
+  "Mozilla/5.0 (compatible; Googlebot/2.1)"
+);
+
+console.log(visitorType);
+```
+
+输出：
+
+```text
+crawler
+```
+
+`"unknown"` 仅表示没有检测到受支持的爬虫或浏览器自动化信号。User-Agent 可以伪造，WebDriver 信号也可以隐藏或修改。因此，分类可能出现误判或漏判。
+
+> `unknown` 不表示访问者已经通过真人验证。此函数只使用浏览器端启发式规则，不能作为安全边界。请勿单独使用此结果进行身份验证、授权、支付决策、速率限制、欺诈防范或访问控制。验证真实爬虫通常需要服务端请求信息，以及服务提供商规定的验证流程。
 
 #### getBrowserInfo
 
