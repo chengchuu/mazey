@@ -3,11 +3,14 @@
  */
 
 export * from "./calc";
+export * from "./package";
 export {
   mNow,
   getDateDifference,
   getFriendlyInterval,
   formatDurationFromMs,
+  parseLocalDateTime,
+  formatLocalDateTime,
   isValidDate,
   isToday,
   isThisYear,
@@ -18,6 +21,7 @@ export {
   formatDate,
   generateCalendarVersion,
 } from "./date";
+export type { LocalDateTimePrecision } from "./date";
 export * from "./util";
 export * from "./url";
 export * from "./dom";

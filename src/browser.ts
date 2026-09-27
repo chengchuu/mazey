@@ -707,3 +707,260 @@ export function isSupportWebp(): Promise<boolean> {
   };
   return new Promise(fn);
 }
+
+/**
+ * Listen for media-query changes with modern and legacy browser APIs.
+ *
+ * Modern `addEventListener("change", ...)` support is preferred. Browsers
+ * exposing only `addListener` use that legacy API instead. A missing media
+ * query returns an inert cleanup function.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { listenMediaQueryChanges } from "mazey";
+ *
+ * const media = window.matchMedia("(prefers-color-scheme: dark)");
+ * const stop = listenMediaQueryChanges(media, event => {
+ *   console.log(event.matches);
+ * });
+ *
+ * stop();
+ * stop();
+ * ```
+ *
+ * @param media Media-query result to observe, or `null` when unavailable.
+ * @param listener Callback invoked for media-query change events.
+ * @returns An idempotent function that removes the registered listener.
+ * @throws {TypeError} If `listener` is not a function or `media` is neither an object nor `null`.
+ * @remarks This helper does not call `matchMedia`, invoke the listener immediately, or modify the DOM. It is safe during SSR when `null` is supplied.
+ * @category Browser Information
+ */
+export function listenMediaQueryChanges(
+  media: MediaQueryList | null,
+  listener: (event: MediaQueryListEvent) => void
+): () => void {
+  if (typeof listener !== "function") {
+    throw new TypeError("listener must be a function");
+  }
+  if (media === null) return () => undefined;
+  if (typeof media !== "object") {
+    throw new TypeError("media must be a MediaQueryList or null");
+  }
+
+  const addEventListener = media.addEventListener;
+  const removeEventListener = media.removeEventListener;
+  const addListener = media.addListener;
+  const removeListener = media.removeListener;
+  let remove: (() => void) | null = null;
+
+  if (
+    typeof addEventListener === "function" &&
+    typeof removeEventListener === "function"
+  ) {
+    const eventListener = listener as EventListener;
+    addEventListener.call(media, "change", eventListener);
+    remove = () => removeEventListener.call(media, "change", eventListener);
+  } else if (
+    typeof addListener === "function" &&
+    typeof removeListener === "function"
+  ) {
+    addListener.call(media, listener);
+    remove = () => removeListener.call(media, listener);
+  }
+
+  let disposed = false;
+  return () => {
+    if (disposed) return;
+    disposed = true;
+    remove?.();
+  };
+}
+
+/**
+ * Callbacks used by {@link watchServiceWorkerUpdates}.
+ *
+ * @category Browser Information
+ */
+export interface ServiceWorkerUpdateCallbacks {
+  /** Called when a waiting update is ready to be activated. */
+  onUpdateAvailable(worker: ServiceWorker): void;
+  /** Called after the service worker controlling the page changes. */
+  onControllerChange?(): void;
+}
+
+/**
+ * Controls returned by {@link watchServiceWorkerUpdates}.
+ *
+ * @category Browser Information
+ */
+export interface ServiceWorkerUpdateWatcher {
+  /**
+   * Post a message to the current waiting worker.
+   * The default message is `{ type: "SKIP_WAITING" }`.
+   */
+  activateWaiting(message?: unknown): boolean;
+  /** Remove every listener installed by the watcher. Idempotent. */
+  dispose(): void;
+}
+
+/**
+ * Watch a service-worker registration for an update ready to activate.
+ *
+ * Existing waiting workers and newly installed workers are reported only when
+ * the page already has a controller, which distinguishes updates from a first
+ * installation. Activation, UI, status copy, and reload policy remain under
+ * caller control.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { watchServiceWorkerUpdates } from "mazey";
+ *
+ * const watcher = watchServiceWorkerUpdates(
+ *   registration,
+ *   navigator.serviceWorker,
+ *   {
+ *     onUpdateAvailable() {
+ *       console.log("Update available");
+ *     },
+ *     onControllerChange() {
+ *       console.log("Controller changed");
+ *     },
+ *   }
+ * );
+ *
+ * watcher.activateWaiting();
+ * watcher.dispose();
+ * ```
+ *
+ * @param registration Service-worker registration to observe.
+ * @param container Service-worker container that owns the page controller.
+ * @param callbacks Update and optional controller-change callbacks.
+ * @returns Controls for requesting activation and disposing all listeners.
+ * @throws {TypeError} If required registration, container, or callback methods are missing.
+ * @remarks This helper does not register a service worker, mutate the DOM, reload the page, or decide when an update should activate. `activateWaiting` returns `false` when no update is waiting or `postMessage` fails.
+ * @category Browser Information
+ */
+export function watchServiceWorkerUpdates(
+  registration: ServiceWorkerRegistration,
+  container: ServiceWorkerContainer,
+  callbacks: ServiceWorkerUpdateCallbacks
+): ServiceWorkerUpdateWatcher {
+  if (
+    registration === null ||
+    typeof registration !== "object" ||
+    typeof registration.addEventListener !== "function" ||
+    typeof registration.removeEventListener !== "function"
+  ) {
+    throw new TypeError("registration must support event listeners");
+  }
+  if (
+    container === null ||
+    typeof container !== "object" ||
+    typeof container.addEventListener !== "function" ||
+    typeof container.removeEventListener !== "function"
+  ) {
+    throw new TypeError("container must support event listeners");
+  }
+  if (
+    callbacks === null ||
+    typeof callbacks !== "object" ||
+    typeof callbacks.onUpdateAvailable !== "function" ||
+    (callbacks.onControllerChange !== undefined &&
+      typeof callbacks.onControllerChange !== "function")
+  ) {
+    throw new TypeError("callbacks must provide onUpdateAvailable");
+  }
+
+  let disposed = false;
+  let installingWorker: ServiceWorker | null = null;
+  let waitingWorker: ServiceWorker | null = null;
+  let registrationListenerAdded = false;
+  let containerListenerAdded = false;
+
+  const reportUpdate = (worker: ServiceWorker) => {
+    if (disposed || waitingWorker === worker) return;
+    waitingWorker = worker;
+    callbacks.onUpdateAvailable(worker);
+  };
+  const handleStateChange = () => {
+    if (
+      !disposed &&
+      installingWorker?.state === "installed" &&
+      container.controller
+    ) {
+      reportUpdate(installingWorker);
+    }
+  };
+  const handleUpdateFound = () => {
+    if (disposed) return;
+    installingWorker?.removeEventListener("statechange", handleStateChange);
+    installingWorker = registration.installing;
+    installingWorker?.addEventListener("statechange", handleStateChange);
+    handleStateChange();
+  };
+  const handleControllerChange = () => {
+    if (!disposed) callbacks.onControllerChange?.();
+  };
+
+  const removeListeners = () => {
+    if (registrationListenerAdded) {
+      try {
+        registration.removeEventListener("updatefound", handleUpdateFound);
+      } catch (e) {
+        // Continue removing the remaining listeners.
+      }
+      registrationListenerAdded = false;
+    }
+    try {
+      installingWorker?.removeEventListener("statechange", handleStateChange);
+    } catch (e) {
+      // Continue removing the remaining listeners.
+    }
+    if (containerListenerAdded) {
+      try {
+        container.removeEventListener("controllerchange", handleControllerChange);
+      } catch (e) {
+        // Cleanup remains best-effort for browser-provided event targets.
+      }
+      containerListenerAdded = false;
+    }
+  };
+
+  try {
+    registration.addEventListener("updatefound", handleUpdateFound);
+    registrationListenerAdded = true;
+    container.addEventListener("controllerchange", handleControllerChange);
+    containerListenerAdded = true;
+    if (registration.waiting && container.controller) {
+      reportUpdate(registration.waiting);
+    }
+    if (registration.installing) handleUpdateFound();
+  } catch (error) {
+    disposed = true;
+    removeListeners();
+    installingWorker = null;
+    waitingWorker = null;
+    throw error;
+  }
+
+  return {
+    activateWaiting(message: unknown = { type: "SKIP_WAITING" }): boolean {
+      if (disposed || !waitingWorker) return false;
+      try {
+        waitingWorker.postMessage(message);
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+    dispose(): void {
+      if (disposed) return;
+      disposed = true;
+      removeListeners();
+      installingWorker = null;
+      waitingWorker = null;
+    },
+  };
+}

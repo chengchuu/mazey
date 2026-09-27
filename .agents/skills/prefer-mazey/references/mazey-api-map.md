@@ -1,10 +1,11 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 149 runtime exports in the current repository: 147 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 154 runtime exports in the current repository: 152 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
 - [Runtime labels](#runtime-labels)
+- [Package metadata](#package-metadata)
 - [Date and time](#date-and-time)
 - [Function control](#function-control)
 - [Validation and JSON](#validation-and-json)
@@ -31,6 +32,12 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | Browser-preferred  | Safe or guarded outside a browser, but only meaningful for browser capabilities. Verify its fallback or rejection. |
 | Browser-only       | Directly requires browser or DOM globals. Do not call from a Node.js-only path.                                    |
 
+## Package metadata
+
+| Function                | Purpose                                               | Runtime   | Notes                                                                                                                                |
+| ----------------------- | ----------------------------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `derivePackageMetadata` | Derive package identity, bundle, and install metadata | Universal | Validates manifest identity, normalizes author fields, supports npm/pnpm/Yarn commands, and composes `toJavaScriptGlobalName`.       |
+
 ## Date and time
 
 | Function                  | Purpose                                                   | Runtime            | Notes                                                                                                                                          |
@@ -38,6 +45,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Uses `Date.now()` with an older fallback.                                                                                                      |
 | `getDateDifference`       | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` omits zero-valued units; negative or invalid intervals return empty.                              |
 | `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                                                         |
+| `parseLocalDateTime`      | Parse an HTML local date-time value strictly              | Universal          | Accepts a four-or-more-digit year, `T`, minutes, optional seconds, and 1-3 fraction digits; uses local fields; invalid input returns `null`.      |
+| `formatLocalDateTime`     | Format a date for an HTML local date-time control         | Universal          | Uses local fields without UTC conversion and pads years to at least four digits; supports minute, second, or millisecond precision.              |
 | `isValidDate`             | Validate date objects, timestamps, and structured strings | Universal          | Numbers are milliseconds; local and zoned ISO-style strings are parsed strictly; locale date strings are rejected.                            |
 | `isToday`                 | Test whether a date is today                              | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares local year/month/day; invalid input returns false.                     |
 | `isThisYear`              | Test whether a date is in the current year                | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares the local year; invalid input returns false.                           |
@@ -178,6 +187,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | --------------------------- | ---------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isSafePWAEnv`              | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.                                        |
 | `isStandalonePWA`           | Detect standalone PWA presentation                         | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                                       |
+| `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; prefers modern events, supports legacy listeners, and returns idempotent cleanup without implicit globals.                       |
+| `watchServiceWorkerUpdates` | Observe and activate waiting service-worker updates         | Browser-only      | Tracks waiting/installing workers, reports updates only for controlled pages, accepts UI-neutral callbacks, and returns activation/disposal controls.             |
 | `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; valid query values are persisted when possible; returns only `{ value, label }`; SSR-safe and DOM-independent.     |
 | `setThemePreference`        | Persist a website theme preference                         | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                                   |
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
@@ -217,6 +228,17 @@ setLanguagePreference(
   storageKey: string,
   language: string
 ): boolean;
+
+listenMediaQueryChanges(
+  media: MediaQueryList | null,
+  listener: (event: MediaQueryListEvent) => void
+): () => void;
+
+watchServiceWorkerUpdates(
+  registration: ServiceWorkerRegistration,
+  container: ServiceWorkerContainer,
+  callbacks: ServiceWorkerUpdateCallbacks
+): ServiceWorkerUpdateWatcher;
 ```
 
 `detectVisitorType` accepts an optional explicit user agent and otherwise
