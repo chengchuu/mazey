@@ -86,6 +86,7 @@ There are some examples maintained by hand below. For more information, please c
   - [parseLocalDateTime](#parselocaldatetime)
   - [formatLocalDateTime](#formatlocaldatetime)
   - [formatDate](#formatdate)
+  - [subYears](#subyears)
   - [isValidDate](#isvaliddate)
   - [isToday](#istoday)
   - [isThisYear](#isthisyear)
@@ -120,6 +121,7 @@ There are some examples maintained by hand below. For more information, please c
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
   - [isValidCssSelector](#isvalidcssselector)
+  - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
   - [addStyle](#addstyle)
   - [genStyleString](#genstylestring)
@@ -130,6 +132,7 @@ There are some examples maintained by hand below. For more information, please c
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
+  - [getSystemTheme](#getsystemtheme)
   - [resolveThemePreference](#resolvethemepreference)
   - [setThemePreference](#setthemepreference)
   - [resolveLanguagePreference](#resolvelanguagepreference)
@@ -474,6 +477,24 @@ Default formatDate value: 2023-01-11
 String formatDate value: 2022-01-11 14:12:26
 Number formatDate value: 2022-01-11 14:07:15
 Date formatDate value: 02/11/2014
+```
+
+#### subYears
+
+Subtract calendar years from a `Date` or millisecond timestamp without
+mutating the original date. Positive decimals are rounded down, negative
+decimals are rounded up, and leap-day results are clamped to the destination
+month's final day.
+
+```javascript
+const result = subYears(new Date(2014, 8, 1), 5);
+console.log(formatDate(result, "yyyy-MM-dd"));
+```
+
+Output:
+
+```text
+2009-09-01
 ```
 
 #### isValidDate
@@ -1015,33 +1036,39 @@ Output:
 
 #### Storage Helpers
 
-Handle Storage (Keep fit for JSON, it can transfer format automatically).
+Store JSON-serialized values in Web Storage and parse them when reading.
 
 Usage:
 
 ```javascript
-setSessionStorage("test", "123");
-const ret1 = getSessionStorage("test");
-setLocalStorage("test", "123");
-const ret2 = getLocalStorage("test");
-console.log(ret1, ret2);
+setSessionJSON("preferences", { theme: "dark" });
+const sessionValue = getSessionJSON("preferences");
+setLocalJSON("recentItems", [ "one", "two" ]);
+const localValue = getLocalJSON("recentItems");
+console.log({ sessionValue, localValue });
 
-// or package in usage
+// Wrap the helpers with a project-specific key prefix.
 const projectName = "mazey";
 function mSetLocalStorage (key, value) {
-  return setLocalStorage(`${projectName}_${key}`, value);
+  return setLocalJSON(`${projectName}_${key}`, value);
 }
 
 function mGetLocalStorage (key) {
-  return getLocalStorage(`${projectName}_${key}`);
+  return getLocalJSON(`${projectName}_${key}`);
 }
 ```
 
 Output:
 
 ```text
-123 123
+{
+  sessionValue: { theme: "dark" },
+  localValue: [ "one", "two" ]
+}
 ```
+
+`setSessionStorage`, `getSessionStorage`, `setLocalStorage`, and
+`getLocalStorage` are deprecated aliases of the corresponding `JSON` helpers.
 
 ### DOM
 
@@ -1071,6 +1098,24 @@ Invalid selector syntax returns `false` instead of throwing.
 isValidCssSelector(".message > img"); // true
 isValidCssSelector("["); // false
 isValidCssSelector("", { allowEmpty: true }); // true
+```
+
+#### resolveElementTarget
+
+Resolve a direct element, scoped selector, optionally unwrapped ref-like value,
+or component-like `$el` value. Invalid or unmatched targets return `null`.
+
+```javascript
+const element = resolveElementTarget("#dialog", {
+  root: document,
+  defaultElement: document.documentElement,
+});
+
+const elementRef = { value: element };
+resolveElementTarget(elementRef, {
+  root: document,
+  unwrap: value => value?.value,
+});
 ```
 
 #### extractElementText
@@ -1343,6 +1388,30 @@ Output:
 ```
 
 ### Browser Information
+
+#### getSystemTheme
+
+Read the operating system's current `prefers-color-scheme` value directly. The
+function returns `"light"`, `"dark"`, or `null` when the preference cannot be
+determined.
+
+```javascript
+const systemTheme = getSystemTheme();
+
+console.log(systemTheme);
+```
+
+Possible browser output:
+
+```text
+dark
+```
+
+This is a one-time synchronous read. It is safe during SSR and does not inspect
+URL parameters, access project storage, apply a theme, mutate the DOM, or add
+media-query listeners. Use `resolveThemePreference` when URL, storage, system,
+and fallback resolution is required. Use `listenMediaQueryChanges` to observe
+future color-scheme changes.
 
 #### resolveThemePreference
 

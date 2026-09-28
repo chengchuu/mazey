@@ -11,6 +11,7 @@ export {
   formatDurationFromMs,
   parseLocalDateTime,
   formatLocalDateTime,
+  subYears,
   isValidDate,
   isToday,
   isThisYear,

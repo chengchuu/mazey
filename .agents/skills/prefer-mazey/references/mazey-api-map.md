@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 154 runtime exports in the current repository: 152 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 158 runtime exports in the current repository: 156 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -47,6 +47,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                                                         |
 | `parseLocalDateTime`      | Parse an HTML local date-time value strictly              | Universal          | Accepts a four-or-more-digit year, `T`, minutes, optional seconds, and 1-3 fraction digits; uses local fields; invalid input returns `null`.      |
 | `formatLocalDateTime`     | Format a date for an HTML local date-time control         | Universal          | Uses local fields without UTC conversion and pads years to at least four digits; supports minute, second, or millisecond precision.              |
+| `subYears`                | Subtract local calendar years from a date                  | Universal          | Accepts a `Date` or millisecond timestamp; rounds amounts toward zero, clamps leap days, returns a new `Date`, and does not mutate the input.     |
 | `isValidDate`             | Validate date objects, timestamps, and structured strings | Universal          | Numbers are milliseconds; local and zoned ISO-style strings are parsed strictly; locale date strings are rejected.                            |
 | `isToday`                 | Test whether a date is today                              | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares local year/month/day; invalid input returns false.                     |
 | `isThisYear`              | Test whether a date is in the current year                | Universal          | Accepts `Date`, supported strings, and millisecond timestamps; compares the local year; invalid input returns false.                           |
@@ -157,16 +158,17 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
 | `getPageMeta`        | Read the first named meta tag's content         | Browser-only      | Scans DOM meta elements with exact name matching.                                                               |
 | `isValidCssSelector` | Validate selector syntax against a query root   | Browser-preferred | Trims input; empty values require `allowEmpty`; non-empty values return false without `document` or a root.     |
+| `resolveElementTarget` | Resolve direct, selector, wrapped, or `$el` targets | Browser-only      | Scopes selectors to a required root; supports an unwrap adapter; invalid or unmatched targets return `null`; does not mutate the DOM. |
 | `extractElementText` | Extract normalized text from a cloned element   | Browser-only      | Does not mutate the original; replaces images with `alt` text by default; ignores invalid exclusion selectors. |
 
 ## Storage and cookies
 
 | Function            | Purpose                                | Runtime      | Notes                                                                                           |
 | ------------------- | -------------------------------------- | ------------ | ----------------------------------------------------------------------------------------------- |
-| `setSessionStorage` | JSON-store a session value             | Browser-only | Mutates `sessionStorage`; `undefined` is stored as JSON `null`; storage errors propagate.       |
-| `getSessionStorage` | Read and JSON-parse a session value    | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
-| `setLocalStorage`   | JSON-store a persistent value          | Browser-only | Mutates `localStorage`; `undefined` becomes JSON `null`; storage errors propagate.              |
-| `getLocalStorage`   | Read and JSON-parse a persistent value | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
+| `setSessionJSON`    | JSON-store a session value             | Browser-only | Mutates `sessionStorage`; `undefined` is stored as JSON `null`; storage errors propagate.       |
+| `getSessionJSON`    | Read and JSON-parse a session value    | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
+| `setLocalJSON`      | JSON-store a persistent value          | Browser-only | Mutates `localStorage`; `undefined` becomes JSON `null`; storage errors propagate.              |
+| `getLocalJSON`      | Read and JSON-parse a persistent value | Browser-only | Returns `null` when absent and raw strings for legacy invalid JSON.                             |
 | `getCookie`         | Read a cookie by logical name          | Browser-only | Understands Mazey's encoded-name/value marker scheme; returns empty when absent.                |
 | `setCookie`         | Set a root-path cookie                 | Browser-only | Encodes unsafe names/values, may infer a parent domain, and writes a companion encoding marker. |
 | `removeCookie`      | Expire a cookie and marker             | Browser-only | Mutates cookies across root/current-directory and candidate domain scopes; returns success.     |
@@ -189,6 +191,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isStandalonePWA`           | Detect standalone PWA presentation                         | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                                       |
 | `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; prefers modern events, supports legacy listeners, and returns idempotent cleanup without implicit globals.                       |
 | `watchServiceWorkerUpdates` | Observe and activate waiting service-worker updates         | Browser-only      | Tracks waiting/installing workers, reports updates only for controlled pages, accepts UI-neutral callbacks, and returns activation/disposal controls.             |
+| `getSystemTheme`            | Read the current operating-system color scheme              | Browser-preferred | One synchronous `prefers-color-scheme` read; returns `light`, `dark`, or `null`; ignores URL and storage; never mutates the DOM or adds listeners.                 |
 | `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; valid query values are persisted when possible; returns only `{ value, label }`; SSR-safe and DOM-independent.     |
 | `setThemePreference`        | Persist a website theme preference                         | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                                   |
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
@@ -210,6 +213,8 @@ type VisitorType =
 detectVisitorType(
   userAgent?: string
 ): VisitorType;
+
+getSystemTheme(): ResolvedTheme | null;
 
 resolveThemePreference(
   storageKey: string
@@ -331,6 +336,10 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `camelCase2Underscore`        | Compatibility alias                     | Universal          | Prefer `convertCamelToUnder`.                                                             |
 | `mTrim`                       | Manual whitespace trimming helper       | Universal          | Hidden from docs; prefer native `String.prototype.trim` unless legacy behavior matters.   |
 | `isJsonString`                | Compatibility alias                     | Universal          | Prefer `isJSONString`.                                                                    |
+| `setSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `setSessionJSON`.                                                                  |
+| `getSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `getSessionJSON`.                                                                  |
+| `setLocalStorage`             | Compatibility alias                     | Browser-only       | Prefer `setLocalJSON`.                                                                    |
+| `getLocalStorage`             | Compatibility alias                     | Browser-only       | Prefer `getLocalJSON`.                                                                    |
 | `generateRndNum`              | Compatibility alias                     | Universal          | Prefer `genRndNumString`.                                                                 |
 | `generateUniqueNum`           | Compatibility alias                     | Universal          | Prefer `genUniqueNumString`.                                                              |
 | `doFn`                        | Compatibility alias                     | Universal          | Prefer `invokeFn`.                                                                        |

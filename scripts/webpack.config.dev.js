@@ -78,7 +78,7 @@ module.exports = {
       dependOn: "shared",
     },
     playground: {
-      import: resolveRoot("examples/index.ts"),
+      import: resolveRoot("examples/index.tsx"),
       dependOn: "shared",
     },
     api: resolveRoot("site/api.ts"),

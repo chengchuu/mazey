@@ -6,7 +6,7 @@ import {
   genStyleString, getDomain, getBrowserInfo,
   setClass, setImgSizeBySrc, addClass,
   newLine, hasClass, removeClass, addStyle,
-  extractElementText, getPageMeta, isValidCssSelector,
+  extractElementText, getPageMeta, isValidCssSelector, resolveElementTarget,
 } from "../lib/index.esm";
 
 test("newLine: Transfer 'a\nb\nc' to 'a<br />b<br />c'?", () => {
@@ -354,6 +354,59 @@ describe("isValidCssSelector", () => {
 
     expect(isValidCssSelector(".child", { root })).toBe(true);
     expect(isValidCssSelector("[", { root })).toBe(false);
+  });
+});
+
+describe("resolveElementTarget", () => {
+  let root;
+  let target;
+
+  beforeEach(() => {
+    root = document.createDocumentFragment();
+    target = document.createElement("div");
+    target.id = "target";
+    root.appendChild(target);
+  });
+
+  it("resolves direct elements and selectors against the supplied root", () => {
+    expect(resolveElementTarget(target, { root })).toBe(target);
+    expect(resolveElementTarget("#target", { root })).toBe(target);
+    expect(resolveElementTarget("#outside", { root })).toBeNull();
+  });
+
+  it("returns null for invalid selectors without throwing", () => {
+    expect(resolveElementTarget("[", { root })).toBeNull();
+  });
+
+  it("uses the default only for an undefined target", () => {
+    expect(
+      resolveElementTarget(undefined, { root, defaultElement: target })
+    ).toBe(target);
+    expect(
+      resolveElementTarget(null, { root, defaultElement: target })
+    ).toBeNull();
+    expect(
+      resolveElementTarget("#missing", { root, defaultElement: target })
+    ).toBeNull();
+    expect(
+      resolveElementTarget(undefined, { root, defaultElement: {} })
+    ).toBeNull();
+  });
+
+  it("resolves component-like and adapter-unwrapped values", () => {
+    expect(resolveElementTarget({ $el: target }, { root })).toBe(target);
+
+    const elementRef = { value: { $el: target } };
+    const unwrap = jest.fn(value => value.value);
+    expect(resolveElementTarget(elementRef, { root, unwrap })).toBe(target);
+    expect(unwrap).toHaveBeenCalledTimes(1);
+    expect(unwrap).toHaveBeenCalledWith(elementRef);
+  });
+
+  it("rejects unsupported values and invalid component elements", () => {
+    expect(resolveElementTarget({ nodeType: 1 }, { root })).toBeNull();
+    expect(resolveElementTarget({ $el: null }, { root })).toBeNull();
+    expect(resolveElementTarget(42, { root })).toBeNull();
   });
 });
 

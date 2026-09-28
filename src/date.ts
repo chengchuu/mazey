@@ -353,6 +353,68 @@ export function formatLocalDateTime(
 }
 
 /**
+ * Subtract a number of calendar years from a date.
+ *
+ * Positive decimal amounts are rounded with `Math.floor`; negative decimal
+ * amounts are rounded with `Math.ceil`. A negative amount therefore adds
+ * calendar years. When the destination year does not contain the original
+ * day, the result is clamped to the final day of that month.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { formatDate, subYears } from "mazey";
+ *
+ * const result = subYears(new Date(2014, 8, 1), 5);
+ * console.log(formatDate(result, "yyyy-MM-dd"));
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * 2009-09-01
+ * ```
+ *
+ * @param date Date or timestamp in milliseconds to change.
+ * @param amount Number of years to subtract. Positive decimals use `Math.floor`; negative decimals use `Math.ceil`.
+ * @returns A new `Date` with the specified number of calendar years subtracted. Invalid inputs produce an invalid `Date`.
+ * @remarks The calculation uses local calendar fields and preserves the local month, time, and day where possible. The supplied `Date` is not mutated.
+ * @category Util
+ */
+export function subYears(date: Date | number, amount: number): Date {
+  const dateTime = typeof date === "number"
+    ? date
+    : typeof date === "object" && date !== null
+      ? getDateTime(date)
+      : null;
+  const result = new Date(dateTime ?? NaN);
+  const integerAmount = typeof amount === "number"
+    ? amount < 0
+      ? Math.ceil(amount)
+      : Math.floor(amount)
+    : NaN;
+
+  if (!Number.isFinite(result.getTime()) || !Number.isFinite(integerAmount)) {
+    return new Date(NaN);
+  }
+  if (integerAmount === 0) return result;
+
+  const originalMonth = result.getMonth();
+  const originalDay = result.getDate();
+  const targetYear = result.getFullYear() - integerAmount;
+  const endOfTargetMonth = new Date(result.getTime());
+  endOfTargetMonth.setFullYear(targetYear, originalMonth + 1, 0);
+  const daysInTargetMonth = endOfTargetMonth.getDate();
+
+  if (originalDay >= daysInTargetMonth) {
+    return endOfTargetMonth;
+  }
+
+  result.setFullYear(targetYear, originalMonth, originalDay);
+  return result;
+}
+
+/**
  * Get the current timestamp in milliseconds.
  *
  * Usage:

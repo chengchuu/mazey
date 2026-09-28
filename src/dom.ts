@@ -472,6 +472,101 @@ export function isValidCssSelector(
 }
 
 /**
+ * Options for resolving an element target.
+ *
+ * @category DOM
+ */
+export interface ResolveElementTargetOptions {
+  /** Query root used to resolve selector targets. */
+  root: ParentNode;
+  /** Element returned when `target` is `undefined`. Defaults to `null`. */
+  defaultElement?: Element | null;
+  /** Optional adapter for ref-like or framework-specific target wrappers. */
+  unwrap?: (value: unknown) => unknown;
+}
+
+function isElementTarget(value: unknown): value is Element {
+  return Boolean(
+    value &&
+    typeof value === "object" &&
+    (value as Node).nodeType === 1 &&
+    typeof (value as Element).nodeName === "string" &&
+    typeof (value as Element).getAttribute === "function"
+  );
+}
+
+/**
+ * Resolve an element from a direct element, a selector, an optionally
+ * unwrapped value, or a component-like object containing an `$el` element.
+ * Selector queries are scoped to the supplied root. Invalid selectors,
+ * unmatched selectors, `null`, and unsupported values return `null`.
+ *
+ * Usage:
+ *
+ * ```javascript
+ * import { resolveElementTarget } from "mazey";
+ *
+ * const element = resolveElementTarget("#dialog", {
+ *   root: document,
+ *   defaultElement: document.documentElement,
+ * });
+ * console.log(element?.id);
+ * ```
+ *
+ * Output:
+ *
+ * ```text
+ * dialog
+ * ```
+ *
+ * Ref-like values can be supported without coupling Mazey to a framework:
+ *
+ * ```javascript
+ * const elementRef = { value: document.querySelector("#dialog") };
+ * const element = resolveElementTarget(elementRef, {
+ *   root: document,
+ *   unwrap: value => value?.value,
+ * });
+ * ```
+ *
+ * @remarks Browser only unless compatible DOM objects are supplied. The
+ * function does not query or mutate the DOM when given a direct element.
+ * `defaultElement` is used only when `target` is `undefined`; an explicit
+ * `null` target resolves to `null`.
+ * @param target Direct element, selector, wrapped value, component-like value, or `undefined`.
+ * @param options Query root, optional default element, and optional unwrap adapter.
+ * @returns The resolved element, or `null` when the target cannot be resolved.
+ * @category DOM
+ */
+export function resolveElementTarget(
+  target: unknown,
+  options: ResolveElementTargetOptions
+): Element | null {
+  if (target === undefined) {
+    return isElementTarget(options.defaultElement)
+      ? options.defaultElement
+      : null;
+  }
+
+  let value = options.unwrap ? options.unwrap(target) : target;
+  if (value == null) return null;
+
+  if (typeof value === "string") {
+    try {
+      return options.root.querySelector(value);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  if (typeof value === "object" && "$el" in value) {
+    value = (value as { $el?: unknown }).$el;
+  }
+
+  return isElementTarget(value) ? value : null;
+}
+
+/**
  * Extract text from a cloned element without modifying the original DOM.
  * Images can be replaced by their `alt` text, selected descendants can be
  * removed, and whitespace can be normalized before returning the text.

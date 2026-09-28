@@ -4,29 +4,17 @@
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setSessionJSON, getSessionJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // Wrap the helpers with a project-specific key prefix.
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setSessionJSON("preferences", { theme: "dark" });
+ * const preferences = getSessionJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
  * @param {string} key Storage key.
@@ -34,7 +22,7 @@
  * @returns {void} This function does not return a value.
  * @category Store
  */
-export function setSessionStorage<T>(key: string, value: T | null = null): void {
+export function setSessionJSON<T>(key: string, value: T | null = null): void {
   if (key) {
     const serializedValue = JSON.stringify(value);
     sessionStorage.setItem(key, serializedValue === undefined ? "null" : serializedValue);
@@ -47,36 +35,24 @@ export function setSessionStorage<T>(key: string, value: T | null = null): void 
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setSessionJSON, getSessionJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // Wrap the helpers with a project-specific key prefix.
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setSessionJSON("preferences", { theme: "dark" });
+ * const preferences = getSessionJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
  * @param {string} key Storage key.
  * @returns The parsed value, raw stored value, or `null` when no value exists.
  * @category Store
  */
-export function getSessionStorage<T>(key: string): T | null {
+export function getSessionJSON<T>(key: string): T | null {
   let ret: T | null = null;
   if (key) {
     const value = sessionStorage.getItem(key);
@@ -97,29 +73,17 @@ export function getSessionStorage<T>(key: string): T | null {
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setLocalJSON, getLocalJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // Wrap the helpers with a project-specific key prefix.
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setLocalJSON("preferences", { theme: "dark" });
+ * const preferences = getLocalJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
  * @param {string} key Storage key.
@@ -127,7 +91,7 @@ export function getSessionStorage<T>(key: string): T | null {
  * @returns {void} This function does not return a value.
  * @category Store
  */
-export function setLocalStorage<T>(key: string, value: T | null = null): void {
+export function setLocalJSON<T>(key: string, value: T | null = null): void {
   if (key) {
     const serializedValue = JSON.stringify(value);
     localStorage.setItem(key, serializedValue === undefined ? "null" : serializedValue);
@@ -140,36 +104,24 @@ export function setLocalStorage<T>(key: string, value: T | null = null): void {
  * Usage:
  *
  * ```javascript
- * import { setSessionStorage, getSessionStorage, setLocalStorage, getLocalStorage } from "mazey";
+ * import { setLocalJSON, getLocalJSON } from "mazey";
  *
- * setSessionStorage("test", "123");
- * const ret1 = getSessionStorage("test");
- * setLocalStorage("test", "123");
- * const ret2 = getLocalStorage("test");
- * console.log(ret1, ret2);
- *
- * // Wrap the helpers with a project-specific key prefix.
- * const projectName = "mazey";
- * function mSetLocalStorage (key, value) {
- *   return setLocalStorage(`${projectName}_${key}`, value);
- * }
- *
- * function mGetLocalStorage (key) {
- *   return getLocalStorage(`${projectName}_${key}`);
- * }
+ * setLocalJSON("preferences", { theme: "dark" });
+ * const preferences = getLocalJSON("preferences");
+ * console.log(JSON.stringify(preferences));
  * ```
  *
  * Output:
  *
  * ```text
- * 123 123
+ * {"theme":"dark"}
  * ```
  *
  * @param {string} key Storage key.
  * @returns The parsed value, raw stored value, or `null` when no value exists.
  * @category Store
  */
-export function getLocalStorage<T>(key: string): T | null {
+export function getLocalJSON<T>(key: string): T | null {
   let ret: T | null = null;
   if (key) {
     const value = localStorage.getItem(key);
@@ -183,6 +135,38 @@ export function getLocalStorage<T>(key: string): T | null {
   }
   return ret;
 }
+
+/**
+ * Deprecated alias of {@link setSessionJSON}.
+ *
+ * @deprecated Use `setSessionJSON` instead.
+ * @category Store
+ */
+export const setSessionStorage = setSessionJSON;
+
+/**
+ * Deprecated alias of {@link getSessionJSON}.
+ *
+ * @deprecated Use `getSessionJSON` instead.
+ * @category Store
+ */
+export const getSessionStorage = getSessionJSON;
+
+/**
+ * Deprecated alias of {@link setLocalJSON}.
+ *
+ * @deprecated Use `setLocalJSON` instead.
+ * @category Store
+ */
+export const setLocalStorage = setLocalJSON;
+
+/**
+ * Deprecated alias of {@link getLocalJSON}.
+ *
+ * @deprecated Use `getLocalJSON` instead.
+ * @category Store
+ */
+export const getLocalStorage = getLocalJSON;
 
 const encodedCookieNamePrefix = "__mazey_cookie_name_encoded__-";
 const encodedCookieValueNamePrefix = "__mazey_cookie_value_encoded__-";

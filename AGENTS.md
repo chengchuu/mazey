@@ -9,7 +9,10 @@ This repository is a browser-focused utility library named `mazey`, intended for
 - `src/`: source of truth for the library
 - `types/`: extra global type declarations bundled into `lib/`
 - `test/`: Jest tests, generally one file per source module
-- `examples/`: demo page and TS entry used by the local dev server
+- `examples/`: React 19 playground application and static HTML document shell
+- `examples/components/core/`: framework-neutral example calculations and validation
+- `examples/components/hooks/`: React-renderer-neutral example state and actions
+- `examples/components/web/`: React DOM components styled with Bootstrap
 - `site/`: landing page, shared Bootstrap/theme/navigation behavior, API enhancements, and website-only PWA source
 - `project.config.js`: package-derived repository, Pages, SEO, theme, asset, and PWA configuration
 - `scripts/`: Rollup, Webpack, release, and docs helpers
@@ -25,7 +28,7 @@ This repository is a browser-focused utility library named `mazey`, intended for
   - `lib/index.esm.js`
   - `lib/mazey.min.js`
   - `lib/index.d.ts`
-- Dev/demo entry: `examples/index.ts`
+- Dev/demo entry: `examples/index.tsx`
 
 `src/index.ts` is intentionally simple: it re-exports all feature modules so consumers import from `"mazey"` and get a flat API.
 
@@ -74,7 +77,7 @@ This is a mostly flat architecture, not a layered service system.
 ## Build And Dev Flow
 
 - `npm run build`: Rollup bundles `src/index.ts` into CJS, ESM, and IIFE outputs in `lib/`
-- `npm run dev`: Webpack serves the website and playground
+- `npm run dev`: Webpack serves the website and React playground
 - `npm test`: Jest suite across `test/`
 - `npm run docs`: TypeDoc, website build, deterministic Pages assembly, and SEO/PWA validation
 
@@ -96,6 +99,8 @@ Relevant config files:
 - Prefer small, targeted changes; most modules are independent
 - Be careful with browser globals like `window`, `document`, `location`, `navigator`, and `performance`
 - Keep examples and tests aligned with public behavior when you change an exported helper
+- Keep playground calculations in `core/`, renderer-neutral state in `hooks/`, and HTML/Bootstrap behavior in `web/`
+- Never export playground components from `src/index.ts`; React is a website-only development dependency
 - Keep website and PWA behavior under `site/`; never import it from `src/`
 - Treat `dist-dev`, `docs`, `lib`, and `coverage` as generated output
 - Preserve the GitHub Pages base path `/mazey/` in site assets, metadata, navigation, manifest, and service-worker scope
@@ -141,8 +146,9 @@ The public copy is stored in the sibling `chengchuu/skills` repository. Review a
   - inspect any generated type outputs in `lib/`
 
 - Change local demo behavior:
-  - inspect `examples/index.ts`
+  - inspect `examples/index.tsx`
   - inspect `examples/index.html`
+  - inspect the relevant layer under `examples/components/`
   - inspect `scripts/webpack.config.dev.js`
 
 ## Notes
