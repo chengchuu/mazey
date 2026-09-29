@@ -6,23 +6,52 @@ import {
   calculateDateIntervalExample,
   calculateDurationExample,
   createCAGRExampleValues,
+  createCurrentDateIntervalExampleValues,
   createDateIntervalExampleValues,
   parseDurationInput,
 } from "../../examples/components/core";
 
 describe("date interval example core", () => {
-  test("formats equal local values and returns zero seconds", () => {
+  test("defaults the end to the next first day of the year", () => {
     const values = createDateIntervalExampleValues(
-      new Date(2026, 6, 29, 14, 30, 45)
+      new Date(2026, 7, 3, 14, 30, 45)
     );
 
     expect(values).toEqual({
-      start: "2026-07-29T14:30:45",
-      end: "2026-07-29T14:30:45",
+      start: "2026-08-03T14:30:45",
+      end: "2027-01-01T00:00:00",
+    });
+    expect(
+      createDateIntervalExampleValues(new Date(2027, 0, 3, 8, 9, 10))
+    ).toEqual({
+      start: "2027-01-03T08:09:10",
+      end: "2028-01-01T00:00:00",
+    });
+  });
+
+  test("creates equal current values for reset behavior", () => {
+    const values = createCurrentDateIntervalExampleValues(
+      new Date(2026, 7, 3, 14, 30, 45)
+    );
+
+    expect(values).toEqual({
+      start: "2026-08-03T14:30:45",
+      end: "2026-08-03T14:30:45",
     });
     expect(calculateDateIntervalExample(values.start, values.end)).toEqual({
       value: "0 seconds",
       error: null,
+    });
+  });
+
+  test("preserves years below 100 without applying the Date constructor offset", () => {
+    const current = new Date(0);
+    current.setFullYear(98, 7, 3);
+    current.setHours(14, 30, 45, 0);
+
+    expect(createDateIntervalExampleValues(current)).toEqual({
+      start: "0098-08-03T14:30:45",
+      end: "0099-01-01T00:00:00",
     });
   });
 

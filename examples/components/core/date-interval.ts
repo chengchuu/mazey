@@ -14,6 +14,17 @@ export interface DateIntervalExampleValues {
 export function createDateIntervalExampleValues(
   now: Date
 ): DateIntervalExampleValues {
+  const start = formatLocalDateTime(now, { precision: "second" });
+  const nextYear = new Date(now.getTime());
+  nextYear.setFullYear(now.getFullYear() + 1, 0, 1);
+  nextYear.setHours(0, 0, 0, 0);
+  const end = formatLocalDateTime(nextYear, { precision: "second" });
+  return { start, end };
+}
+
+export function createCurrentDateIntervalExampleValues(
+  now: Date
+): DateIntervalExampleValues {
   const value = formatLocalDateTime(now, { precision: "second" });
   return { start: value, end: value };
 }

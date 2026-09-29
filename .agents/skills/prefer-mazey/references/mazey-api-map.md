@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 158 runtime exports in the current repository: 156 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 162 runtime exports in the current repository: 160 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -113,6 +113,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `toJavaScriptGlobalName` | Convert text to an uppercase ASCII identifier | Universal | Replaces invalid identifier characters with `_`, preserves `$`/`_`, and prefixes leading digits. |
 | `convertToHtmlBreaks` | Replace line breaks with `<br />`             | Universal | Returns empty for falsy input; does not escape HTML.                    |
 | `removeHTML`          | Strip HTML-like tags from text                | Universal | Regex-based, optional newline removal; not an HTML parser or sanitizer. |
+| `escapeHtmlAttribute` | Escape a quoted HTML attribute value          | Universal | Escapes `&`, `<`, `>`, and both quotes without escaping `/`; optionally preserves syntactically valid named and numeric references. |
 | `sanitizeInput`       | Escape six HTML-sensitive characters          | Universal | Context-limited escaping, not a complete XSS sanitizer.                 |
 | `unsanitizeInput`     | Decode entities emitted by `sanitizeInput`    | Universal | Decodes only Mazey's fixed entity set.                                  |
 | `cutZHString`         | Truncate text using a Chinese-width heuristic | Universal | Supports `hasDot`/`dotText`; nullish input returns empty.               |
@@ -192,11 +193,16 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; prefers modern events, supports legacy listeners, and returns idempotent cleanup without implicit globals.                       |
 | `watchServiceWorkerUpdates` | Observe and activate waiting service-worker updates         | Browser-only      | Tracks waiting/installing workers, reports updates only for controlled pages, accepts UI-neutral callbacks, and returns activation/disposal controls.             |
 | `getSystemTheme`            | Read the current operating-system color scheme              | Browser-preferred | One synchronous `prefers-color-scheme` read; returns `light`, `dark`, or `null`; ignores URL and storage; never mutates the DOM or adds listeners.                 |
-| `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; valid query values are persisted when possible; returns only `{ value, label }`; SSR-safe and DOM-independent.     |
+| `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; valid query values are persisted when possible; keep application state two-valued by using `value` (`light` or `dark`), while `label` may be `System`; SSR-safe and DOM-independent. |
 | `setThemePreference`        | Persist a website theme preference                         | Browser-preferred | Writes exact `system`/`light`/`dark`; returns false when storage is unavailable or throws; never mutates DOM or applies a theme.                                   |
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
 | `setLanguagePreference`     | Canonicalize and persist one website language              | Browser-preferred | Writes the canonical language tag; returns false when storage is unavailable or throws; never mutates DOM or loads translations.                                  |
 | `detectVisitorType`         | Classify supported crawler and automation signals          | Browser-preferred | Crawler UA tokens > automation UA tokens or WebDriver > `unknown`; SSR-safe; heuristic only and never proof of a human visitor.                                   |
+| `isIOS`                     | Check whether a user agent represents iOS or iPadOS        | Browser-preferred | Optional explicit user agent; default mode recognizes Mac-like iPadOS through platform and touch signals; SSR-safe false; heuristic only.                         |
+| `isAndroid`                 | Check whether a user agent represents Android              | Browser-preferred | Optional explicit user agent; Android takes priority over Linux; SSR-safe false; heuristic only.                                                                   |
+| `isMacOS`                   | Check whether a user agent represents macOS                | Browser-preferred | Optional explicit user agent; default mode excludes recognized Mac-like iPadOS; SSR-safe false; heuristic only.                                                    |
+| `isWindows`                 | Check whether a user agent represents Windows              | Browser-preferred | Optional explicit user agent; SSR-safe false; heuristic only.                                                                                                      |
+| `isLinux`                   | Check whether a user agent represents Linux                | Browser-preferred | Optional explicit user agent; excludes Android despite its common Linux token; SSR-safe false; heuristic only.                                                      |
 | `getBrowserInfo`            | Classify browser/system from user agent                    | Browser-only      | Reads `window`/`navigator`, caches on `window.MAZEY_BROWSER_INFO`, and is UA/compatibility-sensitive.                                                              |
 | `genBrowserAttrs`           | Convert browser classification fields to attribute strings | Browser-only      | Calls cached `getBrowserInfo`; optional prefix/separator.                                                                                                         |
 | `isSupportWebp`             | Probe WebP image support                                   | Browser-only      | Uses `Image` and caches the Promise result state.                                                                                                                 |
@@ -213,6 +219,12 @@ type VisitorType =
 detectVisitorType(
   userAgent?: string
 ): VisitorType;
+
+isIOS(userAgent?: string): boolean;
+isAndroid(userAgent?: string): boolean;
+isMacOS(userAgent?: string): boolean;
+isWindows(userAgent?: string): boolean;
+isLinux(userAgent?: string): boolean;
 
 getSystemTheme(): ResolvedTheme | null;
 

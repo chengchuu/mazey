@@ -18,7 +18,7 @@ import {
   floatToPercent, floatFixed, throttle, debounce,
   doFn, mTrim, removeHtml, truncateZHString,
   convertKebabToCamel, convert10To26, zAxiosIsValidRes,
-  unsanitize, sanitizeInput, unsanitizeInput,
+  unsanitize, sanitizeInput, unsanitizeInput, escapeHtmlAttribute,
   isFunction, isString, isBoolean, isUdfOrNul, toJavaScriptGlobalName,
 } from "../lib/index.esm";
 import { webcrypto } from "node:crypto";
@@ -1452,6 +1452,54 @@ describe("sanitizeInput", () => {
   it("should throw an error if the input is not a string", () => {
     const input = 123;
     expect(() => sanitizeInput(input)).toThrow("Input must be a string");
+  });
+});
+
+describe("escapeHtmlAttribute", () => {
+  it("escapes the five attribute-sensitive characters without escaping slashes", () => {
+    expect(escapeHtmlAttribute("https://example.com/<path>?a=\"b\"&c='d'")).toBe(
+      "https://example.com/&lt;path&gt;?a=&quot;b&quot;&amp;c=&#39;d&#39;"
+    );
+  });
+
+  it("escapes existing character references by default", () => {
+    expect(escapeHtmlAttribute("&amp; &#38; &#x26; &AElig;")).toBe(
+      "&amp;amp; &amp;#38; &amp;#x26; &amp;AElig;"
+    );
+  });
+
+  it("preserves syntactically valid named and numeric character references", () => {
+    expect(
+      escapeHtmlAttribute("&amp; &#38; &#x26; &#X2F; &AElig;", {
+        preserveEntities: true,
+      })
+    ).toBe("&amp; &#38; &#x26; &#X2F; &AElig;");
+  });
+
+  it("escapes bare and malformed ampersands while preserving valid references", () => {
+    expect(
+      escapeHtmlAttribute("A & B &copy &#; &#x; &1bad;", {
+        preserveEntities: true,
+      })
+    ).toBe("A &amp; B &amp;copy &amp;#; &amp;#x; &amp;1bad;");
+  });
+
+  it("still escapes brackets and quotes when preserving references", () => {
+    expect(
+      escapeHtmlAttribute("</a href=\"x\" title='y'> &amp;", {
+        preserveEntities: true,
+      })
+    ).toBe("&lt;/a href=&quot;x&quot; title=&#39;y&#39;&gt; &amp;");
+  });
+
+  it("handles empty and unchanged input", () => {
+    expect(escapeHtmlAttribute("")).toBe("");
+    expect(escapeHtmlAttribute("Mazey 5.6")).toBe("Mazey 5.6");
+  });
+
+  it("rejects non-string runtime input", () => {
+    expect(() => escapeHtmlAttribute(123)).toThrow(TypeError);
+    expect(() => escapeHtmlAttribute(123)).toThrow("value must be a string.");
   });
 });
 

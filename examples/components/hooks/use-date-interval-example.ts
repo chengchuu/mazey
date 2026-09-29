@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import {
   calculateDateIntervalExample,
+  createCurrentDateIntervalExampleValues,
   createDateIntervalExampleValues,
 } from "../core";
 
@@ -55,7 +56,7 @@ export function useDateIntervalExample(
       applyResult(start, end);
     },
     reset(): void {
-      const values = createDateIntervalExampleValues(now());
+      const values = createCurrentDateIntervalExampleValues(now());
       setStartState(values.start);
       setEndState(values.end);
       applyResult(values.start, values.end);
