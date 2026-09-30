@@ -1514,8 +1514,9 @@ future color-scheme changes.
 #### resolveThemePreference
 
 Resolve a project-specific website theme without applying it to the page.
-Resolution checks the fixed `theme` URL query, the supplied local-storage key,
-the current system color scheme, and finally the fixed `light` fallback.
+Resolution checks the URL query named by the supplied storage key, local storage
+under the same key, the current system color scheme, and finally the fixed
+`light` fallback.
 
 ```javascript
 const theme = resolveThemePreference(
@@ -1536,10 +1537,10 @@ Output:
 
 `value` is always the concrete `light` or `dark` theme. `label` identifies the
 preference that selected it: `System`, `Light`, or `Dark`. Only `light` and
-`dark` are accepted from `?theme=` and are persisted under the supplied storage
-key when browser storage is available; stored values may also be `system`. The
-resolver is safe during SSR, tolerates unavailable browser storage and media
-queries, and does not mutate the DOM.
+`dark` are accepted from `?MY_WEBSITE_THEME=` in this example; the query value
+is not persisted. Stored values may also be `system`. The resolver is safe
+during SSR, tolerates unavailable browser storage and media queries, and does
+not mutate the DOM or write storage.
 
 #### setThemePreference
 

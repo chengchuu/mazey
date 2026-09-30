@@ -85,13 +85,12 @@ function createThemeResult(
 /**
  * Resolve the current website theme.
  *
- * Resolution checks the fixed `theme` URL query, the supplied local-storage
- * key, the current `prefers-color-scheme` media query, and finally the fixed
- * `light` fallback. Query values accept only `light` and `dark`. Storage also
- * accepts `system`, which resolves to a concrete value while retaining the
- * `System` label. A valid query preference is written under the supplied
- * storage key when browser storage is available; resolution still succeeds
- * when the write fails.
+ * Resolution checks the URL query named by `storageKey`, local storage under
+ * the same key, the current `prefers-color-scheme` media query, and finally
+ * the fixed `light` fallback. Query values accept only `light` and `dark`.
+ * Storage also accepts `system`, which resolves to a concrete value while
+ * retaining the `System` label. URL query preferences apply only to the
+ * current resolution and are not persisted.
  *
  * Resolution matrix:
  *
@@ -136,10 +135,10 @@ function createThemeResult(
  * }
  * ```
  *
- * @param storageKey Project-specific local-storage key.
+ * @param storageKey Project-specific URL query and local-storage key.
  * @returns The concrete `light` or `dark` value and the label of the preference that selected it.
  * @throws {TypeError} If `storageKey` is not a non-empty string.
- * @remarks Safe during SSR and resilient to unavailable or throwing browser APIs. A valid URL preference is written to storage when possible; other resolution paths remain read-only. The function never mutates the DOM or adds listeners.
+ * @remarks Safe during SSR and resilient to unavailable or throwing browser APIs. Resolution is read-only: the function never writes storage, mutates the DOM, or adds listeners.
  * @category Browser Information
  */
 export function resolveThemePreference(
@@ -147,9 +146,8 @@ export function resolveThemePreference(
 ): PreferenceResult<ResolvedTheme> {
   validateStorageKey(storageKey);
 
-  const queryPreference = getUrlQueryValue("theme");
+  const queryPreference = getUrlQueryValue(storageKey);
   if (isResolvedTheme(queryPreference)) {
-    writeLocalStorage(storageKey, queryPreference);
     return createThemeResult(queryPreference, queryPreference);
   }
 
