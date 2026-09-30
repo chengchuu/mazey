@@ -144,7 +144,7 @@ export function parseGitHubRepository(value: string): GitHubRepositoryDetails {
   }
 
   const hostWithPort = authority[1].slice(authority[1].lastIndexOf("@") + 1);
-  if (hostWithPort.indexOf(":") !== -1 || typeof URL !== "function") {
+  if (hostWithPort.indexOf(":") !== -1) {
     throw invalidGitHubRepository();
   }
 
@@ -234,7 +234,7 @@ export function getAllQueryParams(url: string = ""): SingleValueUrlParams {
   }
   const result: SingleValueUrlParams = {};
   getQueryEntries(url).forEach(([ key, value ]) => {
-    if (!Object.prototype.hasOwnProperty.call(result, key)) {
+    if (!Object.hasOwn(result, key)) {
       Object.defineProperty(result, key, {
         configurable: true,
         enumerable: true,
@@ -414,13 +414,13 @@ export function getHashQueryParam(param: string): string {
  * @category URL
  */
 export function getDomain(url: string, rules = [ "hostname" ]): string {
-  if (checkIfURLIsSupported(url)) {
-    const u = new window.URL(url);
+  try {
+    const u = new URL(url, document.baseURI);
     return rules.reduce((ret, v) => {
       ret += u[v as keyof URL];
       return ret;
     }, "");
-  } else {
+  } catch (e) {
     const aEl: HTMLAnchorElement = document.createElement("a");
     aEl.href = url;
     return rules.reduce((ret, v) => {
@@ -532,7 +532,7 @@ function isValidHttpHostname(hostname: string): boolean {
   return !/^\d+$/.test(labels[labels.length - 1]);
 }
 
-function isValidHttpUrlFallback(url: string): boolean {
+function hasValidHttpUrlSyntax(url: string): boolean {
   const match = url.match(/^https?:\/\/([^/?#]+)(?:[/?#][^\s<>"`]*)?$/i);
   if (!match || match[1].indexOf("@") !== -1) {
     return false;
@@ -589,23 +589,15 @@ export function isValidHttpUrl(url: string, options: { strict: boolean } = { str
     return false;
   }
   const normalizedUrl = isProtocolRelative ? `http:${url}` : url;
-  if (!isValidHttpUrlFallback(normalizedUrl)) {
+  if (!hasValidHttpUrlSyntax(normalizedUrl)) {
     return false;
-  }
-  if (typeof URL !== "function") {
-    return true;
   }
   try {
     const parsed = new URL(normalizedUrl);
     const isHttp = parsed.protocol === "http:" || parsed.protocol === "https:";
     return isHttp && isValidHttpHostname(parsed.hostname) && !parsed.username && !parsed.password;
   } catch (e) {
-    try {
-      new URL("http://example.com");
-      return false;
-    } catch (unsupportedError) {
-      return isValidHttpUrlFallback(normalizedUrl);
-    }
+    return false;
   }
 }
 
@@ -762,19 +754,6 @@ export function replaceHttp(url: string): string {
   return convertHttpToHttps(url);
 }
 
-function checkIfURLIsSupported(url: string = "") {
-  const URL = window.URL;
-  if (typeof URL !== "function") {
-    return false;
-  }
-  try {
-    const parsed = new URL(url);
-    return Boolean(parsed.href);
-  } catch (e) {
-    return false;
-  }
-}
-
 /**
  * Get the host of the URL.
  *
@@ -798,15 +777,14 @@ function checkIfURLIsSupported(url: string = "") {
  * @category URL
  */
 export function getUrlHost(url: string): string {
-  let ret = "";
-  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.indexOf("//") === 0) {
+  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.startsWith("//")) {
     url = "https:" + url;
   }
-  if (checkIfURLIsSupported(url)) {
-    const urlObj = new URL(url);
-    ret = urlObj.host;
+  try {
+    return new URL(url).host;
+  } catch (e) {
+    return "";
   }
-  return ret;
 }
 
 /**
@@ -832,15 +810,14 @@ export function getUrlHost(url: string): string {
  * @category URL
  */
 export function getUrlPath(url: string): string {
-  let ret = "";
-  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.indexOf("//") === 0) {
+  if (!isValidHttpUrl(url) && isValidHttpUrl(url, { strict: false }) && url.startsWith("//")) {
     url = "https:" + url;
   }
-  if (checkIfURLIsSupported(url)) {
-    const urlObj = new URL(url);
-    ret = urlObj.pathname;
+  try {
+    return new URL(url).pathname;
+  } catch (e) {
+    return "";
   }
-  return ret;
 }
 
 /**

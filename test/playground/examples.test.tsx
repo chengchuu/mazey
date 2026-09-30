@@ -7,9 +7,9 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import {
+  AspectRatioExample,
   CAGRExample,
   DateIntervalExample,
-  DurationExample,
 } from "../../examples/components/web";
 
 afterEach(cleanup);
@@ -95,24 +95,32 @@ test("CAGR preserves defaults and clears stale output on validation failure", as
   expect(screen.getByRole("status")).not.toHaveTextContent(initialDecimal);
 });
 
-test("duration initializes and handles valid and invalid submissions", async () => {
+test("aspect ratio initializes and handles valid and invalid submissions", async () => {
   const user = userEvent.setup();
-  render(<DurationExample />);
-  const input = screen.getByLabelText("Duration in milliseconds");
+  render(<AspectRatioExample />);
+  const width = screen.getByLabelText("Width");
+  const height = screen.getByLabelText("Height");
 
-  expect(input).toHaveValue(90000);
-  expect(screen.getByRole("status")).toHaveTextContent("1.5 minutes");
+  expect(width).toHaveValue(1920);
+  expect(height).toHaveValue(1080);
+  expect(screen.getByRole("status")).toHaveTextContent("16x9");
 
-  await user.clear(input);
-  await user.type(input, "120000");
-  await user.click(screen.getByRole("button", { name: "Run example" }));
-  expect(screen.getByRole("status")).toHaveTextContent("2 minutes");
-
-  await user.clear(input);
-  await user.type(input, "-1");
-  await user.click(screen.getByRole("button", { name: "Run example" }));
-  expect(screen.getByRole("alert")).toHaveTextContent(
-    "Enter a finite duration of zero milliseconds or more."
+  await user.clear(width);
+  await user.type(width, "3440");
+  await user.clear(height);
+  await user.type(height, "1440");
+  await user.click(
+    screen.getByRole("button", { name: "Calculate aspect ratio" })
   );
-  expect(screen.getByRole("status")).not.toHaveTextContent("2 minutes");
+  expect(screen.getByRole("status")).toHaveTextContent("43x18");
+
+  await user.clear(width);
+  await user.type(width, "0");
+  await user.click(
+    screen.getByRole("button", { name: "Calculate aspect ratio" })
+  );
+  expect(screen.getByRole("alert")).toHaveTextContent(
+    "width and height must be greater than zero."
+  );
+  expect(screen.getByRole("status")).not.toHaveTextContent("43x18");
 });

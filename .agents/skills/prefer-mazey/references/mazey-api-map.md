@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 162 runtime exports in the current repository: 160 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 174 runtime exports in the current repository: 172 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -42,7 +42,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function                  | Purpose                                                   | Runtime            | Notes                                                                                                                                          |
 | ------------------------- | --------------------------------------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Uses `Date.now()` with an older fallback.                                                                                                      |
+| `mNow`                    | Return the current epoch time in milliseconds             | Universal          | Delegates to `Date.now()`.                                                                                                                      |
 | `getDateDifference`       | Calculate an interval as days, seconds, or English text   | Universal          | Local time for `YYYY-MM-DD HH:mm:ss`; `text` omits zero-valued units; negative or invalid intervals return empty.                              |
 | `formatDurationFromMs`    | Format milliseconds in seconds, minutes, hours, or days   | Universal          | Largest unit; one decimal maximum; negatives and non-finite values become `0 seconds`.                                                         |
 | `parseLocalDateTime`      | Parse an HTML local date-time value strictly              | Universal          | Accepts a four-or-more-digit year, `T`, minutes, optional seconds, and 1-3 fraction digits; uses local fields; invalid input returns `null`.      |
@@ -86,7 +86,13 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `isNonEmptyObject`   | Test for an object-tag value with own string keys | Universal | Accepts class instances with enumerable own keys; rejects arrays, null, and empty objects.          |
 | `isValidData`        | Verify an own-property path equals a value        | Universal | Requires every segment to be an own property; does not mutate input.                                |
 | `isValidPhoneNumber` | Validate an 11-digit Chinese mobile-shaped number | Universal | Pattern is `^1\d{10}$`; not an international phone validator.                                       |
+| `isMobile`           | Alias the Chinese mobile-number validator         | Universal | Direct alias of `isValidPhoneNumber`; it does not inspect browser or device form factor.             |
 | `isValidEmail`       | Validate common email syntax                      | Universal | Regex-based and not a complete RFC/mail-deliverability check.                                       |
+
+```ts
+isValidPhoneNumber(mobile: string): boolean;
+const isMobile: typeof isValidPhoneNumber;
+```
 
 ## Numbers and hashing
 
@@ -135,7 +141,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `getUrlParam`          | Read one or all values from a supplied URL/query    | Universal         | `returnArray` preserves duplicates; scalar mode returns first value or `null`.                                            |
 | `updateQueryParam`     | Set a query value while preserving the hash         | Universal         | Encodes key/value and collapses duplicate target keys.                                                                    |
 | `getHashQueryParam`    | Read a query value embedded in `location.hash`      | Browser-only      | Uses text after the first `?`; decodes values.                                                                            |
-| `getDomain`            | Concatenate selected URL/anchor fields              | Browser-only      | Uses `window.URL` or a DOM anchor; `rules` controls fields such as hostname/pathname.                                     |
+| `getDomain`            | Concatenate selected URL/anchor fields              | Browser-only      | Resolves with `URL` and a DOM anchor fallback; `rules` controls fields such as hostname/pathname.                         |
 | `isValidUrl`           | Match a scheme URL                                  | Universal         | Regex-based and broader than HTTP; not equivalent to WHATWG `URL` validation.                                             |
 | `isValidHttpUrl`       | Validate strict HTTP/HTTPS URLs                     | Universal         | Rejects credentials and malformed hosts/ports; `strict: false` permits protocol-relative URLs.                            |
 | `parseGitHubRepository` | Parse GitHub shorthands and Git transport URLs      | Universal         | Returns owner/name/slug/HTTPS URL; bounded strict-ASCII grammar; permits only the conventional `git` username and rejects passwords, ports, queries, fragments, and encoding. |
@@ -143,8 +149,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `getScriptQueryParam`  | Read a query value from matching script tags        | Browser-only      | Scans `document` script `src` attributes; default match substring is `.js`.                                               |
 | `convertObjectToQuery` | Encode own string properties as a query             | Universal         | Returns `?key=value`; empty object returns empty; excludes inherited properties.                                          |
 | `convertHttpToHttps`   | Replace a leading `http:` with `https:`             | Universal         | Simple prefix replacement; does not validate the URL.                                                                     |
-| `getUrlHost`           | Return host and optional port                       | Browser-only      | Uses `window.URL`; accepts protocol-relative HTTP URLs after normalization.                                               |
-| `getUrlPath`           | Return a URL pathname                               | Browser-only      | Uses `window.URL`; returns empty for unsupported/invalid input.                                                           |
+| `getUrlHost`           | Return host and optional port                       | Browser-only      | Uses `URL`; accepts absolute schemes and protocol-relative HTTP URLs after normalization; invalid input returns empty.    |
+| `getUrlPath`           | Return a URL pathname                               | Browser-only      | Uses `URL`; accepts absolute schemes and protocol-relative HTTP URLs after normalization; invalid input returns empty.    |
 | `onURLChange`          | Observe popstate, hash, pushState, and replaceState | Browser-only      | Patches history methods globally once and returns an unsubscribe function.                                                |
 
 ## DOM and styles
@@ -154,6 +160,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `hasClass`           | Test an element class                           | Browser-only      | Logs and returns false for a missing element.                                                                   |
 | `addClass`           | Add one or more classes                         | Browser-only      | Mutates the element; ignores empty names; array path uses `classList`.                                          |
 | `removeClass`        | Remove a class                                  | Browser-only      | Mutates the element and logs for missing input.                                                                 |
+| `hide`               | Hide selector or element targets                | Browser-only      | Accepts one element or iterable/array-like collections, preserves visible inline display, deduplicates targets, and returns the original input. |
+| `show`               | Show selector or element targets                | Browser-only      | Restores display preserved by `hide`; applies a document-aware tag default when CSS still hides an element; returns the original input. |
 | `addStyle`           | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
 | `setImgSizeBySrc`    | Apply image dimensions from URL parameters      | Browser-only      | Mutates image styles; reads `width`/`height`; uses jQuery when present.                                         |
 | `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
@@ -178,8 +186,8 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 
 | Function                | Purpose                                          | Runtime      | Notes                                                                                     |
 | ----------------------- | ------------------------------------------------ | ------------ | ----------------------------------------------------------------------------------------- |
-| `loadCSS`               | Append a stylesheet and await loading            | Browser-only | Resolves `loaded`, rejects modern load errors, and contains old-browser polling behavior. |
-| `loadScript`            | Append and await a script element                | Browser-only | Supports attributes, callback, CSS companion, and timeout; rejects errors/timeouts.       |
+| `loadCSS`               | Append a stylesheet and await loading            | Browser-only | Resolves `loaded` or rejects through standard load and error events.                        |
+| `loadScript`            | Append and await a script element                | Browser-only | Uses standard load and error events; supports attributes, callback, CSS companion, and timeout. |
 | `windowLoaded`          | Await page load or timeout                       | Browser-only | Resolves `complete`/`load`; removes listener and timer; timeout rejects `Error`.          |
 | `loadImage`             | Preload an image without adding it to DOM        | Browser-only | Requires global `Image`; resolves the image or rejects its error event.                   |
 | `loadScriptIfUndefined` | Load a script unless a window property is truthy | Browser-only | Deduplicates concurrent requests by property and URL; resolves `defined` or `loaded`.     |
@@ -190,7 +198,7 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | --------------------------- | ---------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `isSafePWAEnv`              | Detect minimum synchronous PWA prerequisites               | Browser-preferred | Safe false outside browser; manifest remains required by default; options can skip it or enforce a same-origin path scope.                                        |
 | `isStandalonePWA`           | Detect standalone PWA presentation                         | Browser-preferred | Uses the standard display-mode query plus the iOS `navigator.standalone` fallback; not installation proof.                                                       |
-| `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; prefers modern events, supports legacy listeners, and returns idempotent cleanup without implicit globals.                       |
+| `listenMediaQueryChanges`   | Subscribe to media-query changes                            | Browser-preferred | Accepts a media query or `null`; uses standard `change` events and returns idempotent cleanup without implicit globals.                                          |
 | `watchServiceWorkerUpdates` | Observe and activate waiting service-worker updates         | Browser-only      | Tracks waiting/installing workers, reports updates only for controlled pages, accepts UI-neutral callbacks, and returns activation/disposal controls.             |
 | `getSystemTheme`            | Read the current operating-system color scheme              | Browser-preferred | One synchronous `prefers-color-scheme` read; returns `light`, `dark`, or `null`; ignores URL and storage; never mutates the DOM or adds listeners.                 |
 | `resolveThemePreference`    | Resolve a concrete website theme and display label         | Browser-preferred | Fixed `theme` query > storage > system > `light`; valid query values are persisted when possible; keep application state two-valued by using `value` (`light` or `dark`), while `label` may be `System`; SSR-safe and DOM-independent. |
@@ -198,6 +206,9 @@ This discovery index was verified against the flat exports from `src/index.ts` a
 | `resolveLanguagePreference` | Resolve one current UI language and display label          | Browser-preferred | Fixed `lang` query > storage > `navigator.language` > `en`; canonicalizes the tag and returns only `{ value, label }`; ignores `navigator.languages`.              |
 | `setLanguagePreference`     | Canonicalize and persist one website language              | Browser-preferred | Writes the canonical language tag; returns false when storage is unavailable or throws; never mutates DOM or loads translations.                                  |
 | `detectVisitorType`         | Classify supported crawler and automation signals          | Browser-preferred | Crawler UA tokens > automation UA tokens or WebDriver > `unknown`; SSR-safe; heuristic only and never proof of a human visitor.                                   |
+| `isPhone`                   | Check for a phone or handset-class device                  | Browser-preferred | Optional explicit UA; iPhone/iPod, Android with `Mobile`, then bounded `Mobile` fallback; tablets excluded; SSR-safe false; heuristic only.                         |
+| `isDesktop`                 | Check for a desktop or laptop-class device                 | Browser-preferred | Optional explicit UA; Windows, ordinary macOS, Linux, and ChromeOS; touch alone does not imply tablet; SSR-safe false; heuristic only.                              |
+| `isTablet`                  | Check for a tablet device                                  | Browser-preferred | Optional explicit UA; iPad, MacIntel multi-touch iPadOS in default mode, Android without `Mobile`, or bounded `Tablet`; SSR-safe false; heuristic only.             |
 | `isIOS`                     | Check whether a user agent represents iOS or iPadOS        | Browser-preferred | Optional explicit user agent; default mode recognizes Mac-like iPadOS through platform and touch signals; SSR-safe false; heuristic only.                         |
 | `isAndroid`                 | Check whether a user agent represents Android              | Browser-preferred | Optional explicit user agent; Android takes priority over Linux; SSR-safe false; heuristic only.                                                                   |
 | `isMacOS`                   | Check whether a user agent represents macOS                | Browser-preferred | Optional explicit user agent; default mode excludes recognized Mac-like iPadOS; SSR-safe false; heuristic only.                                                    |
@@ -219,6 +230,10 @@ type VisitorType =
 detectVisitorType(
   userAgent?: string
 ): VisitorType;
+
+isPhone(userAgent?: string): boolean;
+isDesktop(userAgent?: string): boolean;
+isTablet(userAgent?: string): boolean;
 
 isIOS(userAgent?: string): boolean;
 isAndroid(userAgent?: string): boolean;
@@ -267,6 +282,27 @@ be spoofed and WebDriver signals can be hidden, so do not use this heuristic as
 a security boundary; genuine crawler verification requires server-side request
 information and provider-specific validation.
 
+`isPhone`, `isDesktop`, and `isTablet` share one form-factor classifier. The
+mobile category means phone or handset-class devices and excludes tablets.
+Android with a bounded `Mobile` token is mobile; Android without that token is
+a tablet. Conventional iPads and bounded `Tablet` tokens are tablets. In
+default current-browser mode, the existing Macintosh, `MacIntel`, and more than
+one touch point compatibility signals classify modern iPadOS desktop mode as a
+tablet. Windows, ordinary macOS, Linux, and ChromeOS are desktop devices, and
+touch capability alone does not change Windows classification.
+
+An explicit user agent is classified by that string alone and does not borrow
+the current browser's platform or touch signals. Without explicit input, the
+helpers return `false` during SSR when browser signals are unavailable. The
+classification is synchronous, heuristic, and spoofable. It does not use
+viewport dimensions and must not replace responsive CSS, feature detection, or
+security controls. `getBrowserInfo().platform` remains the legacy broad
+`desktop` or `mobile` grouping.
+
+`isPhone` is the device-form-factor helper. The separate `isMobile` export is
+the same function object as `isValidPhoneNumber`; it validates an 11-digit
+Chinese mobile-shaped number and does not read browser signals.
+
 Both resolvers return only a machine-readable `value` and a human-readable
 `label`. Theme values resolve to concrete `light` or `dark`; a stored `system`
 preference retains the `System` label. Language labels come from
@@ -278,7 +314,7 @@ apply preferences to the DOM.
 
 | Function       | Purpose                                         | Runtime      | Notes                                                                                    |
 | -------------- | ----------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------- |
-| `cancelBubble` | Stop DOM event propagation                      | Browser-only | Calls `stopPropagation` or legacy `cancelBubble`.                                        |
+| `cancelBubble` | Stop DOM event propagation                      | Browser-only | Calls `Event.stopPropagation()`.                                                         |
 | `addEvent`     | Register a named Mazey callback                 | Browser-only | Mutates the global registry on `window`; duplicate callbacks are allowed.                |
 | `fireEvent`    | Invoke a snapshot of named callbacks            | Browser-only | Optional single params object; listener changes do not alter the current dispatch queue. |
 | `removeEvent`  | Remove one callback or all callbacks for a name | Browser-only | Omitting `fn` deletes the entire named listener list.                                    |
@@ -307,10 +343,23 @@ apply preferences to the DOM.
 
 | Function                | Purpose                                           | Runtime   | Notes                                                                                 |
 | ----------------------- | ------------------------------------------------- | --------- | ------------------------------------------------------------------------------------- |
+| `calculateAspectRatio`  | Reduce media dimensions to an exact aspect ratio  | Universal | Accepts positive safe integers; returns lowercase `WxH`; throws for invalid dimensions. |
 | `calculateCAGR`         | Calculate an investment's annualized return       | Universal | Exact elapsed duration with a fixed 365-day year; throws for invalid dates, returns, or non-finite results. |
 | `longestComSubstring`   | Return longest common contiguous substring length | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
 | `longestComSubsequence` | Return longest common subsequence length          | Universal | Dynamic programming with O(n\*m) time and memory; empty input returns 0.              |
 | `isHit`                 | Return a probabilistic hit using `Math.random`    | Universal | Evaluates `Math.random() < rate`; does not clamp or provide cryptographic randomness. |
+
+Use `calculateAspectRatio` for known image dimensions, video dimensions, media
+aspect ratios, or layout metadata. It returns the mathematically exact reduced
+ratio rather than an approximate common-ratio label:
+
+```ts
+calculateAspectRatio(width: number, height: number): string;
+
+calculateAspectRatio(900, 1200); // "3x4"
+calculateAspectRatio(900, 1600); // "9x16"
+calculateAspectRatio(1920, 1080); // "16x9"
+```
 
 `calculateCAGR` is dependency-free and works in browsers and Node.js without
 browser globals:
@@ -346,7 +395,7 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `deepCopyObject`              | Compatibility alias                     | Universal          | Prefer `deepCopy`.                                                                        |
 | `camelCaseToKebabCase`        | Compatibility alias                     | Universal          | Prefer `convertCamelToKebab`.                                                             |
 | `camelCase2Underscore`        | Compatibility alias                     | Universal          | Prefer `convertCamelToUnder`.                                                             |
-| `mTrim`                       | Manual whitespace trimming helper       | Universal          | Hidden from docs; prefer native `String.prototype.trim` unless legacy behavior matters.   |
+| `mTrim`                       | Trim leading and trailing whitespace    | Universal          | Hidden from docs; delegates to `String.prototype.trim`.                                   |
 | `isJsonString`                | Compatibility alias                     | Universal          | Prefer `isJSONString`.                                                                    |
 | `setSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `setSessionJSON`.                                                                  |
 | `getSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `getSessionJSON`.                                                                  |

@@ -73,6 +73,20 @@ describe("loadCSS", () => {
 
     await expect(status).rejects.toThrow("Failed to load CSS");
   });
+
+  it("registers handlers before inserting the stylesheet", async () => {
+    const appendChild = jest.spyOn(document.head, "appendChild").mockImplementation(node => {
+      expect(node.onload).toEqual(expect.any(Function));
+      expect(node.onerror).toEqual(expect.any(Function));
+      const appended = Node.prototype.appendChild.call(document.head, node);
+      node.dispatchEvent(new Event("load"));
+      return appended;
+    });
+
+    await expect(loadCSS("http://example.com/ready.css")).resolves.toBe("loaded");
+    expect(appendChild).toHaveBeenCalledTimes(1);
+    appendChild.mockRestore();
+  });
 });
 
 describe("loadScript", () => {

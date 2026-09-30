@@ -20,7 +20,8 @@ afterEach(() => {
 test.each([
   ["#date-interval", "date-interval"],
   ["#cagr", "cagr"],
-  ["#duration", "duration"],
+  ["#aspect-ratio", "aspect-ratio"],
+  ["#duration", null],
   ["#unknown", null],
   ["", null],
 ])("parses tab hash %p", (hash, expected) => {
@@ -35,7 +36,7 @@ test("renders three accessible tabs with date interval active by default", () =>
   expect(tabs.map((tab) => tab.textContent)).toEqual([
     "Date interval",
     "CAGR",
-    "Duration",
+    "Aspect ratio",
   ]);
   expect(tabs[0]).toHaveAttribute("aria-selected", "true");
   expect(tabs[0]).toHaveAttribute("tabindex", "0");
@@ -73,15 +74,15 @@ test("clicking a tab updates content and replaces the hash", async () => {
   const replaceState = jest.spyOn(window.history, "replaceState");
   render(<PlaygroundTabs />);
 
-  await user.click(screen.getByRole("tab", { name: "Duration" }));
+  await user.click(screen.getByRole("tab", { name: "Aspect ratio" }));
 
-  expect(screen.getByRole("tab", { name: "Duration" })).toHaveAttribute(
+  expect(screen.getByRole("tab", { name: "Aspect ratio" })).toHaveAttribute(
     "aria-selected",
     "true"
   );
-  expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "duration");
-  expect(replaceState).toHaveBeenCalledWith(null, "", "#duration");
-  expect(window.location.hash).toBe("#duration");
+  expect(screen.getByRole("tabpanel")).toHaveAttribute("id", "aspect-ratio");
+  expect(replaceState).toHaveBeenCalledWith(null, "", "#aspect-ratio");
+  expect(window.location.hash).toBe("#aspect-ratio");
 });
 
 test("supports wrapped arrow, Home, and End keyboard navigation", async () => {
@@ -91,8 +92,8 @@ test("supports wrapped arrow, Home, and End keyboard navigation", async () => {
 
   dateTab.focus();
   await user.keyboard("{ArrowLeft}");
-  expect(screen.getByRole("tab", { name: "Duration" })).toHaveFocus();
-  expect(screen.getByRole("tab", { name: "Duration" })).toHaveAttribute(
+  expect(screen.getByRole("tab", { name: "Aspect ratio" })).toHaveFocus();
+  expect(screen.getByRole("tab", { name: "Aspect ratio" })).toHaveAttribute(
     "aria-selected",
     "true"
   );
@@ -100,7 +101,7 @@ test("supports wrapped arrow, Home, and End keyboard navigation", async () => {
   await user.keyboard("{ArrowRight}");
   expect(dateTab).toHaveFocus();
   await user.keyboard("{End}");
-  expect(screen.getByRole("tab", { name: "Duration" })).toHaveFocus();
+  expect(screen.getByRole("tab", { name: "Aspect ratio" })).toHaveFocus();
   await user.keyboard("{Home}");
   expect(dateTab).toHaveFocus();
 });
@@ -136,21 +137,23 @@ test("example forms retain independent state", async () => {
   const user = userEvent.setup();
   render(<PlaygroundTabs />);
 
-  await user.click(screen.getByRole("tab", { name: "Duration" }));
-  const durationPanel = screen.getByRole("tabpanel");
-  const durationInput = within(durationPanel).getByLabelText(
-    "Duration in milliseconds"
+  await user.click(screen.getByRole("tab", { name: "Aspect ratio" }));
+  const aspectRatioPanel = screen.getByRole("tabpanel");
+  const widthInput = within(aspectRatioPanel).getByLabelText("Width");
+  await user.clear(widthInput);
+  await user.type(widthInput, "0");
+  await user.click(
+    within(aspectRatioPanel).getByRole("button", {
+      name: "Calculate aspect ratio",
+    })
   );
-  await user.clear(durationInput);
-  await user.type(durationInput, "-1");
-  await user.click(within(durationPanel).getByRole("button"));
-  expect(within(durationPanel).getByRole("alert")).toBeInTheDocument();
+  expect(within(aspectRatioPanel).getByRole("alert")).toBeInTheDocument();
 
   await user.click(screen.getByRole("tab", { name: "CAGR" }));
   const cagrPanel = screen.getByRole("tabpanel");
   expect(within(cagrPanel).queryByRole("alert")).not.toBeInTheDocument();
   expect(within(cagrPanel).getByLabelText("Total return")).toHaveValue("50.2%");
 
-  await user.click(screen.getByRole("tab", { name: "Duration" }));
-  expect(screen.getByLabelText("Duration in milliseconds")).toHaveValue(-1);
+  await user.click(screen.getByRole("tab", { name: "Aspect ratio" }));
+  expect(screen.getByLabelText("Width")).toHaveValue(0);
 });

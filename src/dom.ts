@@ -496,6 +496,203 @@ function isElementTarget(value: unknown): value is Element {
 }
 
 /**
+ * A target accepted by the DOM visibility helpers.
+ *
+ * @category DOM
+ */
+export type DomVisibilityTarget =
+  | string
+  | Element
+  | Iterable<Element>
+  | ArrayLike<Element>
+  | null
+  | undefined;
+
+type StyleElement = Element & ElementCSSInlineStyle;
+
+const storedDisplayValues = new WeakMap<Element, string>();
+const defaultDisplayValues = new WeakMap<Document, Map<string, string>>();
+
+const defaultDisplayByTag: Record<string, string> = {
+  button: "inline-block",
+  input: "inline-block",
+  select: "inline-block",
+  textarea: "inline-block",
+  table: "table",
+  caption: "table-caption",
+  colgroup: "table-column-group",
+  col: "table-column",
+  thead: "table-header-group",
+  tbody: "table-row-group",
+  tfoot: "table-footer-group",
+  tr: "table-row",
+  td: "table-cell",
+  th: "table-cell",
+  li: "list-item",
+  summary: "list-item",
+};
+
+const blockDisplayTags = new Set([
+  "address", "article", "aside", "blockquote", "body", "dd", "details",
+  "dialog", "div", "dl", "dt", "fieldset", "figcaption", "figure",
+  "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "header",
+  "hgroup", "hr", "html", "main", "nav", "ol", "p", "pre", "section",
+  "ul",
+]);
+
+function getStyleElement(value: unknown): StyleElement | null {
+  if (!isElementTarget(value)) return null;
+  const style = (value as Partial<ElementCSSInlineStyle>).style;
+  return style && typeof style.display === "string"
+    ? value as StyleElement
+    : null;
+}
+
+function resolveVisibilityTargets(target: unknown): StyleElement[] {
+  const resolved = new Set<StyleElement>();
+  const add = (value: unknown) => {
+    const element = getStyleElement(value);
+    if (element) resolved.add(element);
+  };
+
+  if (typeof target === "string") {
+    if (typeof document === "undefined") return [];
+    try {
+      document.querySelectorAll(target).forEach(add);
+    } catch (error) {
+      return [];
+    }
+    return Array.from(resolved);
+  }
+
+  const directElement = getStyleElement(target);
+  if (directElement) return [ directElement ];
+  if (!target || typeof target !== "object") return [];
+
+  const iterator = (target as Partial<Iterable<unknown>>)[Symbol.iterator];
+  if (typeof iterator === "function") {
+    for (const value of target as Iterable<unknown>) add(value);
+    return Array.from(resolved);
+  }
+
+  const length = (target as Partial<ArrayLike<unknown>>).length;
+  if (!Number.isSafeInteger(length) || (length as number) < 0) return [];
+  for (let index = 0; index < (length as number); index += 1) {
+    add((target as ArrayLike<unknown>)[index]);
+  }
+
+  return Array.from(resolved);
+}
+
+function getComputedDisplay(element: Element): string | null {
+  const view = element.ownerDocument.defaultView;
+  return view ? view.getComputedStyle(element).display : null;
+}
+
+function getFallbackDisplay(tagName: string): string {
+  if (defaultDisplayByTag[tagName]) return defaultDisplayByTag[tagName];
+  return blockDisplayTags.has(tagName) ? "block" : "inline";
+}
+
+function getDefaultDisplay(element: Element): string {
+  const ownerDocument = element.ownerDocument;
+  const tagName = element.localName.toLowerCase();
+  let documentValues = defaultDisplayValues.get(ownerDocument);
+  if (!documentValues) {
+    documentValues = new Map();
+    defaultDisplayValues.set(ownerDocument, documentValues);
+  }
+
+  const namespace = element.namespaceURI || "";
+  const cacheKey = `${namespace}:${tagName}`;
+  const cachedValue = documentValues.get(cacheKey);
+  if (cachedValue) return cachedValue;
+
+  let display = "";
+  const isAutonomousCustomElement =
+    namespace === "http://www.w3.org/1999/xhtml" && tagName.includes("-");
+  const parent = ownerDocument.body || ownerDocument.documentElement;
+  if (parent && !isAutonomousCustomElement) {
+    const probe = namespace && namespace !== "http://www.w3.org/1999/xhtml"
+      ? ownerDocument.createElementNS(namespace, tagName)
+      : ownerDocument.createElement(tagName);
+    parent.appendChild(probe);
+    try {
+      display = getComputedDisplay(probe) || "";
+    } finally {
+      parent.removeChild(probe);
+    }
+  }
+
+  if (!display || display === "none") display = getFallbackDisplay(tagName);
+  documentValues.set(cacheKey, display);
+  return display;
+}
+
+/**
+ * Hide every resolved element while preserving its visible inline `display`
+ * value for a later call to {@link show}.
+ *
+ * ```javascript
+ * import { hide } from "mazey";
+ *
+ * hide(".notice");
+ * ```
+ *
+ * @remarks Selectors use the global document. Direct elements and collections
+ * use their owning documents. Invalid selectors and unsupported values are
+ * ignored. Duplicate elements are mutated once.
+ * @param target Selector, element, iterable, array-like collection, or an empty target.
+ * @returns The original target unchanged, to support chaining by the caller.
+ * @category DOM
+ */
+export function hide<T extends DomVisibilityTarget>(target: T): T {
+  resolveVisibilityTargets(target).forEach(element => {
+    const computedDisplay = getComputedDisplay(element);
+    if (computedDisplay !== "none" && element.style.display !== "none") {
+      storedDisplayValues.set(element, element.style.display);
+    }
+    element.style.display = "none";
+  });
+  return target;
+}
+
+/**
+ * Show every resolved element by restoring a display value preserved by
+ * {@link hide}, or by applying the document-aware default for CSS-hidden
+ * elements.
+ *
+ * ```javascript
+ * import { show } from "mazey";
+ *
+ * const notices = document.querySelectorAll(".notice");
+ * show(notices);
+ * ```
+ *
+ * @remarks Selectors use the global document. Direct elements and collections
+ * use their owning documents. Invalid selectors and unsupported values are
+ * ignored. Duplicate elements are mutated once.
+ * @param target Selector, element, iterable, array-like collection, or an empty target.
+ * @returns The original target unchanged, to support chaining by the caller.
+ * @category DOM
+ */
+export function show<T extends DomVisibilityTarget>(target: T): T {
+  resolveVisibilityTargets(target).forEach(element => {
+    if (storedDisplayValues.has(element)) {
+      element.style.display = storedDisplayValues.get(element) as string;
+      storedDisplayValues.delete(element);
+    } else if (element.style.display === "none") {
+      element.style.display = "";
+    }
+
+    if (element.style.display === "" && getComputedDisplay(element) === "none") {
+      element.style.display = getDefaultDisplay(element);
+    }
+  });
+  return target;
+}
+
+/**
  * Resolve an element from a direct element, a selector, an optionally
  * unwrapped value, or a component-like object containing an `$el` element.
  * Selector queries are scoped to the supplied root. Invalid selectors,

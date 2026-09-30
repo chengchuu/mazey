@@ -34,6 +34,17 @@ You can also download and serve the
 [latest browser bundle](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)
 yourself.
 
+## Browser support
+
+Mazey supports Chrome 109+, Edge 109+, Firefox 115+, Safari 16.4+, iOS Safari
+16.4+, Android Chrome 109+, and Samsung Internet 21+. Package output can
+contain ES2022 syntax and does not include JavaScript polyfills. Internet
+Explorer, Opera Mini, KaiOS, the legacy Android Browser, and older browser
+versions are outside this support policy.
+
+Node.js 22 is used for development and continuous integration. Mazey does not
+declare a Node.js runtime compatibility range.
+
 ## Usage
 
 Example: Use a function to verify if a value is a number suitable for standard calculations and comparisons.
@@ -121,6 +132,7 @@ There are some examples maintained by hand below. For more information, please c
   - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
+  - [hide and show](#hide-and-show)
   - [isValidCssSelector](#isvalidcssselector)
   - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
@@ -128,6 +140,7 @@ There are some examples maintained by hand below. For more information, please c
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
 - [Calculate and Formula](#calculate-and-formula)
+  - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
   - [inRate](#inrate)
   - [longestComSubstring](#longestcomsubstring)
@@ -139,6 +152,9 @@ There are some examples maintained by hand below. For more information, please c
   - [resolveLanguagePreference](#resolvelanguagepreference)
   - [setLanguagePreference](#setlanguagepreference)
   - [detectVisitorType](#detectvisitortype)
+  - [isPhone](#isphone)
+  - [isDesktop](#isdesktop)
+  - [isTablet](#istablet)
   - [isIOS](#isios)
   - [isAndroid](#isandroid)
   - [isMacOS](#ismacos)
@@ -1125,6 +1141,29 @@ addClass(dom, "test");
 removeClass(dom, "test");
 ```
 
+#### hide and show
+
+Hide or show a CSS selector, one element, or an iterable or array-like element
+collection. Both helpers return the original target, so a caller can retain its
+own chaining convention. Duplicate elements are changed only once, and invalid
+selectors or unsupported values are ignored.
+
+`hide()` preserves a visible element's inline `display` value. `show()` restores
+that value, or recovers the element's normal display when a stylesheet would
+otherwise keep it hidden.
+
+```javascript
+import { hide, show } from "mazey";
+
+const notices = document.querySelectorAll(".notice");
+
+hide(notices);
+show(notices);
+
+hide("#temporary-message");
+show(document.querySelector("#temporary-message"));
+```
+
 #### isValidCssSelector
 
 Check whether a value is a CSS selector supported by the supplied query root.
@@ -1307,6 +1346,29 @@ a<br /><br />bc
 ```
 
 ### Calculate and Formula
+
+#### calculateAspectRatio
+
+Calculate the exact simplified aspect ratio of positive safe-integer dimensions. The function reduces the width and height using their greatest common divisor and returns the result with a lowercase `x` separator. It does not approximate the result to a commonly named image or video ratio.
+
+```javascript
+import { calculateAspectRatio } from "mazey";
+
+const portraitRatio = calculateAspectRatio(900, 1200);
+const landscapeRatio = calculateAspectRatio(1920, 1080);
+
+console.log(portraitRatio);
+console.log(landscapeRatio);
+```
+
+Output:
+
+```text
+3x4
+16x9
+```
+
+For example, `calculateAspectRatio(3440, 1440)` returns the mathematically exact ratio `"43x18"`, not the approximate label `"21x9"`. Invalid or unsafe-integer dimensions throw `TypeError`; zero and negative dimensions throw `RangeError`.
 
 #### calculateCAGR
 
@@ -1541,8 +1603,8 @@ Output: `true`
 
 #### listenMediaQueryChanges
 
-Register a media-query change callback using the modern event API or the
-legacy `addListener` fallback. The returned cleanup function is idempotent.
+Register a media-query change callback using the standard `change` event. The
+returned cleanup function is idempotent.
 
 ```javascript
 const media = window.matchMedia("(prefers-color-scheme: dark)");
@@ -1635,6 +1697,84 @@ or changed, so false positives and false negatives are possible.
 > limiting, fraud prevention, or access control. Genuine crawler verification
 > generally requires server-side request information and provider-specific
 > validation.
+
+#### isPhone
+
+Check whether the current browser represents a phone or handset-class device.
+The result excludes tablets.
+
+```javascript
+const result = isPhone();
+
+console.log(result);
+```
+
+#### isDesktop
+
+Check whether the current browser represents a desktop or laptop-class device.
+Recognized touchscreen Windows laptops remain desktop devices.
+
+```javascript
+const result = isDesktop();
+
+console.log(result);
+```
+
+#### isTablet
+
+Check whether the current browser represents a tablet. The helper recognizes
+conventional iPads, modern iPadOS desktop mode, Android user agents without a
+`Mobile` token, and bounded `Tablet` tokens.
+
+```javascript
+const result = isTablet();
+
+console.log(result);
+```
+
+You can pass a user-agent string for deterministic or server-side
+classification:
+
+```javascript
+const result = isTablet(
+  "Mozilla/5.0 (Linux; Android 14; SM-X710) AppleWebKit/537.36"
+);
+
+console.log(result);
+```
+
+Output:
+
+```text
+true
+```
+
+The three helpers use mutually exclusive form-factor classifications for
+recognized devices:
+
+| Device         | `isPhone` | `isDesktop` | `isTablet` |
+|:---------------|:-----------|:------------|:-----------|
+| iPhone         | `true`     | `false`     | `false`    |
+| Android phone  | `true`     | `false`     | `false`    |
+| iPad           | `false`    | `false`     | `true`     |
+| Android tablet | `false`    | `false`     | `true`     |
+| Windows laptop | `false`    | `true`      | `false`    |
+| MacBook        | `false`    | `true`      | `false`    |
+| Unknown        | `false`    | `false`     | `false`    |
+
+Each helper accepts an optional explicit user-agent string. Explicit input does
+not borrow the current browser's platform or touch signals. Without explicit
+input, all three return `false` during SSR when browser signals are unavailable.
+
+Device classification is heuristic and spoofable. It does not use viewport
+width and is not a security API or a replacement for responsive CSS and feature
+detection. `getBrowserInfo().platform` remains a legacy broad grouping that
+reports iOS and Android as `"mobile"`; the new helpers provide a more specific
+phone, tablet, or desktop classification.
+
+`isPhone` checks device form factor. The separate `isMobile` API is a direct
+alias of `isValidPhoneNumber`; it validates an 11-digit Chinese mobile-shaped
+number and does not inspect the browser or device.
 
 #### isIOS
 
@@ -1791,10 +1931,10 @@ if (isStandalonePWA()) {
 
 #### getPerformance
 
-Get page load time(`PerformanceNavigationTiming`).
+Get page-load metrics from `PerformanceNavigationTiming`.
 
-This function uses the [`PerformanceNavigationTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceNavigationTiming) API to get page load time data.
-The `PerformanceNavigationTiming` API provides more accurate and detailed information about page load time than the deprecated [`PerformanceTiming`](https://developer.mozilla.org/en-US/docs/Web/API/PerformanceTiming) API.
+This function rejects when the browser does not provide a navigation entry. It
+does not fall back to the deprecated `PerformanceTiming` API.
 
 Usage:
 

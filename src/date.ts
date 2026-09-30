@@ -436,13 +436,7 @@ export function subYears(date: Date | number, amount: number): Date {
  * @category Util
  */
 export function mNow(): number {
-  let ret = 0;
-  if (Date.now) {
-    ret = Date.now();
-  } else {
-    ret = new Date().getTime();
-  }
-  return ret;
+  return Date.now();
 }
 
 

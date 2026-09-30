@@ -51,13 +51,13 @@ test("theme initialization tolerates inaccessible local storage", () => {
   cleanup();
 });
 
-test("theme changes support legacy MediaQueryList listeners", () => {
+test("theme changes use standard MediaQueryList listeners", () => {
   renderThemeControl();
   localStorage.clear();
   const media = {
     matches: false,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
   };
   const windowRef = {
     localStorage,
@@ -65,9 +65,9 @@ test("theme changes support legacy MediaQueryList listeners", () => {
   };
   const cleanup = initializeThemeControls(storageKey, document, windowRef);
 
-  expect(media.addListener).toHaveBeenCalledTimes(1);
+  expect(media.addEventListener).toHaveBeenCalledTimes(1);
   cleanup();
-  expect(media.removeListener).toHaveBeenCalledTimes(1);
+  expect(media.removeEventListener).toHaveBeenCalledTimes(1);
 });
 
 test("theme changes keep browser chrome aligned with navbar backgrounds", () => {

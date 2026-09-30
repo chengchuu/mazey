@@ -2,13 +2,12 @@
 /* eslint-env jest */
 
 import {
+  calculateAspectRatioExample,
   calculateCAGRExample,
   calculateDateIntervalExample,
-  calculateDurationExample,
   createCAGRExampleValues,
   createCurrentDateIntervalExampleValues,
   createDateIntervalExampleValues,
-  parseDurationInput,
 } from "../../examples/components/core";
 
 describe("date interval example core", () => {
@@ -146,26 +145,35 @@ describe("CAGR example core", () => {
   );
 });
 
-describe("duration example core", () => {
+describe("aspect ratio example core", () => {
   test.each([
-    ["0", "0 seconds"],
-    ["1500", "1.5 seconds"],
-    ["90000", "1.5 minutes"],
-  ])("formats %s milliseconds", (input, output) => {
-    expect(calculateDurationExample(input)).toEqual({
-      value: output,
+    ["1920", "1080", "16x9"],
+    ["900", "1200", "3x4"],
+    ["3440", "1440", "43x18"],
+  ])("reduces %s by %s to %s", (width, height, ratio) => {
+    expect(calculateAspectRatioExample(width, height)).toEqual({
+      value: ratio,
       error: null,
     });
   });
 
-  test.each(["", "-1", "Infinity", "not-a-number"])(
-    "rejects invalid duration %p",
-    (input) => {
-      expect(parseDurationInput(input)).toBeNull();
-      expect(calculateDurationExample(input)).toEqual({
-        value: null,
-        error: "Enter a finite duration of zero milliseconds or more.",
-      });
-    }
-  );
+  test.each([
+    ["", "1080", "width must be a safe integer"],
+    ["1920", "", "height must be a safe integer"],
+    ["1920.5", "1080", "width must be a safe integer"],
+    ["1920", "1080.5", "height must be a safe integer"],
+    ["0", "1080", "width and height must be greater than zero"],
+    ["1920", "-1", "width and height must be greater than zero"],
+    ["Infinity", "1080", "width must be a safe integer"],
+    [
+      String(Number.MAX_SAFE_INTEGER + 1),
+      "1080",
+      "width must be a safe integer",
+    ],
+  ])("returns a focused error for %p by %p", (width, height, error) => {
+    expect(calculateAspectRatioExample(width, height)).toEqual({
+      value: null,
+      error: `The aspect ratio example could not run: ${error}.`,
+    });
+  });
 });

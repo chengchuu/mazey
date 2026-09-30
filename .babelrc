@@ -3,11 +3,6 @@
     [
       "@babel/preset-env",
       {
-        "targets": {
-          "browsers": ["> 1%", "last 2 versions", "android>4.0"]
-        },
-        "useBuiltIns": "entry",
-        "corejs": 3,
         "exclude": ["@babel/plugin-transform-typeof-symbol"]
       }
     ],
@@ -15,8 +10,6 @@
     ["@babel/preset-react", { "runtime": "automatic" }]
   ],
   "plugins": [
-    "@babel/plugin-transform-class-properties",
-    "@babel/plugin-transform-object-rest-spread",
     [
       "@babel/plugin-transform-runtime",
       {

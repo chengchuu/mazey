@@ -43,111 +43,36 @@ import { isValidHttpUrl } from "./url";
  */
 export function loadCSS(url: string, options: { id?: string } = { id: "" }): Promise<string> {
   const { id } = options;
-  let success: (v: string) => void;
-  let fail: (v: Error) => void = () => undefined;
-  const status = new Promise<string>((resolve, reject) => {
-    [ success, fail ] = [ resolve, reject ];
-  });
-  const callback = function() {
-    cleanup();
-    success("loaded");
-  };
-  let node: HTMLLinkElement | null = document.createElement("link");
-  if (!node) {
-    fail(new Error("Not support create link element"));
-  }
-  const supportOnload = "onload" in node;
-  const isOldWebKit = +navigator.userAgent.replace(/.*(?:AppleWebKit|AndroidWebKit)\/?(\d+).*/i, "$1") < 536; // Handle legacy WebKit separately.
-  const protectNum = 300000; // Maximum poll count used to prevent infinite polling.
-  node.rel = "stylesheet";
-  node.type = "text/css";
-  node.href = url;
-  if (typeof id !== "undefined") {
-    node.id = id;
-  }
-  document.getElementsByTagName("head")[0].appendChild(node);
-  // for Old WebKit and Old Firefox
-  if (isOldWebKit || !supportOnload) {
-    // Begin after node insertion
-    setTimeout(function() {
-      pollCss(node, callback, 0);
-    }, 1);
-    return status;
-  }
-  if (supportOnload) {
-    node.onload = onload;
-    node.onerror = function() {
+  return new Promise<string>((resolve, reject) => {
+    const node = document.createElement("link");
+    let settled = false;
+    const cleanup = () => {
+      node.onload = null;
+      node.onerror = null;
+    };
+    const succeed = () => {
+      if (settled) return;
+      settled = true;
       cleanup();
-      fail(new Error(`Failed to load CSS: ${url}`));
+      resolve("loaded");
     };
-  } else {
-    // TODO: This duplicates the `!supportOnload` compatibility path above.
-    node.onreadystatechange = function() {
-      if (node && /loaded|complete/.test(node.readyState)) {
-        onload();
-      }
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new Error(`Failed to load CSS: ${url}`));
     };
-  }
-  function onload() {
-    callback();
-  }
-  function cleanup() {
-    // Ensure the load handlers run only once.
-    if (node) node.onload = node.onerror = node.onreadystatechange = null;
-    // Release the node reference to avoid memory leaks in older versions of IE.
-    node = null;
-  }
-  // Poll until the stylesheet has loaded.
-  /*
-   * @param node The `<link>` element.
-   * @param callback Callback invoked after loading completes.
-   * @param step Poll count used to prevent an infinite loop.
-   */
-  function pollCss(node: HTMLLinkElement | null, callback: () => void, step: number) {
-    if (!node) return;
-    const sheet = node.sheet;
-    let isLoaded: boolean;
-    step += 1;
-    // Stop polling after the safety threshold.
-    if (step > protectNum) {
-      isLoaded = true;
-      // Release the local node reference.
-      if (node) node = null;
-      callback();
-      return;
+
+    node.rel = "stylesheet";
+    node.type = "text/css";
+    node.href = url;
+    if (typeof id !== "undefined") {
+      node.id = id;
     }
-    if (isOldWebKit) {
-      // for WebKit < 536
-      if (sheet) {
-        isLoaded = true;
-      }
-    } else if (sheet) {
-      // for Firefox < 9.0
-      try {
-        if (sheet.cssRules) {
-          isLoaded = true;
-        }
-      } catch (ex) {
-        const err = ex as ErrorEvent;
-        // Detect successful loading in legacy Firefox from its security error.
-        // The value of `ex.name` is changed from "NS_ERROR_DOM_SECURITY_ERR"
-        // to "SecurityError" since Firefox 13.0. But Firefox is less than 9.0
-        // in here, So it is ok to just rely on "NS_ERROR_DOM_SECURITY_ERR"
-        if (err.name === "NS_ERROR_DOM_SECURITY_ERR") {
-          isLoaded = true;
-        }
-      }
-    }
-    setTimeout(function() {
-      if (isLoaded) {
-        // Allow 20 milliseconds for the downloaded styles to render.
-        callback();
-      } else {
-        pollCss(node, callback, step);
-      }
-    }, 20);
-  }
-  return status;
+    node.onload = succeed;
+    node.onerror = fail;
+    document.head.appendChild(node);
+  });
 }
 
 const defaultLoadScriptOptions = {
@@ -264,7 +189,6 @@ export function loadScript(
     const cleanup = () => {
       script.onload = null;
       script.onerror = null;
-      script.onreadystatechange = null;
       if (timeoutId !== null) {
         clearTimeout(timeoutId);
         timeoutId = null;
@@ -301,15 +225,7 @@ export function loadScript(
       });
     }
 
-    if (script.readyState) {
-      script.onreadystatechange = function() {
-        if (script.readyState === "loaded" || script.readyState === "complete") {
-          succeed();
-        }
-      };
-    } else {
-      script.onload = succeed;
-    }
+    script.onload = succeed;
     script.onerror = () => fail(new Error(`Failed to load script: ${url}`));
     script.src = url;
 

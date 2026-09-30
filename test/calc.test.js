@@ -3,6 +3,7 @@
  */
 /* eslint-disable no-undef */
 import {
+  calculateAspectRatio,
   calculateCAGR,
   longestComSubstring,
   longestComSubsequence,
@@ -14,6 +15,86 @@ const millisecondsPerDay = 24 * 60 * 60 * 1000;
 function expectedCAGR(totalReturn, durationInDays) {
   return Math.pow(1 + totalReturn, 365 / durationInDays) - 1;
 }
+
+describe("calculateAspectRatio", () => {
+  it.each([
+    [ 1920, 1080, "16x9" ],
+    [ 3840, 2160, "16x9" ],
+    [ 1280, 720, "16x9" ],
+    [ 1600, 1200, "4x3" ],
+    [ 900, 1200, "3x4" ],
+    [ 900, 1600, "9x16" ],
+    [ 1080, 1920, "9x16" ],
+    [ 1200, 1600, "3x4" ],
+    [ 1, 1, "1x1" ],
+    [ 1080, 1080, "1x1" ],
+    [ 16, 9, "16x9" ],
+    [ 3, 4, "3x4" ],
+    [ 2, 3, "2x3" ],
+    [ 1000, 700, "10x7" ],
+    [ 2560, 1080, "64x27" ],
+    [ 3440, 1440, "43x18" ],
+    [ 1, 2, "1x2" ],
+    [ 2, 1, "2x1" ],
+    [ Number.MAX_SAFE_INTEGER, 1, `${Number.MAX_SAFE_INTEGER}x1` ],
+  ])("reduces %i by %i to %s", (width, height, ratio) => {
+    expect(calculateAspectRatio(width, height)).toBe(ratio);
+  });
+
+  it.each([
+    [ 0, 100 ],
+    [ 100, 0 ],
+    [ 0, 0 ],
+    [ -100, 200 ],
+    [ 100, -200 ],
+    [ -100, -200 ],
+  ])("rejects non-positive dimensions %p by %p", (width, height) => {
+    expect(() => calculateAspectRatio(width, height)).toThrow(RangeError);
+    expect(() => calculateAspectRatio(width, height)).toThrow(
+      "width and height must be greater than zero."
+    );
+  });
+
+  it.each([
+    900.5,
+    0.5,
+    NaN,
+    Infinity,
+    -Infinity,
+    Number.MAX_SAFE_INTEGER + 1,
+    "900",
+    null,
+    undefined,
+    true,
+    {},
+    [],
+  ])("rejects invalid width %p", (width) => {
+    expect(() => calculateAspectRatio(width, 1200)).toThrow(TypeError);
+    expect(() => calculateAspectRatio(width, 1200)).toThrow(
+      "width must be a safe integer."
+    );
+  });
+
+  it.each([
+    1200.25,
+    0.5,
+    NaN,
+    Infinity,
+    -Infinity,
+    Number.MAX_SAFE_INTEGER + 1,
+    "1200",
+    null,
+    undefined,
+    false,
+    {},
+    [],
+  ])("rejects invalid height %p", (height) => {
+    expect(() => calculateAspectRatio(900, height)).toThrow(TypeError);
+    expect(() => calculateAspectRatio(900, height)).toThrow(
+      "height must be a safe integer."
+    );
+  });
+});
 
 describe("calculateCAGR", () => {
   const startDate = "2022-04-01";
