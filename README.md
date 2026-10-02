@@ -304,7 +304,8 @@ Load Success: load
 
 #### isNumber
 
-Check whether it is a right number.
+Check whether a value is an allowed numeric primitive. Optional constraints can
+require an integer or an inclusive minimum and maximum.
 
 Usage:
 
@@ -316,14 +317,20 @@ const ret3 = isNumber(Infinity);
 const ret4 = isNumber(Infinity, { isInfinityAsNumber: true });
 const ret5 = isNumber(NaN);
 const ret6 = isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true });
-console.log(ret1, ret2, ret3, ret4, ret5, ret6);
+const ret7 = isNumber(12, { integer: true, min: 1, max: 31 });
+const ret8 = isNumber(12.5, { integer: true, min: 1, max: 31 });
+console.log(ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8);
 ```
 
 Output:
 
 ```text
-true false false true false true
+true false false true false true true false
 ```
+
+`min` and `max` are inclusive and may be used independently. Invalid or
+reversed bounds return `false`. Existing non-finite-number behavior is unchanged
+when `integer`, `min`, and `max` are omitted.
 
 #### isJSONString
 
@@ -1896,7 +1903,10 @@ for PWA functionality that synchronous JavaScript can identify: a secure
 context, Service Worker API support, and, by default, a web app manifest link
 with a non-empty `href`. Pass `{ requireManifest: false }` when only secure
 Service Worker eligibility is needed, or `{ scope: "/app/" }` to require the
-current page to be inside a same-origin path scope.
+current page to be inside a same-origin path scope. Callers that already own
+browser references can pass
+`{ environment: { window, navigator, document } }`; injected objects are used
+exclusively and are never combined with globals.
 
 This check does not validate or request the manifest, verify service worker
 registration, determine whether the app is installed, or guarantee that an
@@ -1910,6 +1920,15 @@ const ret = isSafePWAEnv();
 console.log(ret);
 ```
 
+Site initialization and deterministic tests can use explicit browser objects:
+
+```javascript
+const ret = isSafePWAEnv({
+  scope: "/app/",
+  environment: { window, navigator, document },
+});
+```
+
 Output:
 
 ```text
@@ -1920,12 +1939,20 @@ true
 
 Detect standard standalone display mode with the iOS Safari
 `navigator.standalone` fallback. This is a presentation hint, not proof that
-the app is installed or controlled by a service worker.
+the app is installed or controlled by a service worker. Pass
+`{ environment: { window, navigator } }` to inspect caller-owned browser
+objects without reading globals.
 
 ```javascript
 if (isStandalonePWA()) {
   document.querySelector("[data-install-help]")?.remove();
 }
+```
+
+```javascript
+const standalone = isStandalonePWA({
+  environment: { window, navigator },
+});
 ```
 
 ### Web Performance

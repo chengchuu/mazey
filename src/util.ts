@@ -883,22 +883,32 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
  * const ret4 = isNumber(Infinity, { isInfinityAsNumber: true });
  * const ret5 = isNumber(NaN);
  * const ret6 = isNumber(NaN, { isNaNAsNumber: true, isInfinityAsNumber: true });
- * console.log(ret1, ret2, ret3, ret4, ret5, ret6);
+ * const ret7 = isNumber(12, { integer: true, min: 1, max: 31 });
+ * const ret8 = isNumber(12.5, { integer: true, min: 1, max: 31 });
+ * console.log(ret1, ret2, ret3, ret4, ret5, ret6, ret7, ret8);
  * ```
  *
  * Output:
  *
  * ```text
- * true false false true false true
+ * true false false true false true true false
  * ```
  *
  * @param {*} num Value to check.
- * @param options Controls whether `NaN`, `Infinity`, or other non-finite values count as numbers.
+ * @param options Controls non-finite values and optional integer or inclusive range constraints.
  * @returns {boolean} Whether the value is an allowed number.
+ * @remarks Invalid bounds, reversed bounds, and `NaN` combined with an integer or range constraint return `false`. Omitting the new constraints preserves the existing non-finite-number behavior.
  * @category Util
  */
 export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
-  const { isNaNAsNumber = false, isInfinityAsNumber = false, isUnFiniteAsNumber = false } = options;
+  const {
+    isNaNAsNumber = false,
+    isInfinityAsNumber = false,
+    isUnFiniteAsNumber = false,
+    integer = false,
+    min,
+    max,
+  } = options;
   if (typeof num !== "number") {
     return false;
   }
@@ -910,6 +920,24 @@ export function isNumber(num: unknown, options: IsNumberOptions = {}): boolean {
   //   return false;
   // }
   if (!isNaNAsNumber && isNaN(num)) {
+    return false;
+  }
+  if (min !== undefined && (typeof min !== "number" || Number.isNaN(min))) {
+    return false;
+  }
+  if (max !== undefined && (typeof max !== "number" || Number.isNaN(max))) {
+    return false;
+  }
+  if (min !== undefined && max !== undefined && min > max) {
+    return false;
+  }
+  if (integer === true && !Number.isInteger(num)) {
+    return false;
+  }
+  if ((min !== undefined || max !== undefined) && Number.isNaN(num)) {
+    return false;
+  }
+  if ((min !== undefined && num < min) || (max !== undefined && num > max)) {
     return false;
   }
   return true;
