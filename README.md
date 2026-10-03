@@ -78,8 +78,12 @@ There are some examples maintained by hand below. For more information, please c
   - [windowLoaded](#windowloaded)
 - [Util](#util)
   - [isNumber](#isnumber)
+  - [isNullish](#isnullish)
   - [isJSONString](#isjsonstring)
   - [parseJsonSafe](#parsejsonsafe)
+  - [isCNMobileNumber](#iscnmobilenumber)
+  - [escapeHTML and unescapeHTML](#escapehtml-and-unescapehtml)
+  - [truncateByWeightedLength](#truncatebyweightedlength)
   - [escapeHtmlAttribute](#escapehtmlattribute)
   - [sha256Hex](#sha256hex)
   - [isValidData](#isvaliddata)
@@ -103,11 +107,15 @@ There are some examples maintained by hand below. For more information, please c
   - [assignDefined](#assigndefined)
   - [debounce](#debounce)
   - [throttle](#throttle)
+  - [repeatUntilConditionMet](#repeatuntilconditionmet)
   - [convertCamelToKebab](#convertcameltokebab)
-  - [convertCamelToUnder](#convertcameltounder)
+  - [convertCamelToSnake](#convertcameltosnake)
+  - [convertSnakeToCamel](#convertsnaketocamel)
+  - [formatPercentage](#formatpercentage)
   - [toJavaScriptGlobalName](#tojavascriptglobalname)
   - [derivePackageMetadata](#derivepackagemetadata)
 - [URL](#url)
+  - [getURLPathExtension](#geturlpathextension)
   - [getQueryParam](#getqueryparam)
   - [getUrlParam](#geturlparam)
   - [getHashQueryParam](#gethashqueryparam)
@@ -121,19 +129,19 @@ There are some examples maintained by hand below. For more information, please c
   - [Storage Helpers](#storage-helpers)
 - [DOM](#dom)
   - [Class Helpers](#class-helpers)
-  - [hide and show](#hide-and-show)
+  - [hideElements and showElements](#hideelements-and-showelements)
   - [isValidCssSelector](#isvalidcssselector)
   - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
   - [injectStyle](#injectstyle)
-  - [genStyleString](#genstylestring)
+  - [createCSSRule](#createcssrule)
   - [newLine](#newline)
 - [Event](#event)
   - [onEvent](#onevent)
 - [Calculate and Formula](#calculate-and-formula)
   - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
-  - [inRate](#inrate)
+  - [randomBoolean](#randomboolean)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [Browser Information](#browser-information)
@@ -152,6 +160,7 @@ There are some examples maintained by hand below. For more information, please c
   - [isWindows](#iswindows)
   - [isLinux](#islinux)
   - [getBrowserInfo](#getbrowserinfo)
+  - [getBrowserClassNames](#getbrowserclassnames)
   - [isSafePWAEnv](#issafepwaenv)
   - [isStandalonePWA](#isstandalonepwa)
   - [listenMediaQueryChanges](#listenmediaquerychanges)
@@ -293,6 +302,9 @@ Load Success: load
 
 ### Util
 
+Use native `Date.now()` to get the current epoch time in milliseconds. The
+former `mNow()` helper remains available as a deprecated compatibility API.
+
 #### isNumber
 
 Check whether a value is an allowed numeric primitive. Optional constraints can
@@ -322,6 +334,21 @@ true false false true false true true false
 `min` and `max` are inclusive and may be used independently. Invalid or
 reversed bounds return `false`. Existing non-finite-number behavior is unchanged
 when `integer`, `min`, and `max` are omitted.
+
+#### isNullish
+
+Check whether a value is exactly `undefined` or `null`. Other falsy values are
+not nullish.
+
+```javascript
+isNullish(undefined); // true
+isNullish(null); // true
+isNullish(false); // false
+isNullish(0); // false
+isNullish(""); // false
+```
+
+`isUdfOrNul` remains available as a deprecated alias of `isNullish`.
 
 #### isJSONString
 
@@ -353,6 +380,55 @@ const data = parseJsonSafe('{"enabled":true}');
 const fallback = parseJsonSafe("invalid", {});
 console.log(data, fallback);
 ```
+
+#### isCNMobileNumber
+
+Check the Chinese mobile-number format: `1` followed by ten digits. This checks
+format only, without verifying assigned prefixes, ownership, or reachability.
+
+```javascript
+import { isCNMobileNumber } from "mazey";
+
+isCNMobileNumber("13800138000"); // true
+isCNMobileNumber("+8613800138000"); // false
+```
+
+`isValidPhoneNumber` and `isMobile` remain deprecated aliases.
+
+#### escapeHTML and unescapeHTML
+
+Escape six HTML-sensitive characters or decode that fixed entity set in one
+pass. These helpers do not sanitize arbitrary HTML or validate URLs.
+`unescapeHTML` preserves unrecognized entities.
+
+```javascript
+import { escapeHTML, unescapeHTML } from "mazey";
+
+escapeHTML('<b title="x">A&B</b>');
+// '&lt;b title=&quot;x&quot;&gt;A&amp;B&lt;&#x2F;b&gt;'
+unescapeHTML("&lt;b&gt;A&amp;B&lt;&#x2F;b&gt;");
+// "<b>A&B</b>"
+```
+
+`sanitizeInput` and `unsanitizeInput` remain deprecated aliases. The legacy
+`unsanitize` alias also remains available.
+
+#### truncateByWeightedLength
+
+Truncate by weighted UTF-16 length: code units from `U+0000` through `U+00FF`
+count as one; all other code units count as two. Optional truncation text is
+appended after the limit. This does not measure bytes or rendered width and can
+split surrogate pairs.
+
+```javascript
+import { truncateByWeightedLength } from "mazey";
+
+truncateByWeightedLength("Hello世界", 7); // "Hello世"
+truncateByWeightedLength("Hello世界", 7, { hasDot: true }); // "Hello世..."
+```
+
+`cutZHString` remains a deprecated alias. The legacy `truncateZHString` and
+`cutCHSString` signatures retain their boolean `hasDot` argument.
 
 #### escapeHtmlAttribute
 
@@ -783,6 +859,30 @@ const foo = debounce(() => {
 }, 1000, true);
 ```
 
+#### repeatUntilConditionMet
+
+Poll sequentially until the result is strictly `true`, a custom condition
+succeeds, or the invocation limit is reached. Defaults are a 1000 ms interval
+and 10 invocations. The first invocation waits for the interval; each subsequent
+delay starts after the previous callback completes.
+
+```typescript
+const cancelPolling = repeatUntilConditionMet(
+  fetchStatus,
+  { interval: 1000, times: 10 },
+  result => result === true
+);
+
+// During component unmount or owner teardown:
+cancelPolling();
+```
+
+The returned cleanup is idempotent. It clears a pending timer and prevents
+condition evaluation and further polling after an in-flight callback resolves.
+It does not abort the running callback, cancel its requests, or undo side effects.
+Existing validation failures and zero iterations also return harmless cleanup
+functions without scheduling. Callback and condition exceptions remain unsuppressed.
+
 #### throttle
 
 Throttle
@@ -817,15 +917,18 @@ a-b-c
 a-b-c
 ```
 
-#### convertCamelToUnder
+#### convertCamelToSnake
 
-Transfer CamelCase to Underscore.
+Insert an underscore before each uppercase ASCII letter, lowercase the result,
+and remove one leading underscore. `XMLParser` becomes `x_m_l_parser`.
+Other existing underscores are preserved. `convertCamelToUnder` remains a
+deprecated direct alias; `camelCase2Underscore` remains available.
 
 Usage:
 
 ```javascript
-const ret1 = convertCamelToUnder("ABC");
-const ret2 = convertCamelToUnder("aBC");
+const ret1 = convertCamelToSnake("ABC");
+const ret2 = convertCamelToSnake("aBC");
 console.log(ret1);
 console.log(ret2);
 ```
@@ -835,6 +938,32 @@ Output:
 ```text
 a_b_c
 a_b_c
+```
+
+#### convertSnakeToCamel
+
+Replace `_` followed by a lowercase ASCII letter with its uppercase letter.
+Other underscores and characters remain unchanged. `convertUnderToCamel`
+remains a deprecated direct alias.
+
+```javascript
+convertSnakeToCamel("a_b_c"); // "aBC"
+convertSnakeToCamel("a__b_"); // "a_B_"
+```
+
+#### formatPercentage
+
+Multiply a numeric ratio by 100 and append `%`. Precision defaults to `0`.
+Falsy precision uses `Math.floor`, including for negative values; truthy
+precision uses native `toFixed`, preserving trailing zeros, floating-point
+behavior, and exceptions for unsupported precision. `floatToPercent` remains
+a deprecated direct alias.
+
+```javascript
+formatPercentage(0.129); // "12%"
+formatPercentage(-0.129); // "-13%"
+formatPercentage(0.125, 1); // "12.5%"
+formatPercentage(0.12, 2); // "12.00%"
 ```
 
 #### toJavaScriptGlobalName
@@ -892,6 +1021,23 @@ The helper does not read `package.json` itself and does not mutate the supplied
 manifest.
 
 ### URL
+
+#### getURLPathExtension
+
+Extract a file extension from a URL or path, excluding query and fragment text.
+This helper does not detect MIME types or inspect file contents.
+It preserves the existing string-based behavior: `archive.tar.gz` returns
+`tar.gz`, and an origin-only input such as `https://example.com` returns `com`.
+
+```javascript
+import { getURLPathExtension } from "mazey";
+
+getURLPathExtension("https://example.com/image.png?width=200#preview"); // "png"
+getURLPathExtension("/images/photo.jpg"); // "jpg"
+getURLPathExtension("/images/photo"); // ""
+```
+
+`getUrlFileType` remains a deprecated alias.
 
 #### getQueryParam
 
@@ -1139,28 +1285,30 @@ addClass(dom, "test");
 removeClass(dom, "test");
 ```
 
-#### hide and show
+#### hideElements and showElements
 
 Hide or show a CSS selector, one element, or an iterable or array-like element
 collection. Both helpers return the original target, so a caller can retain its
 own chaining convention. Duplicate elements are changed only once, and invalid
 selectors or unsupported values are ignored.
 
-`hide()` preserves a visible element's inline `display` value. `show()` restores
-that value, or recovers the element's normal display when a stylesheet would
-otherwise keep it hidden.
+`hideElements()` preserves a visible element's inline `display` value.
+`showElements()` restores that value, or recovers the element's normal display
+when a stylesheet would otherwise keep it hidden.
 
 ```javascript
-import { hide, show } from "mazey";
+import { hideElements, showElements } from "mazey";
 
 const notices = document.querySelectorAll(".notice");
 
-hide(notices);
-show(notices);
+hideElements(notices);
+showElements(notices);
 
-hide("#temporary-message");
-show(document.querySelector("#temporary-message"));
+hideElements("#temporary-message");
+showElements(document.querySelector("#temporary-message"));
 ```
+
+`hide` and `show` remain available as deprecated aliases.
 
 #### isValidCssSelector
 
@@ -1243,18 +1391,18 @@ Output:
 <style>body { background-color: #444; }</style>
 ```
 
-Example 3: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
+Example 3: Combine `createCSSRule` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, injectStyle } from "mazey";
+import { createCSSRule, injectStyle } from "mazey";
 
-const xStyle = genStyleString(
+const xStyle = createCSSRule(
   ".footer>.x-wish>a:first-child" +
   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
   ",.m-hide",
   [ "display: none" ]
 );
-const yStyle = genStyleString(
+const yStyle = createCSSRule(
   ".footer>.y-wish:before",
   [
     `content: 'Copyright (c) chengchuu'`,
@@ -1274,15 +1422,19 @@ Output:
 <style id="z-style">.footer>.x-wish>a:first-child,div.wish-flex>a[href^='https://github.com/chengchuu'],.m-hide{display: none;}.footer>.y-wish:before{content: 'Copyright (c) chengchuu';color: inherit;padding-inline-start: var(--y-wish-1_5);padding-inline-end: var(--y-wish-1_5);padding-top: var(--y-wish-1);padding-bottom: var(--y-wish-1);}</style>
 ```
 
-#### genStyleString
+#### createCSSRule
 
-Generate the inline style string from the given parameters. The first parameter is the query selector, and the second parameter is the style array.
+Create CSS rule text from a selector and an array of declarations. The helper
+joins declarations with semicolons without validating or escaping CSS.
+`genStyleString` remains a deprecated alias.
 
 Usage:
 
 ```javascript
-const ret1 = genStyleString(".a", [ "color:red" ]);
-const ret2 = genStyleString("#b", [ "color:red", "font-size:12px" ]);
+import { createCSSRule } from "mazey";
+
+const ret1 = createCSSRule(".a", [ "color:red" ]);
+const ret2 = createCSSRule("#b", [ "color:red", "font-size:12px" ]);
 console.log(ret1);
 console.log(ret2);
 ```
@@ -1294,18 +1446,18 @@ Output:
 #b{color:red;font-size:12px;}
 ```
 
-Example: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
+Example: Combine `createCSSRule` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, injectStyle } from "mazey";
+import { createCSSRule, injectStyle } from "mazey";
 
-const xStyle = genStyleString(
+const xStyle = createCSSRule(
   ".footer>.x-wish>a:first-child" +
   ",div.wish-flex>a[href^='https://github.com/chengchuu']" +
   ",.m-hide",
   [ "display: none" ]
 );
-const yStyle = genStyleString(
+const yStyle = createCSSRule(
   ".footer>.y-wish:before",
   [
     `content: 'Copyright (c) chengchuu'`,
@@ -1400,7 +1552,7 @@ The dates may be supported structured date strings, millisecond timestamps, or `
 Number input is a decimal ratio, so `0.202` represents `20.2%`. String input is a percentage value, so `"20.2%"` and `"20.2"` both represent `20.2%`; strict scientific notation such as `"2.02e1%"` is also accepted. The returned CAGR is an unrounded decimal ratio.
 
 ```javascript
-import { calculateCAGR, floatToPercent } from "mazey";
+import { calculateCAGR, formatPercentage } from "mazey";
 
 const cagr = calculateCAGR(
   "2022-04-01",
@@ -1410,7 +1562,7 @@ const cagr = calculateCAGR(
 
 console.log({
   cagr,
-  percentage: floatToPercent(cagr, 2),
+  percentage: formatPercentage(cagr, 2),
 });
 ```
 
@@ -1435,14 +1587,14 @@ calculateCAGR(
 
 Date strings are validated using Mazey's strict date rules. Invalid dates, malformed or non-finite returns, and non-increasing date ranges throw errors. The parsed total return must be greater than `-1`, because `-1` represents a complete loss for which CAGR is undefined.
 
-#### inRate
+#### randomBoolean
 
-Hit probability (1% ~ 100%).
+Return whether a generated random value is less than the supplied probability.
 
 Usage:
 
 ```javascript
-const ret = inRate(0.5); // 0.01 ~ 1 true/false
+const ret = randomBoolean(0.5); // A 50% chance of returning true.
 console.log(ret);
 ```
 
@@ -1459,7 +1611,7 @@ Example: Test the precision.
 let trueCount = 0;
 let falseCount = 0;
 new Array(1000000).fill(0).forEach(() => {
-  if (inRate(0.5)) {
+  if (randomBoolean(0.5)) {
     trueCount++;
   } else {
     falseCount++;
@@ -1467,6 +1619,9 @@ new Array(1000000).fill(0).forEach(() => {
 });
 console.log(trueCount, falseCount); // 499994 500006
 ```
+
+`randomBoolean` evaluates `Math.random() < rate` without clamping the supplied
+rate. `isHit` is a deprecated alias, and `inRate` remains a compatibility alias.
 
 #### longestComSubstring
 
@@ -1791,7 +1946,7 @@ reports iOS and Android as `"mobile"`; the new helpers provide a more specific
 phone, tablet, or desktop classification.
 
 `isPhone` checks device form factor. The separate `isMobile` API is a direct
-alias of `isValidPhoneNumber`; it validates an 11-digit Chinese mobile-shaped
+alias of `isCNMobileNumber`; it validates an 11-digit Chinese mobile-shaped
 number and does not inspect the browser or device.
 
 #### isIOS
@@ -1905,6 +2060,20 @@ Example: Determine the environment of the mobile QQ.
 const { system, shell } = getBrowserInfo();
 const isMobileQQ = ["android", "ios"].includes(system) && ["qq_browser", "qq_app"].includes(shell);
 ```
+
+#### getBrowserClassNames
+
+Return class-name tokens from the cached browser classification. An optional
+prefix and separator apply to each token; the helper does not modify the DOM.
+
+```javascript
+import { getBrowserClassNames } from "mazey";
+
+console.log(getBrowserClassNames("browser"));
+// Possible output: ["browser-windows", "browser-desktop", "browser-webkit", "browser-chrome"]
+```
+
+`genBrowserAttrs` remains a deprecated alias.
 
 #### isSafePWAEnv
 

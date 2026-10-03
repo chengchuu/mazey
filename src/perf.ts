@@ -1,4 +1,4 @@
-import { isNonEmptyArray, isNumber, camelCase2Underscore } from "./util";
+import { isNonEmptyArray, isNumber, convertCamelToSnake } from "./util";
 import type { WebPerformance } from "./typing";
 
 /**
@@ -478,7 +478,7 @@ export async function getPerformance(camelCase = false): Promise<WebPerformance>
     const Underscore: WebPerformance = {};
     if (!camelCase) {
       Object.keys(data).forEach(k => {
-        Underscore[camelCase2Underscore(k)] = data[k];
+        Underscore[convertCamelToSnake(k)] = data[k];
       });
     }
     if (Object.keys(Underscore).length) {

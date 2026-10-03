@@ -5,7 +5,6 @@ import { jest } from "@jest/globals";
 import projectConfig from "../project.config";
 import {
   initializeInstallExperience,
-  monitorServiceWorkerUpdates,
   registerSiteServiceWorker,
 } from "../site/pwa";
 
@@ -18,9 +17,6 @@ function renderPwaControls() {
         <button type="button" data-pwa-install hidden>Install app</button>
       </span>
     </section>
-    <aside data-pwa-update hidden>
-      <button type="button" data-pwa-update-now>Update now</button>
-    </aside>
     <p data-pwa-status></p>
   `;
 }
@@ -49,18 +45,23 @@ test("install state changes use standard MediaQueryList listeners", () => {
 
 test("service worker registration uses the configured URL and scope", async () => {
   renderPwaControls();
+  const waiting = { postMessage: jest.fn() };
   const registration = Object.assign(new EventTarget(), {
     installing: null,
-    waiting: null,
+    waiting,
   });
+  const registrationListener = jest.spyOn(registration, "addEventListener");
   const serviceWorker = Object.assign(new EventTarget(), {
-    controller: null,
+    controller: {},
     register: jest.fn().mockResolvedValue(registration),
   });
+  const serviceWorkerListener = jest.spyOn(serviceWorker, "addEventListener");
+  const reload = jest.fn();
   const location = {
     hostname: "chengchuu.github.io",
     pathname: projectConfig.site.basePath,
     protocol: "https:",
+    reload,
   };
 
   await registerSiteServiceWorker(
@@ -70,7 +71,6 @@ test("service worker registration uses the configured URL and scope", async () =
       scope: projectConfig.site.basePath,
       serviceWorkerUrl: projectConfig.pwa.serviceWorkerUrl,
     },
-    document,
     { location },
     { serviceWorker }
   );
@@ -79,33 +79,10 @@ test("service worker registration uses the configured URL and scope", async () =
     projectConfig.pwa.serviceWorkerUrl,
     { scope: projectConfig.site.basePath }
   );
-});
-
-test("waiting service workers reload only after explicit confirmation", () => {
-  renderPwaControls();
-  const waiting = { postMessage: jest.fn() };
-  const registration = Object.assign(new EventTarget(), {
-    installing: null,
-    waiting,
-  });
-  const serviceWorker = Object.assign(new EventTarget(), {
-    controller: {},
-  });
-  const windowRef = { location: { reload: jest.fn() } };
-  const cleanup = monitorServiceWorkerUpdates(
-    registration,
-    document,
-    { serviceWorker },
-    windowRef,
-    appName
-  );
-
+  expect(registrationListener).not.toHaveBeenCalled();
+  expect(serviceWorkerListener).not.toHaveBeenCalled();
   serviceWorker.dispatchEvent(new Event("controllerchange"));
-  expect(windowRef.location.reload).not.toHaveBeenCalled();
-  document.querySelector("[data-pwa-update-now]").click();
-  expect(waiting.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
-  serviceWorker.dispatchEvent(new Event("controllerchange"));
-  serviceWorker.dispatchEvent(new Event("controllerchange"));
-  expect(windowRef.location.reload).toHaveBeenCalledTimes(1);
-  cleanup();
+  expect(waiting.postMessage).not.toHaveBeenCalled();
+  expect(reload).not.toHaveBeenCalled();
+  expect(document.querySelector("[data-pwa-status]").textContent).toBe("");
 });

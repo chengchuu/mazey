@@ -213,7 +213,30 @@ test("API transformation is complete, idempotent, and promotes a page h1", () =>
   expect(transformed).toContain(
     `<meta name="theme-color" content="${theme.colorPrimary}" data-theme-color data-theme-color-light="${theme.colorLight}" data-theme-color-dark="${theme.colorDark}"/>`
   );
+  expect(transformed).toContain("data-pwa-status");
+  expect(transformed).not.toContain("data-pwa-update");
   expect(transformed.match(/<h1\b/g)).toHaveLength(1);
+});
+
+test("API transformation removes an update notice from prior output", () => {
+  const marker = projectConfig.site.markerPrefix;
+  const priorOutput = transformApiHtml(typeDocHtml, "index.html").replace(
+    "</body>",
+    `<!-- ${marker}-pwa-ui:start --><aside data-pwa-update><button data-pwa-update-now>Update now</button></aside><!-- ${marker}-pwa-ui:end --></body>`
+  );
+
+  const cleaned = transformApiHtml(priorOutput, "index.html");
+  expect(cleaned).toBe(transformApiHtml(typeDocHtml, "index.html"));
+  expect(transformApiHtml(cleaned, "index.html")).toBe(cleaned);
+});
+
+test("website templates keep installation feedback without update controls", () => {
+  for (const file of ["site/index.html", "examples/index.html"]) {
+    const html = fs.readFileSync(path.join(process.cwd(), file), "utf8");
+    expect(html).toContain("data-pwa-install");
+    expect(html).toContain("data-pwa-status");
+    expect(html).not.toContain("data-pwa-update");
+  }
 });
 
 test("site navbar uses the same mode background as browser chrome", () => {
