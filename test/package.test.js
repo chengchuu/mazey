@@ -212,6 +212,9 @@ describe("package API catalog", () => {
       genBrowserAttrs: "getBrowserClassNames",
       getUrlFileType: "getURLPathExtension",
       cutZHString: "truncateByWeightedLength",
+      convertCamelToUnder: "convertCamelToSnake",
+      convertUnderToCamel: "convertSnakeToCamel",
+      floatToPercent: "formatPercentage",
     };
     Object.entries(renames).forEach(([ legacy, canonical ]) => {
       expect(declarations).toContain(`declare function ${canonical}(`);
@@ -219,5 +222,19 @@ describe("package API catalog", () => {
       expect(declarations).toContain(`@deprecated Use \`${canonical}\` instead.`);
     });
     expect(declarations).toContain("getURLPathExtension(url: string): boolean | string;");
+    expect(declarations).toContain("convertCamelToSnake(camelCase: string): string;");
+    expect(declarations).toContain("convertSnakeToCamel(underCase: string): string;");
+    expect(declarations).toContain("formatPercentage(num: number, fixSize?: number): string;");
+    [
+      [ "convertCamelToUnder", "convertCamelToSnake" ],
+      [ "convertUnderToCamel", "convertSnakeToCamel" ],
+      [ "floatToPercent", "formatPercentage" ],
+    ].forEach(([ legacy, canonical ]) => {
+      expect(mazey[canonical]).toEqual(expect.any(Function));
+      expect(mazey[legacy]).toBe(mazey[canonical]);
+      const aliasDeclaration = declarations.slice(0, declarations.indexOf(`declare const ${legacy}:`));
+      const comment = aliasDeclaration.slice(aliasDeclaration.lastIndexOf("/**"));
+      expect(comment).toContain(`@deprecated Use \`${canonical}\` instead.`);
+    });
   });
 });

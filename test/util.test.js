@@ -4,6 +4,8 @@
 /* eslint-disable no-undef */
 import {
   camelCaseToKebabCase, camelCase2Underscore,
+  convertCamelToSnake, convertCamelToUnder, convertSnakeToCamel, convertUnderToCamel,
+  formatPercentage,
   deepCopy, deepCopyObject, deepFreeze, assignDefined, repeatUntilConditionMet,
   formatDate, parseLocalDateTime, formatLocalDateTime, subYears,
   generateCalendarVersion, isValidDate,
@@ -1234,6 +1236,45 @@ describe("genUniqueNumString", () => {
   it("should generate a unique number string with custom length", () => {
     const result = genUniqueNumString(5);
     expect(result.length).toBe(18);
+  });
+});
+
+describe("canonical utility naming", () => {
+  it("shares function objects with deprecated names", () => {
+    expect(convertCamelToUnder).toBe(convertCamelToSnake);
+    expect(convertUnderToCamel).toBe(convertSnakeToCamel);
+    expect(floatToPercent).toBe(formatPercentage);
+  });
+
+  it.each([
+    [ "helloWorld", "hello_world" ], [ "XMLParser", "x_m_l_parser" ],
+    [ "a_B", "a__b" ], [ "_abc", "abc" ], [ "__abc", "_abc" ], [ "", "" ],
+  ])("preserves camel conversion for %p", (input, expected) => {
+    [ convertCamelToSnake, convertCamelToUnder, camelCase2Underscore ]
+      .forEach(convert => expect(convert(input)).toBe(expected));
+  });
+
+  it.each([
+    [ "a_b_c", "aBC" ], [ "a__b_", "a_B_" ], [ "_a", "A" ],
+    [ "a_B_1_é", "a_B_1_é" ], [ "___", "___" ], [ "", "" ],
+  ])("preserves snake conversion for %p", (input, expected) => {
+    [ convertSnakeToCamel, convertUnderToCamel ]
+      .forEach(convert => expect(convert(input)).toBe(expected));
+  });
+
+  it.each([
+    [ 0.129, undefined, "12%" ], [ -0.129, 0, "-13%" ],
+    [ 0.125, 1, "12.5%" ], [ 0.12, 2, "12.00%" ],
+    [ 0.125, 1.9, "12.5%" ], [ 0.129, NaN, "12%" ],
+    [ 0.29, 0, "28%" ], [ NaN, 2, "NaN%" ], [ Infinity, 2, "Infinity%" ],
+  ])("preserves percentage formatting for %p with precision %p", (ratio, precision, expected) => {
+    [ formatPercentage, floatToPercent ]
+      .forEach(format => expect(format(ratio, precision)).toBe(expected));
+  });
+
+  it.each([ -1, 101, Infinity ])("preserves invalid precision %p", precision => {
+    [ formatPercentage, floatToPercent ]
+      .forEach(format => expect(() => format(0.12, precision)).toThrow(RangeError));
   });
 });
 
