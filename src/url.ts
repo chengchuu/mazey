@@ -602,18 +602,23 @@ export function isValidHttpUrl(url: string, options: { strict: boolean } = { str
 }
 
 /**
- * Get the file extension from a URL or path.
+ * Extract the extension from a URL or path after removing query and fragment text.
+ *
+ * This string-based helper does not inspect file contents or detect MIME types.
+ * It retains everything after the first dot in the final slash-delimited
+ * segment, so `archive.tar.gz` returns `tar.gz`. It does not parse URL authority:
+ * an origin-only input such as `https://example.com` returns `com`.
  *
  * Usage:
  *
  * ```javascript
- * import { getUrlFileType } from "mazey";
+ * import { getURLPathExtension } from "mazey";
  *
- * const ret1 = getUrlFileType("https://example.com/a/b/c.png");
- * const ret2 = getUrlFileType("https://example.com/a/b/c.jpg");
- * const ret3 = getUrlFileType("https://example.com/a/b/c.jpeg");
- * const ret4 = getUrlFileType("/a/b/c.jpeg");
- * const ret5 = getUrlFileType("https://example.com/a/b/c.v/a");
+ * const ret1 = getURLPathExtension("https://example.com/a/b/c.png");
+ * const ret2 = getURLPathExtension("https://example.com/a/b/c.jpg");
+ * const ret3 = getURLPathExtension("https://example.com/a/b/c.jpeg");
+ * const ret4 = getURLPathExtension("/a/b/c.jpeg");
+ * const ret5 = getURLPathExtension("https://example.com/a/b/c.v/a");
  * console.log(ret1, ret2, ret3, ret4, ret5);
  * ```
  *
@@ -623,11 +628,11 @@ export function isValidHttpUrl(url: string, options: { strict: boolean } = { str
  * png jpg jpeg jpeg ""
  * ```
  *
- * @param url
- * @returns
+ * @param url The URL or path to inspect.
+ * @returns The extension without the leading dot, or an empty string when absent.
  * @category URL
  */
-export function getUrlFileType(url: string): boolean | string {
+export function getURLPathExtension(url: string): boolean | string {
   let ret = "";
   if (typeof url != "string" || url == "") {
     return ret;
@@ -642,6 +647,14 @@ export function getUrlFileType(url: string): boolean | string {
   }
   return ret;
 }
+
+/**
+ * Deprecated alias of {@link getURLPathExtension}.
+ *
+ * @deprecated Use `getURLPathExtension` instead.
+ * @category URL
+ */
+export const getUrlFileType = getURLPathExtension;
 
 /**
  * Retrieve a query parameter from a script URL in the browser.

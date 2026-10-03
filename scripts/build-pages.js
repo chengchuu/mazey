@@ -195,17 +195,6 @@ function transformApiHtml(html, relativeFile) {
     '<div class="tsd-theme-toggle"><h4 class="uppercase">Theme</h4><select data-theme-select aria-label="Choose API documentation theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></div>'
   );
 
-  const pwaUi = [
-    pwaUiStart,
-    '<aside class="site-pwa-update" aria-label="Website update" data-pwa-update hidden>',
-    `<span>A new version of the ${escapeAttribute(
-      displayName
-    )} website is available.</span>`,
-    '<button type="button" data-pwa-update-now>Update now</button>',
-    "</aside>",
-    pwaUiEnd,
-  ].join("");
-  output = output.replace("</body>", `${pwaUi}</body>`);
   output = ensurePrimaryApiHeading(output, isIndex);
   return normalizeHeadingOrder(output);
 }

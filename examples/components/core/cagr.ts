@@ -1,6 +1,6 @@
 import {
   calculateCAGR,
-  floatToPercent,
+  formatPercentage,
   formatDate,
   subYears,
 } from "../../../src";
@@ -36,7 +36,7 @@ export function calculateCAGRExample(
     return {
       value: {
         decimal,
-        percentage: floatToPercent(decimal, 2),
+        percentage: formatPercentage(decimal, 2),
       },
       error: null,
     };
