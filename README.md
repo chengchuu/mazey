@@ -108,7 +108,9 @@ There are some examples maintained by hand below. For more information, please c
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
-  - [convertCamelToUnder](#convertcameltounder)
+  - [convertCamelToSnake](#convertcameltosnake)
+  - [convertSnakeToCamel](#convertsnaketocamel)
+  - [formatPercentage](#formatpercentage)
   - [toJavaScriptGlobalName](#tojavascriptglobalname)
   - [derivePackageMetadata](#derivepackagemetadata)
 - [URL](#url)
@@ -890,15 +892,18 @@ a-b-c
 a-b-c
 ```
 
-#### convertCamelToUnder
+#### convertCamelToSnake
 
-Transfer CamelCase to Underscore.
+Insert an underscore before each uppercase ASCII letter, lowercase the result,
+and remove one leading underscore. `XMLParser` becomes `x_m_l_parser`.
+Other existing underscores are preserved. `convertCamelToUnder` remains a
+deprecated direct alias; `camelCase2Underscore` remains available.
 
 Usage:
 
 ```javascript
-const ret1 = convertCamelToUnder("ABC");
-const ret2 = convertCamelToUnder("aBC");
+const ret1 = convertCamelToSnake("ABC");
+const ret2 = convertCamelToSnake("aBC");
 console.log(ret1);
 console.log(ret2);
 ```
@@ -908,6 +913,32 @@ Output:
 ```text
 a_b_c
 a_b_c
+```
+
+#### convertSnakeToCamel
+
+Replace `_` followed by a lowercase ASCII letter with its uppercase letter.
+Other underscores and characters remain unchanged. `convertUnderToCamel`
+remains a deprecated direct alias.
+
+```javascript
+convertSnakeToCamel("a_b_c"); // "aBC"
+convertSnakeToCamel("a__b_"); // "a_B_"
+```
+
+#### formatPercentage
+
+Multiply a numeric ratio by 100 and append `%`. Precision defaults to `0`.
+Falsy precision uses `Math.floor`, including for negative values; truthy
+precision uses native `toFixed`, preserving trailing zeros, floating-point
+behavior, and exceptions for unsupported precision. `floatToPercent` remains
+a deprecated direct alias.
+
+```javascript
+formatPercentage(0.129); // "12%"
+formatPercentage(-0.129); // "-13%"
+formatPercentage(0.125, 1); // "12.5%"
+formatPercentage(0.12, 2); // "12.00%"
 ```
 
 #### toJavaScriptGlobalName
@@ -1496,7 +1527,7 @@ The dates may be supported structured date strings, millisecond timestamps, or `
 Number input is a decimal ratio, so `0.202` represents `20.2%`. String input is a percentage value, so `"20.2%"` and `"20.2"` both represent `20.2%`; strict scientific notation such as `"2.02e1%"` is also accepted. The returned CAGR is an unrounded decimal ratio.
 
 ```javascript
-import { calculateCAGR, floatToPercent } from "mazey";
+import { calculateCAGR, formatPercentage } from "mazey";
 
 const cagr = calculateCAGR(
   "2022-04-01",
@@ -1506,7 +1537,7 @@ const cagr = calculateCAGR(
 
 console.log({
   cagr,
-  percentage: floatToPercent(cagr, 2),
+  percentage: formatPercentage(cagr, 2),
 });
 ```
 
