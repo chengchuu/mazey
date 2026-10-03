@@ -7,7 +7,9 @@ import {
   calculateCAGR,
   longestComSubstring,
   longestComSubsequence,
+  isHit,
   inRate,
+  randomBoolean,
 } from "../lib/index.esm";
 
 const millisecondsPerDay = 24 * 60 * 60 * 1000;
@@ -375,13 +377,27 @@ describe("long string inputs", () => {
   });
 });
 
-describe("inRate", () => {
-  it("compares the mocked random value with the requested rate", () => {
-    const randomSpy = jest.spyOn(Math, "random");
-    randomSpy.mockReturnValueOnce(0.49).mockReturnValueOnce(0.5);
+describe("randomBoolean", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
 
+  it.each([
+    [ 0, 0, false ],
+    [ 0.49, 0.5, true ],
+    [ 0.5, 0.5, false ],
+    [ 0.999999, 1, true ],
+  ])("with random %p and rate %p returns %p", (random, rate, expected) => {
+    jest.spyOn(Math, "random").mockReturnValue(random);
+
+    expect(randomBoolean(rate)).toBe(expected);
+  });
+
+  it("keeps isHit and inRate equivalent to the canonical function", () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.25);
+
+    expect(randomBoolean(0.5)).toBe(true);
+    expect(isHit(0.5)).toBe(true);
     expect(inRate(0.5)).toBe(true);
-    expect(inRate(0.5)).toBe(false);
-    randomSpy.mockRestore();
   });
 });

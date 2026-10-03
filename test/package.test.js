@@ -132,6 +132,37 @@ describe("package API catalog", () => {
     expect(declarations).toMatch(/export type \{[^}]*IsNumberOptions[^}]*\}/);
   });
 
+  it("publishes canonical utility names and deprecated compatibility names", () => {
+    const declarations = fs.readFileSync(
+      path.join(process.cwd(), "lib", "index.d.ts"),
+      "utf8"
+    );
+
+    expect(declarations).toMatch(
+      /declare function hideElements<T extends DomVisibilityTarget>\(target: T\): T;/
+    );
+    expect(declarations).toMatch(
+      /declare function showElements<T extends DomVisibilityTarget>\(target: T\): T;/
+    );
+    expect(declarations).toContain(
+      "declare function randomBoolean(rate: number): boolean;"
+    );
+    expect(declarations).toContain(
+      "declare function isNullish(val: MazeyObject): boolean;"
+    );
+    expect(declarations).toContain("declare function hide<T");
+    expect(declarations).toContain("declare function show<T");
+    expect(declarations).toContain("declare function isHit(rate: number)");
+    expect(declarations).toContain("declare function isUdfOrNul(val: MazeyObject)");
+    expect(declarations).toContain("declare function mNow(): number");
+    [ "hideElements", "showElements", "randomBoolean", "isNullish", "Date.now()" ]
+      .forEach(replacement => {
+        expect(declarations).toContain(
+          `@deprecated Use \`${replacement}\` instead.`
+        );
+      });
+  });
+
   it("keeps the documented runtime-export totals aligned with the package", () => {
     const apiMap = fs.readFileSync(
       path.join(
@@ -167,5 +198,43 @@ describe("package API catalog", () => {
     ]);
     expect(consoleConstants).toEqual([ "mazeyCon", "timeCon" ]);
     expect(undocumentedExports).toEqual([]);
+  });
+
+  it("publishes the additional canonical names and typed deprecated aliases", () => {
+    const declarations = fs.readFileSync(
+      path.join(process.cwd(), "lib", "index.d.ts"), "utf8"
+    );
+    const renames = {
+      isValidPhoneNumber: "isCNMobileNumber",
+      sanitizeInput: "escapeHTML",
+      unsanitizeInput: "unescapeHTML",
+      genStyleString: "createCSSRule",
+      genBrowserAttrs: "getBrowserClassNames",
+      getUrlFileType: "getURLPathExtension",
+      cutZHString: "truncateByWeightedLength",
+      convertCamelToUnder: "convertCamelToSnake",
+      convertUnderToCamel: "convertSnakeToCamel",
+      floatToPercent: "formatPercentage",
+    };
+    Object.entries(renames).forEach(([ legacy, canonical ]) => {
+      expect(declarations).toContain(`declare function ${canonical}(`);
+      expect(declarations).toContain(`declare const ${legacy}: typeof ${canonical};`);
+      expect(declarations).toContain(`@deprecated Use \`${canonical}\` instead.`);
+    });
+    expect(declarations).toContain("getURLPathExtension(url: string): boolean | string;");
+    expect(declarations).toContain("convertCamelToSnake(camelCase: string): string;");
+    expect(declarations).toContain("convertSnakeToCamel(underCase: string): string;");
+    expect(declarations).toContain("formatPercentage(num: number, fixSize?: number): string;");
+    [
+      [ "convertCamelToUnder", "convertCamelToSnake" ],
+      [ "convertUnderToCamel", "convertSnakeToCamel" ],
+      [ "floatToPercent", "formatPercentage" ],
+    ].forEach(([ legacy, canonical ]) => {
+      expect(mazey[canonical]).toEqual(expect.any(Function));
+      expect(mazey[legacy]).toBe(mazey[canonical]);
+      const aliasDeclaration = declarations.slice(0, declarations.indexOf(`declare const ${legacy}:`));
+      const comment = aliasDeclaration.slice(aliasDeclaration.lastIndexOf("/**"));
+      expect(comment).toContain(`@deprecated Use \`${canonical}\` instead.`);
+    });
   });
 });

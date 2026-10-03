@@ -78,6 +78,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [windowLoaded](#windowloaded)
 - [通用工具](#通用工具)
   - [isNumber](#isnumber)
+  - [isNullish](#isnullish)
   - [isJSONString](#isjsonstring)
   - [isValidData](#isvaliddata)
   - [genRndNumString](#genrndnumstring)
@@ -91,7 +92,9 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
-  - [convertCamelToUnder](#convertcameltounder)
+  - [convertCamelToSnake](#convertcameltosnake)
+  - [convertSnakeToCamel](#convertsnaketocamel)
+  - [formatPercentage](#formatpercentage)
   - [toJavaScriptGlobalName](#tojavascriptglobalname)
 - [URL](#url)
   - [getQueryParam](#getqueryparam)
@@ -107,6 +110,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [Storage 工具](#storage-工具)
 - [DOM](#dom)
   - [Class 工具](#class-工具)
+  - [hideElements 和 showElements](#hideelements-和-showelements)
   - [injectStyle](#injectstyle)
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
@@ -115,7 +119,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
 - [计算与公式](#计算与公式)
   - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
-  - [inRate](#inrate)
+  - [randomBoolean](#randomboolean)
   - [longestComSubstring](#longestcomsubstring)
   - [longestComSubsequence](#longestcomsubsequence)
 - [浏览器信息](#浏览器信息)
@@ -266,6 +270,9 @@ windowLoaded()
 
 ### 通用工具
 
+使用原生 `Date.now()` 获取当前时间戳 (毫秒)。原有的 `mNow()` 工具仍作为弃用兼容 API
+保留。
+
 #### isNumber
 
 判断某个值是否为有效数字。
@@ -288,6 +295,20 @@ console.log(ret1, ret2, ret3, ret4, ret5, ret6);
 ```text
 true false false true false true
 ```
+
+#### isNullish
+
+判断值是否严格为 `undefined` 或 `null`。其他假值不属于空值。
+
+```javascript
+isNullish(undefined); // true
+isNullish(null); // true
+isNullish(false); // false
+isNullish(0); // false
+isNullish(""); // false
+```
+
+`isUdfOrNul` 仍作为 `isNullish` 的弃用别名保留。
 
 #### isJSONString
 
@@ -580,15 +601,17 @@ a-b-c
 a-b-c
 ```
 
-#### convertCamelToUnder
+#### convertCamelToSnake
 
-将驼峰命名转换为下划线命名。
+在每个 ASCII 大写字母前插入下划线，将结果转换为小写，并删除第一个前导下划线。
+`XMLParser` 转换为 `x_m_l_parser`，其余已有下划线保留。
+`convertCamelToUnder` 保留为弃用的直接别名，`camelCase2Underscore` 仍可使用。
 
 用法:
 
 ```javascript
-const ret1 = convertCamelToUnder("ABC");
-const ret2 = convertCamelToUnder("aBC");
+const ret1 = convertCamelToSnake("ABC");
+const ret2 = convertCamelToSnake("aBC");
 console.log(ret1);
 console.log(ret2);
 ```
@@ -598,6 +621,30 @@ console.log(ret2);
 ```text
 a_b_c
 a_b_c
+```
+
+#### convertSnakeToCamel
+
+将下划线及其后的 ASCII 小写字母替换为大写字母，其他字符保持不变。
+`convertUnderToCamel` 保留为弃用的直接别名。
+
+```javascript
+convertSnakeToCamel("a_b_c"); // "aBC"
+convertSnakeToCamel("a__b_"); // "a_B_"
+```
+
+#### formatPercentage
+
+将数值比率乘以 100 并添加 `%`。小数位数默认为 `0`。
+小数位数为假值时使用 `Math.floor`，负数也向下取整；为真值时使用原生 `toFixed`，
+保留末尾零、浮点数行为，以及不支持的小数位数导致的异常。
+`floatToPercent` 保留为弃用的直接别名。
+
+```javascript
+formatPercentage(0.129); // "12%"
+formatPercentage(-0.129); // "-13%"
+formatPercentage(0.125, 1); // "12.5%"
+formatPercentage(0.12, 2); // "12.00%"
 ```
 
 #### toJavaScriptGlobalName
@@ -861,6 +908,27 @@ addClass(dom, "test");
 removeClass(dom, "test");
 ```
 
+#### hideElements 和 showElements
+
+隐藏或显示 CSS 选择器、单个元素、可迭代元素集合或类数组元素集合。两个函数都会返回原始输入。
+重复元素只会被修改一次。函数会忽略无效选择器和不支持的值。
+
+`hideElements()` 会保存可见元素的内联 `display` 值。`showElements()` 会恢复该值。如果样式表仍隐藏该元素，函数会恢复元素的默认显示方式。
+
+```javascript
+import { hideElements, showElements } from "mazey";
+
+const notices = document.querySelectorAll(".notice");
+
+hideElements(notices);
+showElements(notices);
+
+hideElements("#temporary-message");
+showElements(document.querySelector("#temporary-message"));
+```
+
+`hide` 和 `show` 仍作为弃用别名保留。
+
 #### injectStyle
 
 在 `<head>` 中添加 `<style>` 元素。
@@ -1057,7 +1125,7 @@ CAGR = (1 + totalReturnRate)^(365 / durationInDays) - 1
 数值输入使用十进制比率，因此 `0.202` 表示 `20.2%`。字符串输入使用百分比数值，因此 `"20.2%"` 和 `"20.2"` 都表示 `20.2%`；也支持 `"2.02e1%"` 这类严格的科学记数法。返回的 CAGR 是未经舍入的十进制比率。
 
 ```javascript
-import { calculateCAGR, floatToPercent } from "mazey";
+import { calculateCAGR, formatPercentage } from "mazey";
 
 const cagr = calculateCAGR(
   "2022-04-01",
@@ -1067,7 +1135,7 @@ const cagr = calculateCAGR(
 
 console.log({
   cagr,
-  percentage: floatToPercent(cagr, 2),
+  percentage: formatPercentage(cagr, 2),
 });
 ```
 
@@ -1092,14 +1160,14 @@ calculateCAGR(
 
 日期字符串遵循 Mazey 的严格日期校验规则。无效日期、格式错误或非有限的回报率，以及没有递增的日期范围都会抛出错误。解析后的总回报率必须大于 `-1`，因为 `-1` 表示本金完全损失，此时 CAGR 没有定义。
 
-#### inRate
+#### randomBoolean
 
-按照指定概率返回命中结果。有效概率范围为 1%～100%。
+判断生成的随机值是否小于指定概率。
 
 用法:
 
 ```javascript
-const ret = inRate(0.5); // 0.01～1，返回 true 或 false
+const ret = randomBoolean(0.5); // 有 50% 的概率返回 true
 console.log(ret);
 ```
 
@@ -1116,7 +1184,7 @@ true
 let trueCount = 0;
 let falseCount = 0;
 new Array(1000000).fill(0).forEach(() => {
-  if (inRate(0.5)) {
+  if (randomBoolean(0.5)) {
     trueCount++;
   } else {
     falseCount++;
@@ -1124,6 +1192,9 @@ new Array(1000000).fill(0).forEach(() => {
 });
 console.log(trueCount, falseCount); // 499994 500006
 ```
+
+`randomBoolean` 直接计算 `Math.random() < rate`，不会限制传入的概率值。`isHit` 是弃用别名。
+`inRate` 仍作为兼容别名保留。
 
 #### longestComSubstring
 

@@ -4,6 +4,8 @@
 /* eslint-disable no-undef */
 import {
   camelCaseToKebabCase, camelCase2Underscore,
+  convertCamelToSnake, convertCamelToUnder, convertSnakeToCamel, convertUnderToCamel,
+  formatPercentage,
   deepCopy, deepCopyObject, deepFreeze, assignDefined, repeatUntilConditionMet,
   formatDate, parseLocalDateTime, formatLocalDateTime, subYears,
   generateCalendarVersion, isValidDate,
@@ -19,7 +21,7 @@ import {
   doFn, mNow, mTrim, removeHtml, truncateZHString,
   convertKebabToCamel, convert10To26, zAxiosIsValidRes,
   unsanitize, sanitizeInput, unsanitizeInput, escapeHtmlAttribute,
-  isFunction, isString, isBoolean, isUdfOrNul, toJavaScriptGlobalName,
+  isFunction, isString, isBoolean, isNullish, isUdfOrNul, toJavaScriptGlobalName,
 } from "../lib/index.esm";
 import { webcrypto } from "node:crypto";
 import { runInNewContext } from "vm";
@@ -1237,6 +1239,45 @@ describe("genUniqueNumString", () => {
   });
 });
 
+describe("canonical utility naming", () => {
+  it("shares function objects with deprecated names", () => {
+    expect(convertCamelToUnder).toBe(convertCamelToSnake);
+    expect(convertUnderToCamel).toBe(convertSnakeToCamel);
+    expect(floatToPercent).toBe(formatPercentage);
+  });
+
+  it.each([
+    [ "helloWorld", "hello_world" ], [ "XMLParser", "x_m_l_parser" ],
+    [ "a_B", "a__b" ], [ "_abc", "abc" ], [ "__abc", "_abc" ], [ "", "" ],
+  ])("preserves camel conversion for %p", (input, expected) => {
+    [ convertCamelToSnake, convertCamelToUnder, camelCase2Underscore ]
+      .forEach(convert => expect(convert(input)).toBe(expected));
+  });
+
+  it.each([
+    [ "a_b_c", "aBC" ], [ "a__b_", "a_B_" ], [ "_a", "A" ],
+    [ "a_B_1_é", "a_B_1_é" ], [ "___", "___" ], [ "", "" ],
+  ])("preserves snake conversion for %p", (input, expected) => {
+    [ convertSnakeToCamel, convertUnderToCamel ]
+      .forEach(convert => expect(convert(input)).toBe(expected));
+  });
+
+  it.each([
+    [ 0.129, undefined, "12%" ], [ -0.129, 0, "-13%" ],
+    [ 0.125, 1, "12.5%" ], [ 0.12, 2, "12.00%" ],
+    [ 0.125, 1.9, "12.5%" ], [ 0.129, NaN, "12%" ],
+    [ 0.29, 0, "28%" ], [ NaN, 2, "NaN%" ], [ Infinity, 2, "Infinity%" ],
+  ])("preserves percentage formatting for %p with precision %p", (ratio, precision, expected) => {
+    [ formatPercentage, floatToPercent ]
+      .forEach(format => expect(format(ratio, precision)).toBe(expected));
+  });
+
+  it.each([ -1, 101, Infinity ])("preserves invalid precision %p", precision => {
+    [ formatPercentage, floatToPercent ]
+      .forEach(format => expect(() => format(0.12, precision)).toThrow(RangeError));
+  });
+});
+
 describe("floatToPercent", () => {
   it("should convert a float number to a percentage string", () => {
     expect(floatToPercent(0.5)).toBe("50%");
@@ -1974,23 +2015,18 @@ describe("isBoolean", () => {
   });
 });
 
-describe("isUdfOrNul", () => {
-  it("should return true for undefined", () => {
-    const value = undefined;
-    const result = isUdfOrNul(value);
-    expect(result).toBe(true);
-  });
-
-  it("should return true for null", () => {
-    const value = null;
-    const result = isUdfOrNul(value);
-    expect(result).toBe(true);
-  });
-
-  it("should return false for a non-undefined and non-null value", () => {
-    const value = "not undefined or null";
-    const result = isUdfOrNul(value);
-    expect(result).toBe(false);
+describe("isNullish", () => {
+  it.each([
+    [ undefined, true ],
+    [ null, true ],
+    [ false, false ],
+    [ 0, false ],
+    [ "", false ],
+    [ Number.NaN, false ],
+    [ {}, false ],
+  ])("returns %p for %p", (value, expected) => {
+    expect(isNullish(value)).toBe(expected);
+    expect(isUdfOrNul(value)).toBe(expected);
   });
 });
 
