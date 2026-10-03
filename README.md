@@ -10,7 +10,9 @@ English | [简体中文](https://github.com/chengchuu/mazey/blob/main/README.zh-
 [l-image]: https://img.shields.io/npm/l/mazey
 [l-url]: https://github.com/chengchuu/mazey
 
-Mazey is a functional library for daily frontend work. There are already many excellent libraries for frontend development, but creating a file named `utils.js` or `common.js` is generally used to supply common functions in projects. It's boring to copy similar functions across multiple projects. That's why I've created this library and will keep updating it to serve as a reliable resource for frontend needs.
+Mazey is a utility library for everyday frontend development. It provides
+reusable functions that would otherwise be duplicated across project-specific
+`utils.js` or `common.js` files.
 
 - [Project website](https://chengchuu.github.io/mazey/)
 - [Live playground](https://chengchuu.github.io/mazey/playground/)
@@ -34,41 +36,28 @@ You can also download and serve the
 [latest browser bundle](https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js)
 yourself.
 
-## Browser support
-
-Mazey supports Chrome 109+, Edge 109+, Firefox 115+, Safari 16.4+, iOS Safari
-16.4+, Android Chrome 109+, and Samsung Internet 21+. Package output can
-contain ES2022 syntax and does not include JavaScript polyfills. Internet
-Explorer, Opera Mini, KaiOS, the legacy Android Browser, and older browser
-versions are outside this support policy.
-
-Node.js 22 is used for development and continuous integration. Mazey does not
-declare a Node.js runtime compatibility range.
-
 ## Usage
 
-Example: Use a function to verify if a value is a number suitable for standard calculations and comparisons.
+Example: Format a duration in milliseconds as readable text.
 
-Import from [npm](https://www.npmjs.com/package/mazey).
+Import Mazey from [npm](https://www.npmjs.com/package/mazey).
 
 ```javascript
-import { isNumber } from "mazey";
+import { formatDurationFromMs } from "mazey";
 
-const x = 123;
-const y = "abc";
-const z = Infinity;
-isNumber(x); // Output: true
-isNumber(y); // Output: false
-isNumber(z, { isInfinityAsNumber: true }); // Output: true
+const duration = formatDurationFromMs(90000);
+
+console.log(duration); // Output: "1.5 minutes"
 ```
 
-Import from CDN.
+Use Mazey from CDN.
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/mazey@latest/lib/mazey.min.js"></script>
 <script>
-  const x = 123;
-  mazey.isNumber(x); // Output: true
+  const duration = mazey.formatDurationFromMs(90000);
+
+  console.log(duration); // Output: "1.5 minutes"
 </script>
 ```
 
@@ -136,9 +125,11 @@ There are some examples maintained by hand below. For more information, please c
   - [isValidCssSelector](#isvalidcssselector)
   - [resolveElementTarget](#resolveelementtarget)
   - [extractElementText](#extractelementtext)
-  - [addStyle](#addstyle)
+  - [injectStyle](#injectstyle)
   - [genStyleString](#genstylestring)
   - [newLine](#newline)
+- [Event](#event)
+  - [onEvent](#onevent)
 - [Calculate and Formula](#calculate-and-formula)
   - [calculateAspectRatio](#calculateaspectratio)
   - [calculateCAGR](#calculatecagr)
@@ -1213,18 +1204,20 @@ const text = extractElementText(message, {
 });
 ```
 
-#### addStyle
+#### injectStyle
 
 Add `<style>` in `<head>`.
+
+`addStyle` is a deprecated compatibility alias of `injectStyle`.
 
 Usage:
 
 Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle(
+injectStyle(
   "body { background-color: #333; }",
   { id: "test" }
 );
@@ -1239,9 +1232,9 @@ Output:
 Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
 
 ```javascript
-import { addStyle } from "mazey";
+import { injectStyle } from "mazey";
 
-addStyle("body { background-color: #444; }");
+injectStyle("body { background-color: #444; }");
 ```
 
 Output:
@@ -1250,10 +1243,10 @@ Output:
 <style>body { background-color: #444; }</style>
 ```
 
-Example 3: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+Example 3: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -1272,7 +1265,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 Output:
@@ -1301,10 +1294,10 @@ Output:
 #b{color:red;font-size:12px;}
 ```
 
-Example: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+Example: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
 
 ```javascript
-import { genStyleString, addStyle } from "mazey";
+import { genStyleString, injectStyle } from "mazey";
 
 const xStyle = genStyleString(
   ".footer>.x-wish>a:first-child" +
@@ -1323,7 +1316,7 @@ const yStyle = genStyleString(
     "padding-bottom: var(--y-wish-1)",
   ]
 );
-addStyle(xStyle + yStyle, { id: "z-style" });
+injectStyle(xStyle + yStyle, { id: "z-style" });
 ```
 
 Output:
@@ -1350,6 +1343,23 @@ Output:
 ```text
 a<br />b<br />c
 a<br /><br />bc
+```
+
+### Event
+
+#### onEvent
+
+Register a named Mazey event callback. Duplicate callbacks are allowed.
+`addEvent` is a deprecated compatibility alias of `onEvent`.
+
+```javascript
+import { fireEvent, onEvent } from "mazey";
+
+onEvent("test", event => {
+  console.log("test event:", event);
+});
+
+fireEvent("test", { type: "test" });
 ```
 
 ### Calculate and Formula
@@ -2023,6 +2033,14 @@ MazeyLog: I am number. 123 456
 MazeyLog: I am object. {a: 123, b: 456}
 ```
 
+## Browser support
+
+Mazey supports Chrome 109+, Edge 109+, Firefox 115+, Safari 16.4+, iOS Safari
+16.4+, Android Chrome 109+, and Samsung Internet 21+. Package output can
+contain ES2022 syntax and does not include JavaScript polyfills. Internet
+Explorer, Opera Mini, KaiOS, the legacy Android Browser, and older browser
+versions are outside this support policy.
+
 ## Contributing
 
 ### Development Environment
@@ -2036,7 +2054,7 @@ MazeyLog: I am object. {a: 123, b: 456}
 
 | Command               | Purpose                                                         |
 | --------------------- | --------------------------------------------------------------- |
-| `npm install`         | Install development dependencies.                               |
+| `pnpm install`        | Install development dependencies.                               |
 | `npm run dev`         | Start the website and playground development server.            |
 | `npm run build`       | Build the publishable package files.                            |
 | `npm test`            | Run the Jest test suite.                                        |

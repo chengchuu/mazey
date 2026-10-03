@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 174 runtime exports in the current repository: 172 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 176 runtime exports in the current repository: 174 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 ## Contents
 
@@ -162,7 +162,8 @@ const isMobile: typeof isValidPhoneNumber;
 | `removeClass`        | Remove a class                                  | Browser-only      | Mutates the element and logs for missing input.                                                                 |
 | `hide`               | Hide selector or element targets                | Browser-only      | Accepts one element or iterable/array-like collections, preserves visible inline display, deduplicates targets, and returns the original input. |
 | `show`               | Show selector or element targets                | Browser-only      | Restores display preserved by `hide`; applies a document-aware tag default when CSS still hides an element; returns the original input. |
-| `addStyle`           | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
+| `injectStyle`        | Insert or replace a `<style>` element           | Browser-only      | Mutates `document.head`; an `id` updates an existing style element.                                             |
+| `addStyle`           | Deprecated alias of `injectStyle`               | Browser-only      | Reference-identical compatibility alias; prefer `injectStyle`.                                                  |
 | `setImgSizeBySrc`    | Apply image dimensions from URL parameters      | Browser-only      | Mutates image styles; reads `width`/`height`; uses jQuery when present.                                         |
 | `genStyleString`     | Build a CSS rule string                         | Universal         | Joins declarations with semicolons; does not validate or escape CSS.                                            |
 | `getPageMeta`        | Read the first named meta tag's content         | Browser-only      | Scans DOM meta elements with exact name matching.                                                               |
@@ -315,7 +316,8 @@ apply preferences to the DOM.
 | Function       | Purpose                                         | Runtime      | Notes                                                                                    |
 | -------------- | ----------------------------------------------- | ------------ | ---------------------------------------------------------------------------------------- |
 | `cancelBubble` | Stop DOM event propagation                      | Browser-only | Calls `Event.stopPropagation()`.                                                         |
-| `addEvent`     | Register a named Mazey callback                 | Browser-only | Mutates the global registry on `window`; duplicate callbacks are allowed.                |
+| `onEvent`      | Register a named Mazey callback                 | Browser-only | Mutates the global registry on `window`; duplicate callbacks are allowed.                |
+| `addEvent`     | Deprecated alias of `onEvent`                   | Browser-only | Reference-identical compatibility alias; prefer `onEvent`.                                |
 | `fireEvent`    | Invoke a snapshot of named callbacks            | Browser-only | Optional single params object; listener changes do not alter the current dispatch queue. |
 | `removeEvent`  | Remove one callback or all callbacks for a name | Browser-only | Omitting `fn` deletes the entire named listener list.                                    |
 

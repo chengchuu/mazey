@@ -3,6 +3,7 @@
 const { existsSync, readFileSync, readdirSync, statSync } = require("node:fs");
 const path = require("node:path");
 const projectConfig = require("../project.config");
+const { parseHtmlAttributes } = require("./html-attributes");
 const { pngDimensions } = require("./validate-pwa");
 
 const root = path.resolve(__dirname, "..");
@@ -19,12 +20,7 @@ function matches(html, expression) {
 }
 
 function attributes(tag) {
-  return Object.fromEntries(
-    matches(tag, /([:\w-]+)(?:=["']([^"']*)["'])?/g).map((item) => [
-      item[1].toLowerCase(),
-      item[2] ?? "",
-    ])
-  );
+  return parseHtmlAttributes(tag);
 }
 
 function attribute(html, tag, name, value) {
@@ -59,22 +55,38 @@ function elementIds(html) {
   });
 }
 
+function jsonLdBlocks(html) {
+  return matches(html, /<script\b([^>]*)>([\s\S]*?)<\/script>/gi)
+    .filter(
+      (match) =>
+        attributes(`<script${match[1]}>`).type === "application/ld+json"
+    )
+    .map((match) => match[2]);
+}
+
 function validateJsonLd(label, html, expectedUrl) {
-  const blocks = matches(
-    html,
-    /<script\b[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi
-  );
+  const blocks = jsonLdBlocks(html);
   if (blocks.length !== 1) {
     fail(`${label}: expected exactly one JSON-LD block`);
     return;
   }
   try {
-    const data = JSON.parse(blocks[0][1]);
+    const data = JSON.parse(blocks[0]);
     if (data.url !== expectedUrl)
       fail(`${label}: JSON-LD URL must be ${expectedUrl}`);
   } catch (error) {
     fail(`${label}: JSON-LD is invalid (${error.message})`);
   }
+}
+
+function hasNavigationToggle(html) {
+  return matches(html, /<button\b[^>]*>/gi).some((match) => {
+    const values = attributes(match[0]);
+    return (
+      values["aria-expanded"] === "false" &&
+      Object.hasOwn(values, "data-nav-toggle")
+    );
+  });
 }
 
 function validateHeadingOrder(label, html) {
@@ -237,10 +249,7 @@ function validatePage({
     fail(`${label}: initial HTML lacks crawlable content`);
   if (!/<select\b[^>]*data-theme-select/.test(html))
     fail(`${label}: theme control is missing`);
-  if (
-    navigation &&
-    !/<button\b[^>]*aria-expanded="false"[^>]*data-nav-toggle/.test(html)
-  ) {
+  if (navigation && !hasNavigationToggle(html)) {
     fail(`${label}: accessible mobile navigation toggle is missing`);
   }
   validateHeadingOrder(label, html);
@@ -453,6 +462,8 @@ if (require.main === module) {
 
 module.exports = {
   attribute,
+  hasNavigationToggle,
+  jsonLdBlocks,
   localFragmentError,
   localFragmentErrors,
   validateSite,

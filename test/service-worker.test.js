@@ -52,11 +52,11 @@ function evaluateWorker() {
 
 test("API app-shell assets include local TypeDoc dependencies", () => {
   const html = `
-    <link rel="canonical" href="${projectConfig.site.pages.api.url}">
-    <link rel="stylesheet" href="assets/style.css">
-    <script src="assets/main.js"></script>
-    <svg><use href="assets/icons.svg#icon-search"></use></svg>
-    <script src="https://cdn.example.com/external.js"></script>
+    <link rel=canonical href=${projectConfig.site.pages.api.url} >
+    <link rel=stylesheet href=assets/style.css>
+    <script src=assets/main.js></script>
+    <svg><use href=assets/icons.svg#icon-search></use></svg>
+    <script src=https://cdn.example.com/external.js></script>
   `;
 
   expect(apiAppShellAssets(html)).toEqual(apiAssets);

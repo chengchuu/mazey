@@ -151,9 +151,9 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  * Example 1: Add the `<style>` with `id`, and repeated invoking will update the content instead of adding a new one.
  *
  * ```javascript
- * import { addStyle } from "mazey";
+ * import { injectStyle } from "mazey";
  *
- * addStyle(
+ * injectStyle(
  *   "body { background-color: #333; }",
  *   { id: "test" }
  * );
@@ -168,9 +168,9 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  * Example 2: Add the `<style>` without `id`, and repeated invoking will add a new one.
  *
  * ```javascript
- * import { addStyle } from "mazey";
+ * import { injectStyle } from "mazey";
  *
- * addStyle("body { background-color: #444; }");
+ * injectStyle("body { background-color: #444; }");
  * ```
  *
  * Output:
@@ -179,10 +179,10 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  * <style>body { background-color: #444; }</style>
  * ```
  *
- * Example 3: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+ * Example 3: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
  *
  * ```javascript
- * import { genStyleString, addStyle } from "mazey";
+ * import { genStyleString, injectStyle } from "mazey";
  *
  * const xStyle = genStyleString(
  *   ".footer>.x-wish>a:first-child" +
@@ -201,7 +201,7 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  *     "padding-bottom: var(--y-wish-1)",
  *   ]
  * );
- * addStyle(xStyle + yStyle, { id: "z-style" });
+ * injectStyle(xStyle + yStyle, { id: "z-style" });
  * ```
  *
  * Output:
@@ -216,7 +216,7 @@ export function removeClass(obj: MazeyElement, cls: string): void {
  * @returns Whether non-empty CSS text was added or updated.
  * @category DOM
  */
-export function addStyle(style: string, options: { id?: string } = { id: "" }): boolean {
+export function injectStyle(style: string, options: { id?: string } = { id: "" }): boolean {
   if (!style) {
     return false;
   }
@@ -248,6 +248,14 @@ export function addStyle(style: string, options: { id?: string } = { id: "" }): 
   }
   return true;
 }
+
+/**
+ * Deprecated alias of `injectStyle`.
+ *
+ * @deprecated Use `injectStyle` instead.
+ * @category DOM
+ */
+export const addStyle = injectStyle;
 
 /**
  * Sets the width and height of all images on the page based on their `src` attribute.
@@ -350,10 +358,10 @@ export function setImgWidHeiBySrc(): boolean {
  * #b{color:red;font-size:12px;}
  * ```
  *
- * Example: Combine `genStyleString` and `addStyle` to add multiple styles at once.
+ * Example: Combine `genStyleString` and `injectStyle` to add multiple styles at once.
  *
  * ```javascript
- * import { genStyleString, addStyle } from "mazey";
+ * import { genStyleString, injectStyle } from "mazey";
  *
  * const xStyle = genStyleString(
  *   ".footer>.x-wish>a:first-child" +
@@ -372,7 +380,7 @@ export function setImgWidHeiBySrc(): boolean {
  *     "padding-bottom: var(--y-wish-1)",
  *   ]
  * );
- * addStyle(xStyle + yStyle, { id: "z-style" });
+ * injectStyle(xStyle + yStyle, { id: "z-style" });
  * ```
  *
  * Output:

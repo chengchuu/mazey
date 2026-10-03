@@ -57,9 +57,10 @@ The package root resolves to these generated files:
 - Shared declarations: `lib/typing.d.ts`
 - Global declarations: `lib/global.d.ts`
 
-The package `files` allowlist publishes `README.md`, `LICENSE`, `lib/`, and
-`scripts/legacy/`. Keep this allowlist aligned with tests and documented external
-use.
+The package `files` allowlist explicitly publishes `README.md`, `LICENSE`,
+`lib/`, and `scripts/legacy/`. npm also includes `package.json` and the localized
+README in the packed artifact. Keep the allowlist aligned with tests and
+documented external use.
 
 The package intentionally has no runtime `dependencies`. Build, test, website,
 and legacy-helper requirements belong in `devDependencies`. Do not add a runtime
@@ -91,7 +92,9 @@ and CI environment, but the package does not declare a Node.js runtime range.
 - `src/load.ts`: dynamic CSS, script, and image loading plus page-load helpers.
 - `src/perf.ts`: Performance API and navigation timing helpers.
 - `src/browser.ts`: browser, platform, media-query, PWA, service-worker, and
-  visitor detection.
+  visitor detection. Its public PWA helpers support either browser globals or
+  one exclusively injected `PWAEnvironment` for deterministic consumers and
+  tests.
 - `src/theme.ts`: SSR-safe system-theme detection and theme preference resolution
   and persistence without DOM mutation.
 - `src/language.ts`: SSR-safe single-language resolution, canonicalization,
@@ -112,6 +115,22 @@ Important internal relationships include:
 Preserve this mostly flat architecture. Add a shared internal dependency only
 when it removes real duplication without creating a public namespace or a
 website-to-library dependency.
+
+Current public utility invariants include:
+
+- `isNumber()` keeps its legacy number classification by default. The optional
+  `integer`, `min`, and `max` constraints are cumulative, inclusive, and return
+  `false` for invalid bounds rather than introducing an exception contract.
+- `isIOS()`, `isAndroid()`, `isMacOS()`, `isWindows()`, and `isLinux()` are
+  heuristic user-agent helpers, not security boundaries. Explicit user-agent
+  input must not be mixed with the current browser's platform or touch data.
+- `isStandalonePWA()` and `isSafePWAEnv()` must use an injected environment
+  exclusively when one is supplied. Keep their zero-argument browser behavior,
+  SSR-safe `false` result, synchronous contract, scope checks, and ordinary
+  browser-boundary failure handling.
+- `listenMediaQueryChanges()` and `watchServiceWorkerUpdates()` own reusable
+  browser subscriptions and cleanup. Keep project-specific UI messages,
+  reload decisions, and DOM updates in consuming applications.
 
 ## Public API changes
 
@@ -198,8 +217,10 @@ Preserve these public routes under the `/mazey/` GitHub Pages base path:
 
 Keep package identity, URLs, SEO text, theme values, manifest paths, and PWA
 settings centralized in `project.config.js`. Browser-safe settings are injected
-through Webpack. Keep internal navigation and static assets valid below the
-project base path.
+through Webpack. Reuse the configuration's `displayName` and `shortName` values
+for brand and PWA metadata instead of introducing duplicate product-name
+literals. Keep internal navigation and static assets valid below the project
+base path.
 
 The final Pages artifact must include valid page metadata, `robots.txt`,
 `sitemap.xml`, `manifest.webmanifest`, icons, and a project-scoped service worker.
@@ -243,10 +264,13 @@ artifacts without a technical reason.
 
 ## Package manager and module conventions
 
-GitHub Actions uses Node.js 22 and `npm install`. The repository also tracks
-`pnpm-lock.yaml`, while `package-lock.json` is ignored. Preserve the current
-package-manager policy and do not add, remove, or regenerate lockfiles unless the
-task explicitly includes dependency resolution or lockfile maintenance.
+GitHub Actions uses Node.js 22 and `npm install`. Local development may use pnpm
+to share dependency storage. The repository tracks `pnpm-lock.yaml`, and
+`pnpm-workspace.yaml` records pnpm-specific dependency build-script policy;
+`package-lock.json` is ignored. Preserve this mixed package-manager policy. Do
+not add, remove, or regenerate lockfiles or change pnpm install policy unless
+the task explicitly includes dependency resolution or package-manager
+maintenance.
 
 The package does not declare `"type": "module"`:
 

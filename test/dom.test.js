@@ -5,7 +5,7 @@
 import {
   genStyleString, getDomain, getBrowserInfo,
   setClass, setImgSizeBySrc, addClass,
-  newLine, hasClass, removeClass, addStyle,
+  newLine, hasClass, removeClass, addStyle, injectStyle,
   extractElementText, getPageMeta, hide, isValidCssSelector,
   resolveElementTarget, show,
 } from "../lib/index.esm";
@@ -185,7 +185,7 @@ describe("removeClass", () => {
   });
 });
 
-describe("addStyle", () => {
+describe("injectStyle", () => {
   beforeEach(() => {
     // Clear the document head before each test
     document.head.innerHTML = "";
@@ -193,7 +193,7 @@ describe("addStyle", () => {
 
   it("should add style to the document head without an ID", () => {
     const style = "body { background-color: red; }";
-    const result = addStyle(style);
+    const result = injectStyle(style);
     
     expect(result).toBe(true);
     expect(document.head.innerHTML).toContain(style);
@@ -202,7 +202,7 @@ describe("addStyle", () => {
   it("should add style to the document head with a new ID", () => {
     const style = "body { background-color: blue; }";
     const options = { id: "custom-style" };
-    const result = addStyle(style, options);
+    const result = injectStyle(style, options);
     
     expect(result).toBe(true);
     expect(document.head.innerHTML).toContain(style);
@@ -215,10 +215,10 @@ describe("addStyle", () => {
     const options = { id: "custom-style" };
 
     // Add initial style
-    addStyle(style1, options);
+    injectStyle(style1, options);
 
     // Update style
-    const result = addStyle(style2, options);
+    const result = injectStyle(style2, options);
 
     expect(result).toBe(true);
     expect(document.head.innerHTML).toContain(style2);
@@ -227,10 +227,14 @@ describe("addStyle", () => {
 
   it("should return false if style is empty", () => {
     const style = "";
-    const result = addStyle(style);
+    const result = injectStyle(style);
     
     expect(result).toBe(false);
     expect(document.head.innerHTML).toBe("");
+  });
+
+  it("exposes addStyle as the same function", () => {
+    expect(addStyle).toBe(injectStyle);
   });
 });
 
