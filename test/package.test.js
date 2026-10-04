@@ -106,6 +106,14 @@ describe("derivePackageMetadata", () => {
 });
 
 describe("package API catalog", () => {
+  it("declares polling cleanup without changing the existing generic arguments", () => {
+    const declarations = fs.readFileSync(
+      path.join(process.cwd(), "lib", "index.d.ts"), "utf8"
+    );
+    expect(declarations).toContain(
+      "declare function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => MazeyFnReturn>(callback: T, options?: RepeatUntilOptions, condition?: (result: ReturnType<T>) => boolean): () => void;"
+    );
+  });
   it("publishes the injected PWA environment declarations", () => {
     const declarations = fs.readFileSync(
       path.join(process.cwd(), "lib", "index.d.ts"),

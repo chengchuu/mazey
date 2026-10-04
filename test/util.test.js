@@ -1860,6 +1860,183 @@ describe("getCurrentVersion", () => {
   });
 });
 
+describe("repeatUntilConditionMet cancellation and scheduling", () => {
+  beforeEach(() => jest.useFakeTimers());
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  });
+
+  it("cancels before the first invocation and ignores repeated cleanup", async () => {
+    const callback = jest.fn();
+    const cancel = repeatUntilConditionMet(callback);
+    expect(jest.getTimerCount()).toBe(1);
+    cancel();
+    cancel();
+    expect(jest.getTimerCount()).toBe(0);
+    await jest.advanceTimersByTimeAsync(5000);
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it("does not invoke a timer handler already queued when cancelled", async () => {
+    const timeout = jest.spyOn(global, "setTimeout");
+    const callback = jest.fn();
+    const cancel = repeatUntilConditionMet(callback);
+    const handler = timeout.mock.calls[0][0];
+    cancel();
+    await handler();
+    expect(callback).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("cancels between iterations", async () => {
+    const callback = jest.fn(() => false);
+    const cancel = repeatUntilConditionMet(callback, { interval: 100 });
+    await jest.advanceTimersByTimeAsync(100);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(1);
+    cancel();
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("skips the condition and rescheduling after an in-flight callback resolves", async () => {
+    let resolve;
+    const pending = new Promise(done => { resolve = done; });
+    const callback = jest.fn(() => pending);
+    const condition = jest.fn(() => false);
+    const cancel = repeatUntilConditionMet(callback, { interval: 100 }, condition);
+    jest.advanceTimersByTime(100);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+    cancel();
+    resolve(false);
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(condition).not.toHaveBeenCalled();
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("allows the callback to cancel its own polling", async () => {
+    const condition = jest.fn(() => false);
+    const callback = jest.fn(() => { cancel(); return false; });
+    const cancel = repeatUntilConditionMet(callback, { interval: 100 }, condition);
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(condition).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("does not resume when the condition cancels and returns false", async () => {
+    const callback = jest.fn(() => false);
+    const condition = jest.fn(() => { cancel(); return false; });
+    const cancel = repeatUntilConditionMet(callback, { interval: 100 }, condition);
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(condition).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("cancels independent instances independently", async () => {
+    const first = jest.fn(() => false);
+    const second = jest.fn(() => false);
+    const cancelFirst = repeatUntilConditionMet(first, { interval: 100 });
+    const cancelSecond = repeatUntilConditionMet(second, { interval: 100 });
+    cancelFirst();
+    await jest.advanceTimersByTimeAsync(200);
+    expect(first).not.toHaveBeenCalled();
+    expect(second).toHaveBeenCalledTimes(2);
+    cancelSecond();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("retains the default delay and ten-invocation limit", async () => {
+    const callback = jest.fn(() => false);
+    const cancel = repeatUntilConditionMet(callback);
+    await jest.advanceTimersByTimeAsync(999);
+    expect(callback).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(9001);
+    expect(callback).toHaveBeenCalledTimes(10);
+    cancel();
+    cancel();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("uses strict true as the default condition", async () => {
+    const callback = jest.fn().mockReturnValueOnce(1).mockReturnValueOnce(true);
+    const cancel = repeatUntilConditionMet(callback, { interval: 100 });
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(callback).toHaveBeenCalledTimes(2);
+    cancel();
+    cancel();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("forwards context and arguments and applies a custom condition", async () => {
+    const context = { status: "ready" };
+    const callback = jest.fn(function (prefix, suffix) { return prefix + this.status + suffix; });
+    const condition = jest.fn(result => result === "[ready]");
+    const cancel = repeatUntilConditionMet(callback, {
+      interval: 100, context, args: [ "[", "]" ],
+    }, condition);
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith("[", "]");
+    expect(callback.mock.contexts[0]).toBe(context);
+    expect(condition).toHaveBeenCalledWith("[ready]");
+    cancel();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it.each([ [ 0.5, 1 ], [ 2.5, 3 ] ])("preserves fractional count %p", async (times, expected) => {
+    const timeout = jest.spyOn(global, "setTimeout");
+    const callback = jest.fn(() => false);
+    repeatUntilConditionMet(callback, { interval: 0.5, times });
+    expect(timeout).toHaveBeenCalledWith(expect.any(Function), 0.5);
+    await jest.runAllTimersAsync();
+    expect(callback).toHaveBeenCalledTimes(expected);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("waits for callback completion before starting the next delay", async () => {
+    let resolve;
+    const pending = new Promise(done => { resolve = done; });
+    const callback = jest.fn().mockReturnValueOnce(pending).mockReturnValue(false);
+    repeatUntilConditionMet(callback, { interval: 100, times: 2 });
+    await jest.advanceTimersByTimeAsync(1000);
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(jest.getTimerCount()).toBe(0);
+    resolve(false);
+    await jest.advanceTimersByTimeAsync(0);
+    expect(jest.getTimerCount()).toBe(1);
+    await jest.advanceTimersByTimeAsync(99);
+    expect(callback).toHaveBeenCalledTimes(1);
+    await jest.advanceTimersByTimeAsync(1);
+    expect(callback).toHaveBeenCalledTimes(2);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it.each([ "callback", "condition" ])("does not suppress %s exceptions", async source => {
+    const failure = new Error(source);
+    const timeout = jest.spyOn(global, "setTimeout");
+    const callback = source === "callback" ? () => { throw failure; } : () => false;
+    const condition = source === "condition" ? () => { throw failure; } : () => false;
+    const cancel = repeatUntilConditionMet(callback, {}, condition);
+    const handler = timeout.mock.calls[0][0];
+    jest.clearAllTimers();
+    await expect(handler()).rejects.toBe(failure);
+    expect(timeout).toHaveBeenCalledTimes(1);
+    cancel();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("preserves exceptions for unsupported null options", () => {
+    expect(() => repeatUntilConditionMet(() => true, null)).toThrow(TypeError);
+  });
+});
+
 describe("repeatUntilConditionMet error handling", () => {
   let consoleSpy;
 
@@ -1903,6 +2080,19 @@ describe("repeatUntilConditionMet error handling", () => {
     repeatUntilConditionMet(callback, { times: 0 });
 
     expect(console.error).toHaveBeenCalledTimes(2);
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it.each([
+    [ "invalid", {} ], [ () => false, { interval: "invalid" } ],
+    [ () => false, { interval: -1 } ], [ () => false, { interval: NaN } ],
+    [ () => false, { interval: Infinity } ], [ () => false, { times: "invalid" } ],
+    [ () => false, { times: -1 } ], [ () => false, { times: NaN } ],
+    [ () => false, { times: Infinity } ], [ () => false, { times: 0 } ],
+  ])("returns harmless cleanup for invalid or empty polling %#", (callback, options) => {
+    const cancel = repeatUntilConditionMet(callback, options);
+    expect(cancel).toEqual(expect.any(Function));
+    expect(() => { cancel(); cancel(); }).not.toThrow();
     expect(jest.getTimerCount()).toBe(0);
   });
 });

@@ -107,6 +107,7 @@ There are some examples maintained by hand below. For more information, please c
   - [assignDefined](#assigndefined)
   - [debounce](#debounce)
   - [throttle](#throttle)
+  - [repeatUntilConditionMet](#repeatuntilconditionmet)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToSnake](#convertcameltosnake)
   - [convertSnakeToCamel](#convertsnaketocamel)
@@ -857,6 +858,30 @@ const foo = debounce(() => {
   console.log("The debounced function will only be invoked in 1000 milliseconds, the other invoking will disappear during the wait time.");
 }, 1000, true);
 ```
+
+#### repeatUntilConditionMet
+
+Poll sequentially until the result is strictly `true`, a custom condition
+succeeds, or the invocation limit is reached. Defaults are a 1000 ms interval
+and 10 invocations. The first invocation waits for the interval; each subsequent
+delay starts after the previous callback completes.
+
+```typescript
+const cancelPolling = repeatUntilConditionMet(
+  fetchStatus,
+  { interval: 1000, times: 10 },
+  result => result === true
+);
+
+// During component unmount or owner teardown:
+cancelPolling();
+```
+
+The returned cleanup is idempotent. It clears a pending timer and prevents
+condition evaluation and further polling after an in-flight callback resolves.
+It does not abort the running callback, cancel its requests, or undo side effects.
+Existing validation failures and zero iterations also return harmless cleanup
+functions without scheduling. Callback and condition exceptions remain unsuppressed.
 
 #### throttle
 

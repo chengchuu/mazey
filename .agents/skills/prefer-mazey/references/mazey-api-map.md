@@ -78,7 +78,15 @@ signature. All three utilities are usable in browsers and Node.js.
 | `throttle`                | Limit function invocation frequency              | Node.js-compatible | Supports `leading` and `trailing`; returns the latest result or `null`; no cancel/flush API.     |
 | `debounce`                | Delay invocation until calls stop                | Node.js-compatible | Third argument enables immediate invocation; returns the latest result or `null`; no cancel API. |
 | `invokeFn`                | Invoke a value only when it is a function        | Universal          | Forwards arguments and returns `null` for nullish/non-function input.                            |
-| `repeatUntilConditionMet` | Poll a callback until a condition or count limit | Node.js-compatible | Uses timers; validates finite non-negative interval/count; callback begins after the interval.   |
+| `repeatUntilConditionMet` | Poll a callback until a condition or count limit | Node.js-compatible | Returns idempotent cancellation. Defaults: 1000 ms, 10 calls, strict `true` condition. Delays follow callback completion; validates finite non-negative interval/count and retains fractional behavior. |
+
+`repeatUntilConditionMet` returns `() => void` on every existing validation and
+zero-iteration path as well as for active polling. Retain the cleanup for owner
+teardown. Cancellation clears pending timers and prevents condition evaluation
+or another iteration after an in-flight callback resolves. It does not abort
+callbacks, network requests, or side effects. Callback/condition exceptions
+remain unsuppressed. This timer utility works in browsers and Node.js; it does
+not provide `setInterval`, unlimited polling, or an `AbortSignal` contract.
 
 ## Validation and JSON
 
