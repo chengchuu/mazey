@@ -19,7 +19,7 @@ import {
   doFn, mNow, mTrim, removeHtml, truncateZHString,
   convertKebabToCamel, convert10To26, zAxiosIsValidRes,
   unsanitize, sanitizeInput, unsanitizeInput, escapeHtmlAttribute,
-  isFunction, isString, isBoolean, isUdfOrNul, toJavaScriptGlobalName,
+  isFunction, isString, isBoolean, isNullish, isUdfOrNul, toJavaScriptGlobalName,
 } from "../lib/index.esm";
 import { webcrypto } from "node:crypto";
 import { runInNewContext } from "vm";
@@ -1974,23 +1974,18 @@ describe("isBoolean", () => {
   });
 });
 
-describe("isUdfOrNul", () => {
-  it("should return true for undefined", () => {
-    const value = undefined;
-    const result = isUdfOrNul(value);
-    expect(result).toBe(true);
-  });
-
-  it("should return true for null", () => {
-    const value = null;
-    const result = isUdfOrNul(value);
-    expect(result).toBe(true);
-  });
-
-  it("should return false for a non-undefined and non-null value", () => {
-    const value = "not undefined or null";
-    const result = isUdfOrNul(value);
-    expect(result).toBe(false);
+describe("isNullish", () => {
+  it.each([
+    [ undefined, true ],
+    [ null, true ],
+    [ false, false ],
+    [ 0, false ],
+    [ "", false ],
+    [ Number.NaN, false ],
+    [ {}, false ],
+  ])("returns %p for %p", (value, expected) => {
+    expect(isNullish(value)).toBe(expected);
+    expect(isUdfOrNul(value)).toBe(expected);
   });
 });
 

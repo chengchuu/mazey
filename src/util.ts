@@ -5,7 +5,7 @@ import type {
   MazeyObject, MazeyFnParams, MazeyFnReturn, MazeyFunction,
   RepeatUntilOptions,
 } from "./typing";
-import { getDateTime, mNow } from "./date";
+import { getDateTime } from "./date";
 
 function createCloneCache(): WeakMap<object, unknown> {
   return new WeakMap<object, unknown>();
@@ -670,7 +670,7 @@ export function generateRndNum(n = 5): string {
  * @category Util
  */
 export function genUniqueNumString(n = 3): string {
-  const [ now, rnd ] = [ mNow(), generateRndNum(n || 3) ];
+  const [ now, rnd ] = [ Date.now(), generateRndNum(n || 3) ];
   return now + rnd;
 }
 
@@ -778,7 +778,7 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
   let timeout: ReturnType<typeof setTimeout> | null = null;
   let [ result, previous ] = [ null, 0 ];
   const later = function(this: unknown) {
-    previous = options.leading === false ? 0 : mNow();
+    previous = options.leading === false ? 0 : Date.now();
     timeout = null;
     result = func.apply(this as T, args!);
     if (!timeout) {
@@ -786,7 +786,7 @@ export function throttle<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
     }
   };
   return function(this: unknown, ...argRest: Parameters<T>) {
-    const now = mNow();
+    const now = Date.now();
     if (!previous && options.leading === false) {
       previous = now;
     }
@@ -838,7 +838,7 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
   let args: Parameters<T> | null = null;
   let result: ReturnType<T> | null = null;
   const later = function() {
-    const last = mNow() - (timestamp as number);
+    const last = Date.now() - (timestamp as number);
     if (last < wait && last >= 0) {
       timeout = setTimeout(later, wait - last);
     } else {
@@ -855,7 +855,7 @@ export function debounce<T extends (...args: MazeyFnParams) => MazeyFnReturn>(fu
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     context = this;
     args = argRest;
-    timestamp = mNow();
+    timestamp = Date.now();
     const callNow = immediate && !timeout;
     if (!timeout) {
       timeout = setTimeout(later, wait);
@@ -1132,16 +1132,16 @@ export function isBoolean(bool: MazeyObject): boolean {
 }
 
 /**
- * Verify the validity of a value.
+ * Return whether a value is exactly `undefined` or `null`.
  *
  * Usage:
  *
  * ```javascript
- * import { isUdfOrNul } from "mazey";
+ * import { isNullish } from "mazey";
  *
- * const ret1 = isUdfOrNul(undefined);
- * const ret2 = isUdfOrNul(null);
- * const ret3 = isUdfOrNul("abc");
+ * const ret1 = isNullish(undefined);
+ * const ret2 = isNullish(null);
+ * const ret3 = isNullish("abc");
  * console.log(ret1, ret2, ret3);
  * ```
  *
@@ -1151,12 +1151,27 @@ export function isBoolean(bool: MazeyObject): boolean {
  * true true false
  * ```
  *
+ * Other falsy values, including `false`, `0`, `NaN`, and an empty string,
+ * return `false`.
+ *
  * @param {MazeyObject} val The value to verify.
- * @returns {boolean} Return TRUE if the object is undefined or null.
+ * @returns {boolean} Whether the value is `undefined` or `null`.
+ * @category Util
+ */
+export function isNullish(val: MazeyObject): boolean {
+  return val === undefined || val === null;
+}
+
+/**
+ * Deprecated alias of {@link isNullish}.
+ *
+ * @deprecated Use `isNullish` instead.
+ * @param val The value to verify.
+ * @returns Whether the value is `undefined` or `null`.
  * @category Util
  */
 export function isUdfOrNul(val: MazeyObject): boolean {
-  return val === undefined || val === null;
+  return isNullish(val);
 }
 
 /**
@@ -1389,28 +1404,31 @@ export function escapeHtmlAttribute(
 }
 
 /**
- * Sanitizes user input to prevent XSS attacks.
+ * Escape ampersands, angle brackets, quotes, and forward slashes as HTML entities.
+ *
+ * This performs character escaping only. It does not sanitize arbitrary HTML,
+ * validate URLs, or make every HTML, JavaScript, or CSS context safe.
  *
  * Usage:
  *
  * ```javascript
- * import { sanitizeInput } from "mazey";
+ * import { escapeHTML } from "mazey";
  *
- * const ret = sanitizeInput("<div>hello world</div>");
+ * const ret = escapeHTML("<div>hello world</div>");
  * console.log(ret);
  * ```
  *
  * Output:
  *
  * ```text
- * &lt;div&gt;hello world&lt;/div&gt;
+ * &lt;div&gt;hello world&lt;&#x2F;div&gt;
  * ```
  *
- * @param input - The input string to sanitize
- * @returns The sanitized input string
+ * @param input The string to escape.
+ * @returns The escaped string.
  * @category Util
  */
-export function sanitizeInput(input: string): string {
+export function escapeHTML(input: string): string {
   const regex = /[&<>"'/]/g;
   const replacements: { [key: string]: string } = {
     "&": "&amp;",
@@ -1427,14 +1445,25 @@ export function sanitizeInput(input: string): string {
 }
 
 /**
- * Reverses the sanitization done by the `sanitizeInput` function.
+ * Deprecated alias of {@link escapeHTML}.
+ *
+ * @deprecated Use `escapeHTML` instead.
+ * @category Util
+ */
+export const sanitizeInput = escapeHTML;
+
+/**
+ * Decode the fixed HTML entity set emitted by {@link escapeHTML}.
+ *
+ * Decoding uses one pass and preserves unrecognized entities. This is not a
+ * general HTML entity decoder, and the result may contain active HTML markup.
  *
  * Usage:
  *
  * ```javascript
- * import { unsanitizeInput } from "mazey";
+ * import { unescapeHTML } from "mazey";
  *
- * const ret = unsanitizeInput("&lt;div&gt;hello world&lt;/div&gt;");
+ * const ret = unescapeHTML("&lt;div&gt;hello world&lt;&#x2F;div&gt;");
  * console.log(ret);
  * ```
  *
@@ -1444,11 +1473,11 @@ export function sanitizeInput(input: string): string {
  * <div>hello world</div>
  * ```
  *
- * @param input - The input string to unsanitize
- * @returns The unsanitized input string
+ * @param input The string containing escaped characters.
+ * @returns The decoded string.
  * @category Util
  */
-export function unsanitizeInput(input: string): string {
+export function unescapeHTML(input: string): string {
   const regex = /(&amp;|&lt;|&gt;|&quot;|&#x27;|&#x2F;)/g;
   const replacements: { [key: string]: string } = {
     "&amp;": "&",
@@ -1465,24 +1494,35 @@ export function unsanitizeInput(input: string): string {
 }
 
 /**
- * Alias of `unsanitizeInput`.
+ * Deprecated alias of {@link unescapeHTML}.
+ *
+ * @deprecated Use `unescapeHTML` instead.
+ * @category Util
+ */
+export const unsanitizeInput = unescapeHTML;
+
+/**
+ * Alias of `unescapeHTML`.
  *
  * @hidden
  */
 export function unsanitize(str: string): string {
-  return unsanitizeInput(str);
+  return unescapeHTML(str);
 }
 
 /**
- * Truncate a string by weighted length, counting non-ASCII characters as two
- * units.
+ * Truncate a string by weighted UTF-16 length.
+ *
+ * Code units from U+0000 through U+00FF count as one; all other code units
+ * count as two. Optional truncation text is appended after the length limit.
+ * This does not measure bytes or rendered width and can split surrogate pairs.
  *
  * Usage:
  *
  * ```javascript
- * import { cutZHString } from "mazey";
+ * import { truncateByWeightedLength } from "mazey";
  *
- * const ret = cutZHString("hello world", 5);
+ * const ret = truncateByWeightedLength("hello world", 5);
  * console.log(ret);
  * ```
  *
@@ -1499,7 +1539,7 @@ export function unsanitize(str: string): string {
  * @returns {string} The truncated string.
  * @category Util
  */
-export function cutZHString(str: string | null | undefined, len: number, options: { hasDot?: boolean, dotText?: string } = { hasDot: false, dotText: "..." }): string {
+export function truncateByWeightedLength(str: string | null | undefined, len: number, options: { hasDot?: boolean, dotText?: string } = { hasDot: false, dotText: "..." }): string {
   options = Object.assign({ hasDot: false, dotText: "..." }, options);
   if (str == "" || !str) {
     return "";
@@ -1531,7 +1571,15 @@ export function cutZHString(str: string | null | undefined, len: number, options
 }
 
 /**
- * Alias of `cutZHString`.
+ * Deprecated alias of {@link truncateByWeightedLength}.
+ *
+ * @deprecated Use `truncateByWeightedLength` instead.
+ * @category Util
+ */
+export const cutZHString = truncateByWeightedLength;
+
+/**
+ * Alias of `truncateByWeightedLength`.
  *
  * Usage:
  *
@@ -1555,7 +1603,7 @@ export function cutZHString(str: string | null | undefined, len: number, options
  * @hidden
  */
 export function truncateZHString(str: string | null | undefined, len: number, hasDot = false): string {
-  return cutZHString(str, len, { hasDot });
+  return truncateByWeightedLength(str, len, { hasDot });
 }
 
 /**
@@ -1827,17 +1875,20 @@ export async function sha256Hex(input: string | BufferSource): Promise<string> {
 }
 
 /**
- * Check if the given string is a mobile phone number.
+ * Check whether a string has the 11-digit Chinese mobile-number format.
+ *
+ * The pattern requires a leading `1` followed by ten digits. It does not
+ * verify assigned prefixes, ownership, reachability, or international formats.
  *
  * Usage:
  *
  * ```javascript
- * import { isValidPhoneNumber } from "mazey";
+ * import { isCNMobileNumber } from "mazey";
  *
- * const ret1 = isValidPhoneNumber("13800138000");
- * const ret2 = isValidPhoneNumber("1380013800");
- * const ret3 = isValidPhoneNumber("138001380000");
- * const ret4 = isValidPhoneNumber("1380013800a");
+ * const ret1 = isCNMobileNumber("13800138000");
+ * const ret2 = isCNMobileNumber("1380013800");
+ * const ret3 = isCNMobileNumber("138001380000");
+ * const ret4 = isCNMobileNumber("1380013800a");
  * console.log(ret1, ret2, ret3, ret4);
  * ```
  *
@@ -1847,25 +1898,33 @@ export async function sha256Hex(input: string | BufferSource): Promise<string> {
  * true false false false
  * ```
  *
- * @param mobile
- * @returns {boolean} Return true if the given string is a mobile phone number.
+ * @param mobile The string to check.
+ * @returns Whether the string matches the Chinese mobile-number format.
  * @category Util
  */
-export function isValidPhoneNumber(mobile: string): boolean {
+export function isCNMobileNumber(mobile: string): boolean {
   const reg = /^1\d{10}$/;
   return reg.test(mobile);
 }
 
 /**
- * Deprecated alias of {@link isValidPhoneNumber}.
+ * Deprecated alias of {@link isCNMobileNumber}.
+ *
+ * @deprecated Use `isCNMobileNumber` instead.
+ * @category Util
+ */
+export const isValidPhoneNumber = isCNMobileNumber;
+
+/**
+ * Deprecated alias of {@link isCNMobileNumber}.
  *
  * This helper validates an 11-digit Chinese mobile-shaped number. It does not
  * detect a browser's device form factor; use `isPhone` for that purpose.
  *
- * @deprecated Use `isValidPhoneNumber` instead.
+ * @deprecated Use `isCNMobileNumber` instead.
  * @category Util
  */
-export const isMobile = isValidPhoneNumber;
+export const isMobile = isCNMobileNumber;
 
 /**
  * Check if the given string is a valid email.

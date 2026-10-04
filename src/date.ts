@@ -415,14 +415,14 @@ export function subYears(date: Date | number, amount: number): Date {
 }
 
 /**
- * Get the current timestamp in milliseconds.
+ * Return the current timestamp in milliseconds.
+ *
+ * This compatibility helper delegates to native `Date.now()`.
  *
  * Usage:
  *
  * ```javascript
- * import { mNow } from "mazey";
- *
- * const ret = mNow();
+ * const ret = Date.now();
  * console.log(ret);
  * ```
  *
@@ -433,6 +433,7 @@ export function subYears(date: Date | number, amount: number): Date {
  * ```
  *
  * @returns {number} The current timestamp in milliseconds.
+ * @deprecated Use `Date.now()` instead.
  * @category Util
  */
 export function mNow(): number {

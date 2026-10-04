@@ -137,10 +137,6 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-self.addEventListener("message", (event) => {
-  if (event.data?.type === "SKIP_WAITING") self.skipWaiting();
-});
-
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   if (!isProjectRequest(request)) return;

@@ -88,6 +88,12 @@ test("app-shell installation precaches API entry dependencies", async () => {
   }
 });
 
+test("service worker has no forced-update message handler", () => {
+  const { listeners, self } = evaluateWorker();
+  expect(listeners.message).toBeUndefined();
+  expect(self.skipWaiting).not.toHaveBeenCalled();
+});
+
 test("service worker ignores unsafe or out-of-scope requests", () => {
   const { listeners } = evaluateWorker();
   const respondWith = jest.fn();
