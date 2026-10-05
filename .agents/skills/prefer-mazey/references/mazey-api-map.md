@@ -1,6 +1,6 @@
 # Mazey API Map
 
-This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 187 runtime exports in the current repository: 185 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
+This discovery index was verified against the flat exports from `src/index.ts` and the defining source modules. It covers all 190 runtime exports in the current repository: 188 functions and 2 console constants. Always confirm the installed Mazey version's declarations or source before use.
 
 Prefer the canonical names `isCNMobileNumber`, `escapeHTML`, `unescapeHTML`,
 `createCSSRule`, `getBrowserClassNames`, `getURLPathExtension`, and
@@ -9,6 +9,11 @@ names remain deprecated direct aliases: `isValidPhoneNumber`, `sanitizeInput`,
 `unsanitizeInput`, `genStyleString`, `genBrowserAttrs`, `getUrlFileType`, and
 `cutZHString`, respectively. Both names in each pair share one function object
 and the same signature and behavior.
+
+Also prefer `convertCamelToSnake`, `convertSnakeToCamel`, and `formatPercentage`.
+Their deprecated direct aliases are `convertCamelToUnder`, `convertUnderToCamel`,
+and `floatToPercent`, respectively. Each pair shares one function object and
+signature. All three utilities are usable in browsers and Node.js.
 
 ## Contents
 
@@ -107,7 +112,7 @@ const isMobile: typeof isCNMobileNumber;
 | -------------------- | --------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
 | `genRndNumString`    | Generate a random decimal-digit string                    | Universal          | Floors positive finite length; non-cryptographic `Math.random`; invalid length returns empty.               |
 | `genUniqueNumString` | Combine current milliseconds with random digits           | Universal          | Not guaranteed unique and not suitable for security identifiers.                                            |
-| `floatToPercent`     | Convert a fraction to a percentage string                 | Universal          | Without `fixSize`, floors after multiplying by 100; with it, uses `toFixed`.                                |
+| `formatPercentage` | Format a ratio as a percentage string | Universal | Precision defaults to 0. Falsy precision floors after multiplying by 100, including negatives; truthy precision uses native `toFixed`, retaining zeros and precision exceptions. |
 | `floatFixed`         | Format a number/string to fixed decimals                  | Universal          | Uses `parseFloat(...).toFixed(size)` and returns a string.                                                  |
 | `getFileSize`        | Deprecated alias of `formatByteSize`                      | Universal          | Accepts the same options and returns the same result; use `formatByteSize` in new code.                      |
 | `formatByteSize`     | Format bytes with configurable scale and precision        | Universal          | Defaults to base 1024 and one decimal for scaled values; zero is `0 B`; invalid input returns the configured fallback. |
@@ -121,8 +126,8 @@ const isMobile: typeof isCNMobileNumber;
 | --------------------- | --------------------------------------------- | --------- | ----------------------------------------------------------------------- |
 | `convertCamelToKebab` | Convert camel/Pascal case to kebab case       | Universal | Inserts separators before capitals and lowercases.                      |
 | `convertKebabToCamel` | Convert kebab case to camel case              | Universal | Handles lowercase letters after `-`; trims one trailing hyphen.         |
-| `convertCamelToUnder` | Convert camel/Pascal case to snake case       | Universal | Inserts underscores before capitals and lowercases.                     |
-| `convertUnderToCamel` | Convert snake case to camel case              | Universal | Handles lowercase letters after `_`.                                    |
+| `convertCamelToSnake` | Convert camel/Pascal case to snake case | Universal | Inserts underscores before uppercase ASCII letters, lowercases, and removes one leading underscore. `XMLParser` becomes `x_m_l_parser`. |
+| `convertSnakeToCamel` | Convert snake case to camel case | Universal | Replaces `_` followed by a lowercase ASCII letter; preserves unmatched underscores and other characters. |
 | `toJavaScriptGlobalName` | Convert text to an uppercase ASCII identifier | Universal | Replaces invalid identifier characters with `_`, preserves `$`/`_`, and prefixes leading digits. |
 | `convertToHtmlBreaks` | Replace line breaks with `<br />`             | Universal | Returns empty for falsy input; does not escape HTML.                    |
 | `removeHTML`          | Strip HTML-like tags from text                | Universal | Regex-based, optional newline removal; not an HTML parser or sanitizer. |
@@ -406,7 +411,10 @@ These names are exported by the flat package entry but are aliases or `@hidden` 
 | `mNow`                        | Deprecated current-time wrapper         | Universal          | Prefer native `Date.now()`.                                                               |
 | `deepCopyObject`              | Compatibility alias                     | Universal          | Prefer `deepCopy`.                                                                        |
 | `camelCaseToKebabCase`        | Compatibility alias                     | Universal          | Prefer `convertCamelToKebab`.                                                             |
-| `camelCase2Underscore`        | Compatibility alias                     | Universal          | Prefer `convertCamelToUnder`.                                                             |
+| `camelCase2Underscore` | Compatibility alias | Universal | Prefer `convertCamelToSnake`. |
+| `convertCamelToUnder` | Deprecated direct alias | Universal | Prefer `convertCamelToSnake`; same function object and signature. |
+| `convertUnderToCamel` | Deprecated direct alias | Universal | Prefer `convertSnakeToCamel`; same function object and signature. |
+| `floatToPercent` | Deprecated direct alias | Universal | Prefer `formatPercentage`; same function object and signature. |
 | `mTrim`                       | Trim leading and trailing whitespace    | Universal          | Hidden from docs; delegates to `String.prototype.trim`.                                   |
 | `isJsonString`                | Compatibility alias                     | Universal          | Prefer `isJSONString`.                                                                    |
 | `setSessionStorage`           | Compatibility alias                     | Browser-only       | Prefer `setSessionJSON`.                                                                  |

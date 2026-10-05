@@ -92,7 +92,9 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [debounce](#debounce)
   - [throttle](#throttle)
   - [convertCamelToKebab](#convertcameltokebab)
-  - [convertCamelToUnder](#convertcameltounder)
+  - [convertCamelToSnake](#convertcameltosnake)
+  - [convertSnakeToCamel](#convertsnaketocamel)
+  - [formatPercentage](#formatpercentage)
   - [toJavaScriptGlobalName](#tojavascriptglobalname)
 - [URL](#url)
   - [getQueryParam](#getqueryparam)
@@ -599,15 +601,17 @@ a-b-c
 a-b-c
 ```
 
-#### convertCamelToUnder
+#### convertCamelToSnake
 
-将驼峰命名转换为下划线命名。
+在每个 ASCII 大写字母前插入下划线，将结果转换为小写，并删除第一个前导下划线。
+`XMLParser` 转换为 `x_m_l_parser`，其余已有下划线保留。
+`convertCamelToUnder` 保留为弃用的直接别名，`camelCase2Underscore` 仍可使用。
 
 用法:
 
 ```javascript
-const ret1 = convertCamelToUnder("ABC");
-const ret2 = convertCamelToUnder("aBC");
+const ret1 = convertCamelToSnake("ABC");
+const ret2 = convertCamelToSnake("aBC");
 console.log(ret1);
 console.log(ret2);
 ```
@@ -617,6 +621,30 @@ console.log(ret2);
 ```text
 a_b_c
 a_b_c
+```
+
+#### convertSnakeToCamel
+
+将下划线及其后的 ASCII 小写字母替换为大写字母，其他字符保持不变。
+`convertUnderToCamel` 保留为弃用的直接别名。
+
+```javascript
+convertSnakeToCamel("a_b_c"); // "aBC"
+convertSnakeToCamel("a__b_"); // "a_B_"
+```
+
+#### formatPercentage
+
+将数值比率乘以 100 并添加 `%`。小数位数默认为 `0`。
+小数位数为假值时使用 `Math.floor`，负数也向下取整；为真值时使用原生 `toFixed`，
+保留末尾零、浮点数行为，以及不支持的小数位数导致的异常。
+`floatToPercent` 保留为弃用的直接别名。
+
+```javascript
+formatPercentage(0.129); // "12%"
+formatPercentage(-0.129); // "-13%"
+formatPercentage(0.125, 1); // "12.5%"
+formatPercentage(0.12, 2); // "12.00%"
 ```
 
 #### toJavaScriptGlobalName
@@ -1097,7 +1125,7 @@ CAGR = (1 + totalReturnRate)^(365 / durationInDays) - 1
 数值输入使用十进制比率，因此 `0.202` 表示 `20.2%`。字符串输入使用百分比数值，因此 `"20.2%"` 和 `"20.2"` 都表示 `20.2%`；也支持 `"2.02e1%"` 这类严格的科学记数法。返回的 CAGR 是未经舍入的十进制比率。
 
 ```javascript
-import { calculateCAGR, floatToPercent } from "mazey";
+import { calculateCAGR, formatPercentage } from "mazey";
 
 const cagr = calculateCAGR(
   "2022-04-01",
@@ -1107,7 +1135,7 @@ const cagr = calculateCAGR(
 
 console.log({
   cagr,
-  percentage: floatToPercent(cagr, 2),
+  percentage: formatPercentage(cagr, 2),
 });
 ```
 

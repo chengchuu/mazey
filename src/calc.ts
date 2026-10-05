@@ -120,7 +120,7 @@ function parseInvestmentReturnRate(value: InvestmentReturnRate): number {
  * ```typescript
  * import {
  *   calculateCAGR,
- *   floatToPercent,
+ *   formatPercentage,
  * } from "mazey";
  *
  * const cagr = calculateCAGR(
@@ -143,7 +143,7 @@ function parseInvestmentReturnRate(value: InvestmentReturnRate): number {
  *   cagr,
  *   equivalentCagr,
  *   negativeCagr,
- *   percentage: floatToPercent(cagr, 2),
+ *   percentage: formatPercentage(cagr, 2),
  * });
  * ```
  *

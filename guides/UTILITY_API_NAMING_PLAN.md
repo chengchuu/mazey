@@ -48,6 +48,30 @@ The implementation preserves the compatibility policy and these behaviors:
 
 ## Implementation
 
+### Case conversion and percentage formatting
+
+| Canonical name | Deprecated direct alias |
+| --- | --- |
+| `convertCamelToSnake` | `convertCamelToUnder` |
+| `convertSnakeToCamel` | `convertUnderToCamel` |
+| `formatPercentage` | `floatToPercent` |
+
+Each pair shares one function object, signature, and unchanged implementation.
+Camel conversion inserts an underscore before every uppercase ASCII letter,
+lowercases the result, and removes one leading underscore; `XMLParser` becomes
+`x_m_l_parser`. Snake conversion replaces only underscores followed by lowercase
+ASCII letters, preserving other characters. `camelCase2Underscore` retains its
+delegating behavior and uses the canonical function.
+
+Percentage formatting multiplies the ratio by 100 and appends `%`. Precision
+defaults to `0`; falsy precision uses `Math.floor`, including for negative values,
+and truthy precision uses native `toFixed`, retaining trailing zeros,
+floating-point behavior, and unsupported-precision exceptions.
+`genHashCode` remains unchanged. The catalog contains 190 runtime exports:
+188 functions and two console constants.
+
+### Shared implementation requirements
+
 1. Add the canonical functions in their current owning modules and expose them through the flat package-root API. Preserve each existing function's parameters, return type, and runtime behavior. In particular, do not change DOM target handling, the `Math.random() < rate` calculation, or the exact nullish check.
 2. Make the old names delegate to the canonical implementations, or otherwise share one implementation without duplicating logic. Mark the old names with TypeDoc `@deprecated` guidance naming the replacement. Mark `mNow` deprecated with `Date.now()` as its replacement; it remains a callable export.
 3. Replace Mazey's internal `mNow()` calls with `Date.now()` without changing timer or identifier behavior. Do not add a wrapper around `Date.now()`.
