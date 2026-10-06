@@ -1,6 +1,6 @@
 {
   "name": "mazey",
-  "version": "5.10.2",
+  "version": "5.10.3",
   "description": "A functional library for daily frontend work.",
   "main": "lib/index.cjs.js",
   "module": "lib/index.esm.js",
@@ -140,6 +140,6 @@
     "typescript": "5.3.2",
     "webpack": "^5.111.1",
     "webpack-cli": "^5.1.4",
-    "webpack-dev-server": "^4.15.1"
+    "webpack-dev-server": "^5.2.6"
   }
 }
