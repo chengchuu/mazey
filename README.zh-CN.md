@@ -91,6 +91,7 @@ isNumber(z, { isInfinityAsNumber: true }); // 输出: true
   - [deepFreeze](#deepfreeze)
   - [debounce](#debounce)
   - [throttle](#throttle)
+  - [repeatUntilConditionMet](#repeatuntilconditionmet)
   - [convertCamelToKebab](#convertcameltokebab)
   - [convertCamelToSnake](#convertcameltosnake)
   - [convertSnakeToCamel](#convertsnaketocamel)
@@ -566,6 +567,28 @@ const foo = debounce(() => {
   console.log("防抖函数会在 1,000 毫秒内仅执行一次，等待期间的其他调用不会生效。");
 }, 1000, true);
 ```
+
+#### repeatUntilConditionMet
+
+按顺序轮询，直到结果严格等于 `true`、自定义条件满足，或达到调用次数上限。
+默认间隔为 1000 毫秒，调用次数上限为 10 次。首次调用等待一个间隔；
+后续间隔从前一次回调完成后开始计算。
+
+```typescript
+const cancelPolling = repeatUntilConditionMet(
+  fetchStatus,
+  { interval: 1000, times: 10 },
+  result => result === true
+);
+
+// During component unmount or owner teardown:
+cancelPolling();
+```
+
+返回的清理函数可重复调用。它会清除待执行的定时器，并在正在执行的回调完成后，
+阻止条件判断和后续轮询。它不会中止当前回调、取消网络请求或撤销副作用。
+现有验证失败和调用次数为零的路径也返回安全的清理函数，不安排定时器。
+回调和条件函数的异常保持原有行为，不会被抑制。
 
 #### throttle
 

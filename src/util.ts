@@ -2039,14 +2039,21 @@ export function getCurrentVersion(): string {
 }
 
 /**
- * Repeatedly fires a callback function with a certain interval until a specified condition is met.
+ * Poll a callback until a condition succeeds, the count limit is reached, or polling is cancelled.
+ *
+ * The first invocation waits for the interval. Subsequent delays start after
+ * the previous callback completes, so callbacks do not overlap.
+ * Cancellation clears pending timers and skips the condition and further
+ * polling after an in-flight callback resolves. It does not abort that callback,
+ * its network requests, or its side effects. Callback and condition exceptions
+ * remain unsuppressed in the asynchronous timer handler.
  *
  * Usage:
  *
  * ```javascript
  * import { repeatUntilConditionMet } from "mazey";
  *
- * repeatUntilConditionMet(
+ * const cancelPolling = repeatUntilConditionMet(
  *   () => {
  *     console.log("repeatUntilConditionMet");
  *     return true;
@@ -2059,11 +2066,18 @@ export function getCurrentVersion(): string {
  *     return result === true;
  *   }
  * );
+ *
+ * // During component unmount or owner teardown:
+ * cancelPolling();
  * ```
  *
  * @param callback The callback function to fire.
- * @param options Controls the interval, maximum invocation count, callback context, and callback arguments.
- * @param condition A function that takes the result of the callback function as its argument and returns a boolean value indicating whether the condition has been met. Defaults to a function that always returns true.
+ * @param options Controls the interval (default 1000 ms), maximum invocation
+ * count (default 10), callback context, and callback arguments.
+ * @param condition Test the callback result. Defaults to `result === true`.
+ * @returns An idempotent cancellation function, including for validation failures
+ * and zero iterations. Invalid callbacks or non-finite/negative interval/count
+ * values retain their validation messages and schedule no timer.
  * @category Util
  */
 export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => MazeyFnReturn>(
@@ -2072,33 +2086,53 @@ export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => Ma
   condition: (result: ReturnType<T>) => boolean = res => {
     return res === true;
   }
-): void {
+): () => void {
   const { interval = 1000, times = 10, context, args } = options;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
+
+  const cancel = () => {
+    stopped = true;
+    if (timer !== undefined) {
+      clearTimeout(timer);
+      timer = undefined;
+    }
+  };
+
   if (typeof callback !== "function") {
     console.error("Expected a function.");
-    return;
+    cancel();
+    return cancel;
   }
 
   if (!Number.isFinite(interval) || interval < 0) {
     console.error("Expected a non-negative number for interval.");
-    return;
+    cancel();
+    return cancel;
   }
 
   if (!Number.isFinite(times) || times < 0) {
     console.error("Expected a non-negative number for times.");
-    return;
+    cancel();
+    return cancel;
   }
 
   if (times === 0) {
-    return;
+    cancel();
+    return cancel;
   }
 
   let count = 0;
 
   const clearAndInvokeNext = () => {
-    setTimeout(async () => {
+    if (stopped) return;
+    timer = setTimeout(async () => {
+      timer = undefined;
+      if (stopped) return;
       const result = await callback.apply(context, args as MazeyFnParams);
+      if (stopped) return;
       if (condition(result) || ++count >= times) {
+        cancel();
         return;
       }
       clearAndInvokeNext();
@@ -2106,6 +2140,7 @@ export function repeatUntilConditionMet<T extends (...args: MazeyFnParams) => Ma
   };
 
   clearAndInvokeNext();
+  return cancel;
 }
 
 /**
