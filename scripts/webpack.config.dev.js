@@ -59,6 +59,8 @@ const templateParameters = {
   THEME_STORAGE_KEY_JSON: JSON.stringify(projectConfig.site.theme.storageKey),
 };
 const runtimeConfig = {
+  basePath: pagesBase,
+  quickAccessStorageKey: projectConfig.site.quickAccessStorageKey,
   installCommand: projectConfig.package.installCommand,
   themeStorageKey: projectConfig.site.theme.storageKey,
   pwa: {

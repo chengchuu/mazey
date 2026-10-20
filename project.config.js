@@ -130,6 +130,7 @@ module.exports = Object.freeze({
     url: siteUrl.href,
     basePath,
     markerPrefix: packageConfig.bundleBaseName,
+    quickAccessStorageKey: `${packageConfig.bundleBaseName}:quick-access`,
     pages,
     theme,
   },
