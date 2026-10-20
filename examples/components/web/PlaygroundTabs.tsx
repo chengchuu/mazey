@@ -1,19 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
 import type { KeyboardEvent } from "react";
+import { playgroundTabs } from "../../../site/quick-access";
+import type { PlaygroundTabId } from "../../../site/quick-access";
+import { SITE_RUNTIME_CONFIG } from "../../../site/runtime-config";
+import { useQuickAccess } from "../hooks/useQuickAccess";
 
 import { AspectRatioExample } from "./AspectRatioExample";
 import { CAGRExample } from "./CAGRExample";
 import { DateIntervalExample } from "./DateIntervalExample";
 import { ExamplePanel } from "./ExamplePanel";
 
-export type PlaygroundTabId = "date-interval" | "cagr" | "aspect-ratio";
-
-const playgroundTabs = [
-  { id: "date-interval", label: "Date interval" },
-  { id: "cagr", label: "CAGR" },
-  { id: "aspect-ratio", label: "Aspect ratio" },
-] as const;
+export type { PlaygroundTabId } from "../../../site/quick-access";
 
 export function parsePlaygroundTabHash(hash: string): PlaygroundTabId | null {
   const id = hash.startsWith("#") ? hash.slice(1) : hash;
@@ -39,8 +37,35 @@ function replaceTabHash(tabId: PlaygroundTabId): void {
 }
 
 export function PlaygroundTabs(): React.JSX.Element {
+  const {
+    standalone,
+    selected: quickAccess,
+    error: storageError,
+    toggle,
+  } = useQuickAccess(SITE_RUNTIME_CONFIG.quickAccessStorageKey);
   const [activeTab, setActiveTab] = useState<PlaygroundTabId>(readInitialTab);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
+  const quickAccessControl = standalone ? (
+    <div className="border-top mt-4 pt-3">
+      <button
+        type="button"
+        className={`btn ${
+          quickAccess === activeTab ? "btn-primary" : "btn-outline-primary"
+        }`}
+        aria-pressed={quickAccess === activeTab}
+        onClick={() => toggle(activeTab)}
+      >
+        Quick access
+      </button>
+      <p className="small text-muted mt-2 mb-0">
+        {quickAccess === activeTab
+          ? "Enabled. This module opens when the app starts. Click again to disable."
+          : "Open this module when the app starts."}
+      </p>
+      {storageError && <p role="alert">{storageError}</p>}
+    </div>
+  ) : null;
 
   useEffect(() => {
     const handleHashChange = (): void => {
@@ -129,6 +154,7 @@ export function PlaygroundTabs(): React.JSX.Element {
           active={activeTab === "date-interval"}
         >
           <DateIntervalExample />
+          {activeTab === "date-interval" && quickAccessControl}
         </ExamplePanel>
         <ExamplePanel
           id="cagr"
@@ -136,6 +162,7 @@ export function PlaygroundTabs(): React.JSX.Element {
           active={activeTab === "cagr"}
         >
           <CAGRExample />
+          {activeTab === "cagr" && quickAccessControl}
         </ExamplePanel>
         <ExamplePanel
           id="aspect-ratio"
@@ -143,6 +170,7 @@ export function PlaygroundTabs(): React.JSX.Element {
           active={activeTab === "aspect-ratio"}
         >
           <AspectRatioExample />
+          {activeTab === "aspect-ratio" && quickAccessControl}
         </ExamplePanel>
       </div>
     </section>
