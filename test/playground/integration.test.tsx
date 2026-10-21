@@ -3,6 +3,10 @@
 
 import "@testing-library/jest-dom";
 
+jest.mock("../../site/runtime-config", () => ({
+  SITE_RUNTIME_CONFIG: { quickAccessStorageKey: "test:quick-access" },
+}));
+
 import fs from "node:fs";
 import path from "node:path";
 import { cleanup, render, screen } from "@testing-library/react";
