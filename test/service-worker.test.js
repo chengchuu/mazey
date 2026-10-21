@@ -227,6 +227,35 @@ test("offline responses come only from the current Mazey cache", async () => {
   expect(caches.match).not.toHaveBeenCalled();
 });
 
+test.each(["playground/?theme=dark", "?home=1"])(
+  "offline navigation to %s uses its precached page before the homepage fallback",
+  async (relativeUrl) => {
+    const { fetch, listeners, runtimeCache } = evaluateWorker();
+    const url = new URL(relativeUrl, projectConfig.site.url);
+    const page = { source: url.pathname };
+    const home = { source: "fallback homepage" };
+    runtimeCache.match.mockImplementation(async (key) => {
+      if (key === url.pathname) return page;
+      if (key === projectConfig.site.basePath) return home;
+      return undefined;
+    });
+    fetch.mockRejectedValue(new Error("Offline"));
+    let responsePromise;
+    listeners.fetch({
+      request: {
+        destination: "document",
+        method: "GET",
+        mode: "navigate",
+        url: url.href,
+      },
+      respondWith: (promise) => {
+        responsePromise = promise;
+      },
+    });
+    await expect(responsePromise).resolves.toBe(page);
+  }
+);
+
 test("activation removes only obsolete Mazey caches", async () => {
   const { caches, listeners, self } = evaluateWorker();
   let activation;
