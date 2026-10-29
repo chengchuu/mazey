@@ -83,6 +83,11 @@ async function networkFirst(request) {
     const cached = await matchCurrentCache(request);
     if (cached) return cached;
     if (request.mode === "navigate") {
+      const url = new URL(request.url);
+      if (url.search && APP_SHELL_PATHS.has(url.pathname)) {
+        const page = await matchCurrentCache(url.pathname);
+        if (page) return page;
+      }
       const home = await matchCurrentCache(PROJECT_BASE);
       if (home) return home;
     }

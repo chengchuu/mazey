@@ -1,4 +1,12 @@
 import { SITE_RUNTIME_CONFIG } from "./runtime-config";
+import { getQuickAccessDestination } from "./quick-access";
+
+const quickAccessDestination = getQuickAccessDestination(
+  new URL(window.location.href),
+  SITE_RUNTIME_CONFIG.basePath,
+  SITE_RUNTIME_CONFIG.quickAccessStorageKey
+);
+if (quickAccessDestination) window.location.replace(quickAccessDestination);
 
 const copyButton = document.querySelector<HTMLButtonElement>(
   "[data-copy-install]"

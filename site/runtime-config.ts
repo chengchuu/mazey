@@ -1,6 +1,8 @@
 import type { SitePwaConfig } from "./pwa";
 
 export interface SiteRuntimeConfig {
+  basePath: string;
+  quickAccessStorageKey: string;
   installCommand: string;
   themeStorageKey: string;
   pwa: SitePwaConfig;
